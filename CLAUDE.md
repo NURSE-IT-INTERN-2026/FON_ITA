@@ -17,26 +17,43 @@
 **Deployment target:** Mount under `/fonita` of faculty domain (`https://service.nurse.cmu.ac.th/fonita`). Reverse proxy managed by ops team.
 
 Full specs in `docs/`:
-- `docs/specs/spec.md` — complete technical spec (source of truth)
+- **`docs/rules/decisions.md` — decision log (D1–D10). Wins over every other doc when they conflict.**
+- `docs/specs/spec.md` — complete technical spec
+- `docs/specs/_features.md` — live feature tracker (F1–F33)
 - `docs/specs/PRD.md` — product requirements (boss-facing)
 - `docs/specs/status.md` — current development status
 - `docs/chapters/00-overview.md` to `14-open-questions.md` — 15 chapter details
 - `docs/chapters/05-public-api.md` — Public API contract (frozen, 100% compat with old Laravel)
 - `docs/features/api-streaming.md` — optional streaming variant
 
+Doc precedence when they disagree:
+`CLAUDE.md` / `AGENTS.md` → `docs/rules/decisions.md` → `docs/rules/*` → `docs/specs/` → `docs/chapters/`
+
+`specs/spec.md` and `chapters/` were written first and still lag in places — every conflict found so
+far is resolved in `decisions.md`.
+
 ---
 
 ## Phasing
 
-See `docs/specs/status.md` for current status.
+`docs/specs/_features.md` is the live feature tracker (F1–F33) — check it before starting work.
+`docs/specs/status.md` has the narrative status.
 
-- **Phase 1 (foundation — DONE):** Next.js setup, CMU OAuth login/logout, basePath `/fonita`, env scaffolding
-- **Phase 2 (in progress):** Prisma + PostgreSQL schema, server actions, UI migration from Lovable
-- **Phase 3 (later):** Public API endpoints, streaming variant, production deploy + data migration from MySQL
+Actual state (verify against the tracker rather than trusting this list):
 
-**Dev setup:** `basePath: /fonita`, run with `npm run dev`. Default port per project config.
+- **F1 — DONE:** Prisma + PostgreSQL schema, migration `init`, `src/lib/prisma.ts`
+- **F2–F4 — NOT DONE:** `basePath: /fonita` is **not yet in `next.config.ts`**; shell layout and
+  shadcn primitives are not in `src/` yet
+- **Phase 2 (auth, F5–F12), Phase 3–5 (ITA/OIT, files, users), Phase 6 (Public API):** not started
 
-**OAuth credentials** will be in `.env.local` — NEVER read directly. Use `.env.example` as reference.
+**Dev setup:**
+```bash
+npm run db:up      # Postgres 16 in Docker (container `fonita-pg`)
+npm run dev
+```
+
+**`.env.local` holds real secrets — NEVER read it.** Use `.env.example` as the reference for what
+variables exist. If env values need checking or fixing, ask the user to do it manually.
 
 ---
 
@@ -59,13 +76,21 @@ Read the SKILL.md files for every topic that applies to your task:
 
 ### Step 2: Read project docs
 
-1. `docs/specs/spec.md` — full technical spec (source of truth)
-2. `docs/specs/PRD.md` — product requirements
+0. **`docs/rules/decisions.md` — read FIRST. Overrides anything below it that disagrees.**
+1. `docs/specs/spec.md` — full technical spec
+2. `docs/specs/_features.md` — feature tracker; find the F-number you are implementing
 3. `docs/specs/status.md` — what's done vs not done
-4. `docs/chapters/02-data-model.md` — Prisma schema (**PostgreSQL override** — use real `enum`, not String)
-5. `docs/chapters/03-auth-rbac.md` — auth mechanism + RBAC matrix
-6. `docs/chapters/04-features-routes.md` — route map (Laravel → Next.js)
-7. `docs/chapters/05-public-api.md` — Public API contract (FROZEN)
+4. `docs/specs/PRD.md` — product requirements
+5. `docs/chapters/02-data-model.md` — Prisma schema (**PostgreSQL** — real `enum`, not String)
+6. `docs/chapters/03-auth-rbac.md` — auth mechanism + RBAC matrix
+7. `docs/chapters/04-features-routes.md` — route map (Laravel → Next.js)
+8. `docs/chapters/05-public-api.md` — Public API contract (FROZEN)
+
+> ⚠️ **Two skills are stale — they belong to a different project ("Research Tools") and were never
+> adapted:** `implement-feature/SKILL.md` (references Supabase Auth, roles `ADMIN`/`BORROWER`,
+> `src/lib/db.ts`, `docs/ui-pages.md`) and `custom-auth/prisma-schema.md` (enum
+> `super_admin`/`admin`/`student`). Use their generic workflow only — for anything project-specific,
+> FON-ITA docs win. See `docs/rules/adapt-custom-auth-skill.md` for how they should be rewritten.
 
 ### Step 3: Read existing code
 
@@ -146,21 +171,33 @@ For every feature the user asks you to implement:
 
 ---
 
-## Lovable Reference
+## `_migration/` — staging area
 
-A Lovable-generated project (`fonita-loveableui/`) exists as **UI/design reference only**.
+The original Lovable project (`fonita-loveableui/`) is **not in this repo**. What survives of it is
+already extracted into **`_migration/src/`** — that is the only reference source available:
 
-### What to use from Lovable
-- UI structure, layout patterns, visual design, page behavior
-- shadcn/ui primitives (already copied into `src/components/ui/`)
-- Page layouts (in `fonita-loveableui/src/routes/`)
+```
+_migration/src/components/ui/     shadcn primitives (17 files)
+_migration/src/components/{shell,feature,misc}/  ported Lovable components
+_migration/src/lib/               utils, date, sanitize, file
+_migration/src/lib/auth/          CMU OAuth helpers
+_migration/src/app/               login page + /api/auth routes
+```
 
-### What NEVER to copy from Lovable
-- TanStack Router / TanStack Start (entry files, route definitions)
-- Supabase Auth logic or client setup
-- `src/lib/api.ts`, `src/lib/password.ts` (mock APIs)
-- `src/mocks/*` (localStorage data)
+`_migration/` is excluded from `tsconfig.json` and ESLint, and gitignored. It is **staging, not app
+code** — nothing there runs until it is moved into `src/`. Delete the folder once everything is moved.
+
+**Follow `docs/migration/file-manifest.md`** — it marks each file ✅ copy / 🟡 convert / 🔴 rewrite.
+
+### Must be rewritten, not copied (🔴)
+- `_migration/src/lib/auth/session.ts` — implements **JWT/HMAC**, which violates the opaque-token +
+  DB Session rule (`docs/rules/decisions.md` D2)
+- `_migration/src/app/api/auth/callback/route.ts` — signs a session straight from CMU basicinfo
+  **without matching a `users` row or checking `status`**, which would let any CMU account in (D6)
+
+### Never bring across
+- TanStack Router / TanStack Start, Supabase client or auth
+- `lib/api.ts`, `lib/password.ts` (mock), `mocks/*` (localStorage)
 - `lovable-error-reporting.ts`, `error-capture.ts`, `error-page.ts`
-- Any data-fetching/routing/auth code
 
-Convert Lovable pages into Next.js App Router manually. See `file-manifest.md` for the file-by-file action plan.
+Convert pages into App Router manually — use the old layouts for visual reference only.

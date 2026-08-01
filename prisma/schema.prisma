@@ -1,0 +1,125 @@
+// FON-ITA — Prisma schema
+//
+// Source of truth: docs/chapters/02-data-model.md
+// Decisions:       docs/rules/decisions.md
+//   D1 — PostgreSQL + real `enum AppRole` (not String + Zod)
+//   D2 — Session = opaque token; Session.id holds the SHA-256 hash of the raw token
+//
+// Table/column names are @map'd to the legacy Laravel/MySQL names so the data
+// migration (F32) is a straight copy and the frozen Public API keeps its shape.
+
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+/// User roles. Values stay English; Thai display labels live in the UI layer.
+enum AppRole {
+  SUPERADMIN
+  ADMIN
+  USER
+}
+
+/// ผู้ใช้งานระบบ (legacy table: users)
+model User {
+  id         Int     @id @default(autoincrement())
+  prefix     String?
+  firstname  String
+  lastname   String
+  email      String  @unique
+  /// scrypt hash as `saltHex:hashHex`; null when the account is CMU-OAuth only
+  password   String?
+  /// local part of the CMU email — used to match the OAuth `cmuitaccount` claim
+  cmuAccount String  @map("cmu_account")
+  role       AppRole @default(USER)
+  /// false = ปิดใช้งาน; blocks login on both channels even with a live session
+  status     Boolean @default(true)
+  /// set during the MySQL→PostgreSQL migration for accounts still on a bcrypt hash
+  mustResetPassword Boolean @default(false) @map("must_reset_password")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  itaFiles ItaFile[]
+  sessions Session[]
+
+  @@index([cmuAccount])
+  @@map("users")
+}
+
+/// หัวข้อหลัก ITA รายปี (legacy table: itas)
+model Ita {
+  id     Int    @id @default(autoincrement())
+  /// creator / last editor — kept as a plain column (no FK), matching the legacy schema
+  userId Int    @map("user_id")
+  title  String
+  /// Buddhist era year stored verbatim, e.g. "2567" — the frozen Public API returns a string
+  year   String
+  /// display order, swapped pairwise on update (see updateIta in F14)
+  order  Int
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  oits Oit[]
+
+  @@index([year])
+  @@map("itas")
+}
+
+/// หัวข้อย่อย OIT (legacy table: oits)
+model Oit {
+  id      Int     @id @default(autoincrement())
+  itaId   Int     @map("ita_id")
+  title   String
+  link    String?
+  /// HTML from Tiptap, already sanitized with DOMPurify on save (D3)
+  content String?
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  ita Ita @relation(fields: [itaId], references: [id], onDelete: Cascade)
+
+  @@index([itaId])
+  @@map("oits")
+}
+
+/// คลังไฟล์กลาง (legacy table: ita_files)
+model ItaFile {
+  id     Int    @id @default(autoincrement())
+  userId Int    @map("user_id")
+  /// uploader's display name, denormalized in the legacy schema — column is camelCase there
+  createdBy String @map("createdBy")
+  /// user-facing file name, unique across the library
+  name      String @unique
+  /// on-disk file name — Unix timestamp + original extension (PRD FR-F6)
+  path      String
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("ita_files")
+}
+
+/// Session สำหรับ custom auth — opaque token, server-side (D2)
+model Session {
+  /// SHA-256 hash of the raw token; the raw token only ever lives in the cookie
+  id        String   @id
+  userId    Int      @map("user_id")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
+}

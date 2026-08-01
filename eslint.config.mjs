@@ -12,6 +12,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Staging area for the Lovable/auth port — not part of the app yet.
+    // See docs/migration/file-manifest.md; delete once everything is moved.
+    "_migration/**",
+    // Prisma generated client.
+    "src/generated/**",
   ]),
 ]);
 
