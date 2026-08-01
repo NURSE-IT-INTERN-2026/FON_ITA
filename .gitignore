@@ -39,3 +39,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# docs
+/docs/
+
+# dev tooling (AI agent guidance, Claude Code settings — not for production)
+/.agents/
+/.claude/
+/AGENTS.md
+/CLAUDE.md
