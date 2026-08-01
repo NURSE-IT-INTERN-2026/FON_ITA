@@ -43,8 +43,11 @@ next-env.d.ts
 # docs
 /docs/
 
+# migration staging area (โค้ดอ้างอิง + คอนฟิกต้นแบบ รอย้ายเข้า src/ — ลบได้เมื่อย้ายครบ)
+/_migration/
+
 # dev tooling (AI agent guidance, Claude Code settings — not for production)
 /.agents/
 /.claude/
-/AGENTS.md
-/CLAUDE.md
+AGENTS.md
+CLAUDE.md
