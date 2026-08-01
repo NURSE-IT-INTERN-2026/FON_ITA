@@ -48,6 +48,7 @@ next-env.d.ts
 
 # migration staging area (โค้ดอ้างอิง + คอนฟิกต้นแบบ รอย้ายเข้า src/ — ลบได้เมื่อย้ายครบ)
 /_migration/
+/_to-migrate/
 
 # dev tooling (AI agent guidance, Claude Code settings — not for production)
 /.agents/

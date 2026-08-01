@@ -1,15 +1,15 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Noto_Sans_Thai } from "next/font/google";
+import { ThemeProvider } from "@/components/shell/theme-provider";
+import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+// The UI is Thai; Geist has no Thai glyphs, so every Thai string would fall back
+// to an arbitrary system font. next/font self-hosts this — no extra dependency.
+const notoSansThai = Noto_Sans_Thai({
+  variable: "--font-noto-sans-thai",
+  subsets: ["thai", "latin"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -23,11 +23,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="th"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col">{children}</body>
+    // suppressHydrationWarning: next-themes writes the theme class onto <html>
+    // before React hydrates, so the server and client markup differ by design.
+    <html lang="th" suppressHydrationWarning className={`${notoSansThai.variable} h-full`}>
+      <body className="min-h-full flex flex-col">
+        <ThemeProvider>
+          {children}
+          <Toaster />
+        </ThemeProvider>
+      </body>
     </html>
   );
 }

@@ -41,10 +41,14 @@ far is resolved in `decisions.md`.
 
 Actual state (verify against the tracker rather than trusting this list):
 
-- **F1 — DONE:** Prisma + PostgreSQL schema, migration `init`, `src/lib/prisma.ts`
-- **F2–F4 — NOT DONE:** `basePath: /fonita` is **not yet in `next.config.ts`**; shell layout and
-  shadcn primitives are not in `src/` yet
+- **F1–F4 — DONE:** Prisma + PostgreSQL schema · `basePath: /fonita` + env · shell layout
+  (header/sidebar/footer/theme) · design tokens + 17 shadcn primitives
+- **F30 — partial:** `src/lib/date.ts` exists; not every date surface uses it yet
 - **Phase 2 (auth, F5–F12), Phase 3–5 (ITA/OIT, files, users), Phase 6 (Public API):** not started
+
+`src/app/(app)/layout.tsx` calls a `getShellUser()` stub that returns `null` — swap it for
+`getSessionUser()` when F5/F11 land. Nothing is mocked, so the shell currently renders its
+signed-out form.
 
 **Dev setup:**
 ```bash
@@ -86,11 +90,14 @@ Read the SKILL.md files for every topic that applies to your task:
 7. `docs/chapters/04-features-routes.md` — route map (Laravel → Next.js)
 8. `docs/chapters/05-public-api.md` — Public API contract (FROZEN)
 
-> ⚠️ **Two skills are stale — they belong to a different project ("Research Tools") and were never
-> adapted:** `implement-feature/SKILL.md` (references Supabase Auth, roles `ADMIN`/`BORROWER`,
-> `src/lib/db.ts`, `docs/ui-pages.md`) and `custom-auth/prisma-schema.md` (enum
-> `super_admin`/`admin`/`student`). Use their generic workflow only — for anything project-specific,
-> FON-ITA docs win. See `docs/rules/adapt-custom-auth-skill.md` for how they should be rewritten.
+> **Skills describe reusable technique and are deliberately project-agnostic** — they carry no
+> FON-ITA names, roles, paths, or defaults. Everything specific to this project lives here and in
+> `docs/`. Where a skill shows a placeholder (`<base>`, `OWNER`/`STAFF`/`MEMBER`, `/dashboard`),
+> substitute the real value from `docs/rules/decisions.md` and `docs/rules/route-map.md`.
+>
+> FON-ITA's own answers to the choices `custom-auth` asks about — opaque token + DB session, scrypt,
+> `AppRole`, cookie `path=/fonita`, OAuth with `state` and no PKCE, no auto-provisioning — are in
+> `docs/rules/adapt-custom-auth-skill.md`.
 
 ### Step 3: Read existing code
 
@@ -171,28 +178,32 @@ For every feature the user asks you to implement:
 
 ---
 
-## `_migration/` — staging area
+## `_to-migrate/` — staging area
 
-The original Lovable project (`fonita-loveableui/`) is **not in this repo**. What survives of it is
-already extracted into **`_migration/src/`** — that is the only reference source available:
+Source material still waiting to be ported lives in **`_to-migrate/`**, grouped by destination:
 
 ```
-_migration/src/components/ui/     shadcn primitives (17 files)
-_migration/src/components/{shell,feature,misc}/  ported Lovable components
-_migration/src/lib/               utils, date, sanitize, file
-_migration/src/lib/auth/          CMU OAuth helpers
-_migration/src/app/               login page + /api/auth routes
+_to-migrate/01-lib/                    api, date, file, sanitize, utils, password (6)
+_to-migrate/02-components-feature/     feature + misc components (20)
+_to-migrate/03-routes-tanstack/        TanStack page code — structure reference only (14)
+_to-migrate/04-mocks-optional/         localStorage mocks — DO NOT port (2)
+_to-migrate/05-error-handling-maybe-drop/  Lovable-specific — DO NOT port (3)
 ```
 
-`_migration/` is excluded from `tsconfig.json` and ESLint, and gitignored. It is **staging, not app
+`_to-migrate/` is excluded from `tsconfig.json` and ESLint, and gitignored. It is **staging, not app
 code** — nothing there runs until it is moved into `src/`. Delete the folder once everything is moved.
+`_migration/` holds only leftover config templates plus `install-packages.sh`, whose header tracks
+which npm packages each feature still needs.
+
+**The CMU auth code is NOT in this repo.** It lives in the earlier Next.js attempt at
+`fon_public_data/src/{lib/auth,app/api/auth,app/(auth)/login}` — read it from there when doing F5–F9.
 
 **Follow `docs/migration/file-manifest.md`** — it marks each file ✅ copy / 🟡 convert / 🔴 rewrite.
 
 ### Must be rewritten, not copied (🔴)
-- `_migration/src/lib/auth/session.ts` — implements **JWT/HMAC**, which violates the opaque-token +
+- `fon_public_data/src/lib/auth/session.ts` — implements **JWT/HMAC**, which violates the opaque-token +
   DB Session rule (`docs/rules/decisions.md` D2)
-- `_migration/src/app/api/auth/callback/route.ts` — signs a session straight from CMU basicinfo
+- `fon_public_data/src/app/api/auth/callback/route.ts` — signs a session straight from CMU basicinfo
   **without matching a `users` row or checking `status`**, which would let any CMU account in (D6)
 
 ### Never bring across
