@@ -33,8 +33,16 @@ const CONFIG = {
   // survives DOMPurify itself.
   ALLOWED_ATTR: ["href", "target", "rel", "style", "class"],
   ALLOW_DATA_ATTR: false,
-  // Blocks javascript: and data: URLs in links.
-  ALLOWED_URI_REGEXP: /^(?:https?|mailto):/i,
+  // Blocks javascript: and data: URLs, while still allowing links to files in
+  // this app, which are rooted paths like "/fonita/storage/itafile/…".
+  //
+  // `\/(?![/\\])` is the important part: one leading slash is a path on this
+  // site, but "//evil.example" is a different site written to look relative —
+  // and browsers normalise the backslash in "/\evil.example" to the same thing,
+  // so both are excluded. Without the path branch here the file picker (F21)
+  // produced <a> tags whose href was silently stripped on save — caught by
+  // saving one and reading the row back.
+  ALLOWED_URI_REGEXP: /^(?:https?:|mailto:|\/(?![/\\]))/i,
   FORBID_TAGS: ["script", "iframe", "object", "embed", "form", "input", "style"],
 } satisfies Config;
 

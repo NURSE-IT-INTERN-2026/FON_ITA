@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/shell/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { requireRole } from "@/lib/auth/guards";
 import { getIta } from "@/lib/ita/queries";
+import { searchFilesByName } from "@/lib/files/queries";
 
 export const metadata: Metadata = { title: "เพิ่ม OIT — FON-ITA" };
 
@@ -22,6 +23,9 @@ export default async function CreateOitPage({ params }: Props) {
 
   const ita = await getIta(id);
   if (!ita) notFound();
+
+  // Seeds the "แนบไฟล์" picker in the editor (F21).
+  const recentFiles = await searchFilesByName("");
 
   return (
     <div>
@@ -45,7 +49,7 @@ export default async function CreateOitPage({ params }: Props) {
         </CardContent>
       </Card>
 
-      <OitForm itaId={ita.id} year={ita.year} />
+      <OitForm itaId={ita.id} year={ita.year} recentFiles={recentFiles} />
     </div>
   );
 }

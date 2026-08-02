@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import type { PickerFile } from "@/lib/files/queries";
 
 /** Mirrors CONTENT_LIMIT in src/actions/oit.ts, which is the one that decides. */
 const MAX_CHARS = 1000;
@@ -27,10 +28,13 @@ export function OitForm({
   itaId,
   year,
   oit,
+  recentFiles,
 }: {
   itaId: number;
   year: string;
   oit?: OitDefaults;
+  /** Loaded on the server so the file picker opens with content (F21). */
+  recentFiles: PickerFile[];
 }) {
   const router = useRouter();
   const editMode = !!oit;
@@ -106,6 +110,7 @@ export function OitForm({
                 setCharCount(count);
               }}
               maxChars={MAX_CHARS}
+              recentFiles={recentFiles}
             />
           </div>
 

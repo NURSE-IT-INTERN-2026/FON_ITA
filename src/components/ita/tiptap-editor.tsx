@@ -14,11 +14,13 @@ import {
   Link as LinkIcon,
   List,
   ListOrdered,
+  Paperclip,
   Redo2,
   RemoveFormatting,
   Undo2,
 } from "lucide-react";
 import { useRef, useState } from "react";
+import { FilePickerDialog } from "@/components/files/file-picker-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -29,6 +31,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import type { PickerFile } from "@/lib/files/queries";
 import { cn } from "@/lib/utils";
 
 /**
@@ -44,12 +47,16 @@ export function TiptapEditor({
   value,
   onChange,
   maxChars,
+  recentFiles,
 }: {
   value: string;
   onChange: (html: string, charCount: number) => void;
   maxChars: number;
+  /** Seeds the "แนบไฟล์" picker so it shows something the moment it opens. */
+  recentFiles: PickerFile[];
 }) {
   const [linkOpen, setLinkOpen] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
   // The selection is lost while the dialog holds focus, so remember it.
   const selectionRef = useRef<{ from: number; to: number } | null>(null);
@@ -129,6 +136,42 @@ export function TiptapEditor({
     setLinkOpen(false);
   }
 
+  function openPicker() {
+    if (!editor) return;
+    const { from, to } = editor.state.selection;
+    selectionRef.current = { from, to };
+    setPickerOpen(true);
+  }
+
+  /**
+   * Insert the picked file. With text selected it becomes the link; otherwise
+   * the file's name is inserted as the link text.
+   */
+  function insertFile({ url, label }: { url: string; label: string }) {
+    if (!editor) return;
+    const selection = selectionRef.current;
+    const hasSelection = !!selection && selection.from !== selection.to;
+    const chain = editor.chain().focus();
+    if (selection) chain.setTextSelection(selection);
+
+    if (hasSelection) {
+      chain.extendMarkRange("link").setLink({ href: url, target: "_blank" }).run();
+    } else {
+      // Inserted as a node with a typed mark, not as an HTML string — the URL
+      // can never break out into markup.
+      chain
+        .insertContent({
+          type: "text",
+          text: label,
+          marks: [{ type: "link", attrs: { href: url, target: "_blank" } }],
+        })
+        .run();
+    }
+
+    selectionRef.current = null;
+    setPickerOpen(false);
+  }
+
   return (
     <div className={cn("rounded-md border bg-card", overLimit && "border-destructive")}>
       <div className="flex flex-wrap items-center gap-1 border-b p-1">
@@ -200,6 +243,9 @@ export function TiptapEditor({
         <ToolButton label="ลิงก์" active={state.link} onClick={openLinkDialog}>
           <LinkIcon />
         </ToolButton>
+        <ToolButton label="แนบไฟล์จากคลัง" onClick={openPicker}>
+          <Paperclip />
+        </ToolButton>
         <ToolButton
           label="ล้างรูปแบบ"
           onClick={() => editor.chain().focus().unsetAllMarks().clearNodes().run()}
@@ -232,6 +278,13 @@ export function TiptapEditor({
           {chars} / {maxChars}
         </span>
       </div>
+
+      <FilePickerDialog
+        open={pickerOpen}
+        onOpenChange={setPickerOpen}
+        onPick={insertFile}
+        recentFiles={recentFiles}
+      />
 
       <Dialog open={linkOpen} onOpenChange={setLinkOpen}>
         <DialogContent className="sm:max-w-md">

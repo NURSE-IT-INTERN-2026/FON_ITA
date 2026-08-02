@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { requireRole } from "@/lib/auth/guards";
 import { formatBELong } from "@/lib/date";
 import { getOit } from "@/lib/ita/queries";
+import { searchFilesByName } from "@/lib/files/queries";
 
 export const metadata: Metadata = { title: "แก้ไข OIT — FON-ITA" };
 
@@ -22,6 +23,9 @@ export default async function EditOitPage({ params }: Props) {
 
   const oit = await getOit(id);
   if (!oit) notFound();
+
+  // Seeds the "แนบไฟล์" picker in the editor (F21).
+  const recentFiles = await searchFilesByName("");
 
   return (
     <div>
@@ -49,6 +53,7 @@ export default async function EditOitPage({ params }: Props) {
         itaId={oit.ita.id}
         year={oit.ita.year}
         oit={{ id: oit.id, title: oit.title, link: oit.link, content: oit.content }}
+        recentFiles={recentFiles}
       />
     </div>
   );

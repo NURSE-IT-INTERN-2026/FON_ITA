@@ -5,6 +5,7 @@ import { z } from "zod";
 import { FORBIDDEN_MESSAGE } from "@/lib/auth/errors";
 import { requireUser } from "@/lib/auth/guards";
 import { hasRole } from "@/lib/auth/roles";
+import { type PickerFile, searchFilesByName } from "@/lib/files/queries";
 import { checkUpload, deleteUpload, saveUpload } from "@/lib/files/storage";
 import { prisma } from "@/lib/prisma";
 
@@ -71,6 +72,23 @@ export async function uploadFile(formData: FormData): Promise<FileActionState> {
 
   revalidatePath("/ita-file");
   return {};
+}
+
+/**
+ * Name search for the file picker in the OIT editor (F21).
+ *
+ * ADMIN+ like the rest of the library: it is a browsing surface over the same
+ * data, and only editors can reach the editor it lives in. Returns an empty
+ * list rather than an error, so the picker has nothing to leak.
+ */
+export async function searchFiles(term: string): Promise<PickerFile[]> {
+  const user = await requireUser();
+  if (!hasRole(user, "ADMIN", "SUPERADMIN")) return [];
+
+  const parsed = z.string().max(255).safeParse(term);
+  if (!parsed.success) return [];
+
+  return searchFilesByName(parsed.data);
 }
 
 /**

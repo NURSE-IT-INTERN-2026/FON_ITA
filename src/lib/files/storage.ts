@@ -29,6 +29,24 @@ const MIME_BY_EXTENSION: Record<string, string[]> = {
   xlsx: ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"],
 };
 
+/**
+ * Content-Type to send when serving a stored file (F22).
+ *
+ * Taken from the extension of the name WE generated, never from anything the
+ * client sends — and unknown extensions fall back to octet-stream so a file
+ * that somehow slipped in cannot be rendered as HTML.
+ */
+export function contentTypeFor(storedName: string): string {
+  const ext = path.extname(storedName).replace(".", "").toLowerCase();
+  return MIME_BY_EXTENSION[ext]?.[0] ?? "application/octet-stream";
+}
+
+/** Whether a browser can display this type, rather than having to download it. */
+export function isInlineType(storedName: string): boolean {
+  const ext = path.extname(storedName).replace(".", "").toLowerCase();
+  return ["pdf", "png", "jpg", "jpeg"].includes(ext);
+}
+
 /** Extensions actually enabled for this deployment. */
 export function allowedExtensions(): string[] {
   const configured = (process.env.ALLOWED_FILE_TYPES ?? "png,jpg,jpeg,pdf,csv,xlsx")
