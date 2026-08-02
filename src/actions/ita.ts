@@ -43,6 +43,11 @@ const updateSchema = z.object({
 
 const deleteSchema = z.object({ id: z.coerce.number().int().positive() });
 
+const reorderSchema = z.object({
+  year: z.string().trim().regex(/^\d{4}$/, { message: YEAR_MESSAGE }),
+  orderedIds: z.array(z.coerce.number().int().positive()).min(1),
+});
+
 /** ADMIN and SUPERADMIN may write; USER may only read (role matrix, D4/D5). */
 async function requireEditor() {
   const user = await requireUser();
@@ -167,5 +172,45 @@ export async function deleteIta(formData: FormData): Promise<ItaActionState> {
   await logActivity(user, "ita.delete", { target: ita.title, detail: `ปี ${ita.year}` });
 
   revalidateItaViews(ita.year);
+  return {};
+}
+
+/**
+ * Re-number 1..N within one year after a drag-and-drop reorder.
+ *
+ * Each id stays where the user dropped it; the rows in between shift to make
+ * room. We re-number every row in the year, not just the two endpoints of the
+ * drag — the dnd-kit `arrayMove` on the client produces a fully ordered list,
+ * and applying that order directly is simpler and less error-prone than trying
+ * to infer a swap from `active` and `over`.
+ *
+ * The `where: { id, year }` clause is belt-and-suspenders: `id` is already
+ * unique, so scoping by year catches the case where a stale id from another
+ * year slipped into the request and would otherwise be moved to the wrong year.
+ */
+export async function reorderIta(formData: FormData): Promise<ItaActionState> {
+  const user = await requireEditor();
+  if (!user) return { error: FORBIDDEN_MESSAGE };
+
+  const parsed = reorderSchema.safeParse({
+    year: formData.get("year"),
+    orderedIds: formData.getAll("orderedIds"),
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? YEAR_MESSAGE };
+
+  const { year, orderedIds } = parsed.data;
+
+  await prisma.$transaction(
+    orderedIds.map((id, i) =>
+      prisma.ita.updateMany({ where: { id, year }, data: { order: i + 1 } }),
+    ),
+  );
+
+  await logActivity(user, "ita.update", {
+    target: "จัดลำดับ ITA",
+    detail: `ปี ${year}`,
+  });
+
+  revalidateItaViews(year);
   return {};
 }

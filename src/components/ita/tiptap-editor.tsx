@@ -118,16 +118,19 @@ export function TiptapEditor({
     setLinkOpen(true);
   }
 
-  function applyLink(url: string) {
+  function applyLink(rawUrl: string) {
     if (!editor) return;
     const selection = selectionRef.current;
     const chain = editor.chain().focus();
     if (selection) chain.setTextSelection(selection);
 
-    if (url) {
+    if (rawUrl) {
+      // Auto-prefix https:// when the user typed a bare domain — without it,
+      // `href="example.com"` is treated as an in-app path and breaks navigation.
+      const href = /^https?:\/\//i.test(rawUrl) ? rawUrl : `https://${rawUrl}`;
       // Set through the command, not by writing HTML — the href stays a typed
       // attribute and cannot break out into markup.
-      chain.extendMarkRange("link").setLink({ href: url, target: "_blank" }).run();
+      chain.extendMarkRange("link").setLink({ href, target: "_blank" }).run();
     } else {
       chain.extendMarkRange("link").unsetLink().run();
     }
