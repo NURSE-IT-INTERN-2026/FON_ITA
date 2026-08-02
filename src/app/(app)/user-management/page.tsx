@@ -59,7 +59,7 @@ export default async function UserManagementPage() {
                 <TableHead>อีเมล</TableHead>
                 <TableHead className="w-32">บทบาท</TableHead>
                 <TableHead className="w-28">สถานะ</TableHead>
-                <TableHead className="w-20 text-right">การกระทำ</TableHead>
+                <TableHead className="w-32 text-right">การกระทำ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

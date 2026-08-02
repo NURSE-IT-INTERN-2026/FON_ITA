@@ -57,7 +57,7 @@ export function FileSearchInput({ defaultValue }: { defaultValue: string }) {
           if (timer.current) clearTimeout(timer.current);
           navigate(value);
         }}
-        placeholder="ค้นหาชื่อไฟล์"
+        placeholder="ค้นหาชื่อไฟล์..."
         aria-label="ค้นหาชื่อไฟล์"
         className="pl-8 pr-8"
       />

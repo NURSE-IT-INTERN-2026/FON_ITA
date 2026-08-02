@@ -193,4 +193,42 @@
     content: "";
     @apply inline-block h-5;
   }
+
+  /* Published OIT content, as opposed to the same HTML inside the editor.
+     Reading a document is not editing one: this is a full 1rem with looser
+     leading, and it restores the heading sizes Tailwind's preflight strips —
+     matching the Lovable prototype's `prose-oit`. */
+  .prose-oit {
+    @apply text-base leading-[1.7];
+  }
+
+  .prose-oit p {
+    @apply my-2;
+  }
+
+  .prose-oit ul {
+    @apply my-2 list-disc ps-6;
+  }
+
+  .prose-oit ol {
+    @apply my-2 list-decimal ps-6;
+  }
+
+  .prose-oit li {
+    @apply my-1;
+  }
+
+  .prose-oit a {
+    @apply text-primary underline underline-offset-2;
+  }
+
+  .prose-oit strong {
+    @apply font-semibold;
+  }
+
+  .prose-oit h1,
+  .prose-oit h2,
+  .prose-oit h3 {
+    @apply mt-3 mb-2 font-semibold;
+  }
 }

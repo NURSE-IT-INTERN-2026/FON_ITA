@@ -23,6 +23,10 @@ const ALLOWED_TAGS = [
   "li",
   "a",
   "span",
+  // Kept because the legacy content uses it as a plain wrapper in a few places
+  // (verified: 5 occurrences across 2566–2569). Dropping the tag would keep the
+  // text but lose whatever grouping it carried.
+  "div",
 ];
 
 const CONFIG = {

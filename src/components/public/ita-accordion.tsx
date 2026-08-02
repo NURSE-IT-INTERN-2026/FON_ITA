@@ -7,7 +7,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, FileText, Pencil, SearchX } from "lucide-react";
+import { Clock, ExternalLink, FileText, Link as LinkIcon, Pencil, SearchX } from "lucide-react";
 import Link from "next/link";
 import { formatBELong } from "@/lib/date";
 import { cn } from "@/lib/utils";
@@ -116,8 +116,13 @@ function OitRow({
         <div className="min-w-0 flex-1">
           <span className="truncate text-sm font-semibold underline-offset-2 group-hover:underline">
             {oit.title}
+            {/* บอกว่าแถวนี้พาไปลิงก์ภายนอก ไม่ใช่หน้ารายละเอียดในระบบ */}
+            {oit.link && (
+              <LinkIcon className="ml-1.5 inline size-3 shrink-0 text-muted-foreground" aria-hidden />
+            )}
           </span>
           <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+            <Clock className="size-3" aria-hidden />
             อัปเดต {formatBELong(oit.updatedAt)}
           </p>
         </div>

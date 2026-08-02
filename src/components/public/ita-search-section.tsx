@@ -72,7 +72,7 @@ export function ItaSearchSection({
           ITA ปี {year}
         </h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          ข้อมูลการประเมินคุณธรรมและความโปร่งใส ประจำปี พ.ศ. {year}
+          ข้อมูลสาธารณะประจำปี {year}
         </p>
       </div>
 
@@ -138,7 +138,7 @@ export function ItaSearchSection({
               : "ลองเลือกปีอื่นจากรายการด้านบน"
           }
           action={
-            <Button asChild variant="secondary">
+            <Button asChild>
               <Link href="/ita-list">ไปจัดการรายการ ITA</Link>
             </Button>
           }

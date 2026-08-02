@@ -57,7 +57,7 @@ export default async function OitDetailPage({ params }: Props) {
         actions={
           canManage ? (
             <>
-              <Button asChild variant="outline">
+              <Button asChild>
                 <Link href={`/ita-oit/edit/${oit.id}`}>
                   <Pencil className="mr-1 size-4" aria-hidden /> แก้ไข
                 </Link>
@@ -71,7 +71,7 @@ export default async function OitDetailPage({ params }: Props) {
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <YearBadge year={oit.ita.year} />
         <span className="text-sm text-muted-foreground">
-          แก้ไขล่าสุด {formatBELong(oit.updatedAt)}
+          แก้ไขล่าสุด: {formatBELong(oit.updatedAt)}
         </span>
         {oit.link && (
           <Button asChild variant="secondary" size="sm">
@@ -85,7 +85,7 @@ export default async function OitDetailPage({ params }: Props) {
       <Card>
         <CardContent className="py-6">
           {content ? (
-            <div className="tiptap-content" dangerouslySetInnerHTML={{ __html: content }} />
+            <div className="prose-oit" dangerouslySetInnerHTML={{ __html: content }} />
           ) : (
             <p className="text-sm italic text-muted-foreground">
               {canManage

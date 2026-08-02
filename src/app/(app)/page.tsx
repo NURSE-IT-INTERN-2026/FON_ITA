@@ -42,7 +42,7 @@ export default async function HomePage({ searchParams }: Props) {
   const years = yearOptions(availableYears, year, String(currentBEYear()));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <header className="flex flex-col items-center gap-1.5 py-2 text-center sm:py-3">
         <h1 className="text-2xl font-bold tracking-tight text-orange-500 sm:text-3xl">
           ระบบข้อมูลสาธารณะ

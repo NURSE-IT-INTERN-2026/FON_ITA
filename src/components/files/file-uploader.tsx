@@ -130,7 +130,7 @@ export function FileUploader({
       <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
         <div>
           <Label htmlFor="file-name" className="mb-1.5 block text-sm">
-            ชื่อไฟล์ที่จะแสดง <span className="text-destructive">*</span>
+            ชื่อไฟล์ (ไม่ซ้ำกัน) <span className="text-destructive">*</span>
           </Label>
           <Input
             id="file-name"

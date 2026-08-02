@@ -66,11 +66,11 @@ export default async function ActivityLogPage({ searchParams }: Props) {
       {activities.length === 0 ? (
         <EmptyState
           icon={History}
-          title={filtered ? "ไม่พบกิจกรรมตามตัวกรอง" : "ยังไม่มีบันทึกกิจกรรม"}
+          title={filtered ? "ไม่พบกิจกรรมที่ตรงตัวกรอง" : "ยังไม่มีกิจกรรมในระบบ"}
           description={
             filtered
-              ? "ลองเปลี่ยนประเภทกิจกรรมด้านบน"
-              : "การเข้าสู่ระบบและการแก้ไขข้อมูลจะถูกบันทึกไว้ที่นี่โดยอัตโนมัติ"
+              ? "ลองเปลี่ยนตัวกรองด้านบน"
+              : "การกระทำต่างๆ ในระบบจะถูกบันทึกที่นี่"
           }
         />
       ) : (
@@ -78,9 +78,9 @@ export default async function ActivityLogPage({ searchParams }: Props) {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-48">เวลา</TableHead>
-                <TableHead className="w-56">ผู้กระทำ</TableHead>
-                <TableHead className="w-44">กิจกรรม</TableHead>
+                <TableHead className="w-44">เวลา</TableHead>
+                <TableHead className="w-44">ผู้กระทำ</TableHead>
+                <TableHead className="w-48">กิจกรรม</TableHead>
                 <TableHead>เป้าหมาย</TableHead>
                 <TableHead>รายละเอียด</TableHead>
               </TableRow>

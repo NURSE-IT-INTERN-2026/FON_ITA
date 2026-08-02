@@ -23,7 +23,7 @@ export function VideoSection() {
       <div className="mt-auto w-full aspect-video max-h-[230px] overflow-hidden rounded-xl bg-black lg:aspect-auto lg:h-full">
         <iframe
           src={`https://www.youtube-nocookie.com/embed/${FEATURED_VIDEO_ID}`}
-          title="วิดีโอแนะนำ"
+          title="วิดีโอแนะนำระบบ"
           loading="lazy"
           allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen

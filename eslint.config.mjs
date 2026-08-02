@@ -16,6 +16,9 @@ const eslintConfig = defineConfig([
     // See docs/migration/file-manifest.md; delete once everything is moved.
     "_migration/**",
     "_to-migrate/**",
+    // Lovable prototype kept alongside for UI comparison — reference only,
+    // and it ships its own node_modules.
+    "fonita-loveableui/**",
     // Prisma generated client.
     "src/generated/**",
   ]),

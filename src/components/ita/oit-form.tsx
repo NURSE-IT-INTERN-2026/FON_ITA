@@ -108,7 +108,7 @@ export function OitForm({
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="oit-content">เนื้อหา</Label>
+            <Label htmlFor="oit-content">รายละเอียด</Label>
             <TiptapEditor
               value={content}
               onChange={(html, count) => {
@@ -120,6 +120,11 @@ export function OitForm({
               fileAccept={fileAccept}
               fileMaxSizeMb={fileMaxSizeMb}
             />
+            <p className="text-xs text-muted-foreground">
+              กดปุ่ม <span className="font-medium">📎 แนบไฟล์</span> ในแถบเครื่องมือ
+              เพื่อแทรกลิงก์ไปยังไฟล์ในคลัง — แล้วตั้งชื่อลิงก์ได้ในตัว
+              หรือจะลากไฟล์จากเครื่องมาวางในช่องนี้ก็ได้
+            </p>
           </div>
 
           {error && (

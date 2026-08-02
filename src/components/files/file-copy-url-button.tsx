@@ -16,7 +16,7 @@ export function FileCopyUrlButton({ url, name }: { url: string; name: string }) 
     const absolute = new URL(url, window.location.origin).toString();
     try {
       await navigator.clipboard.writeText(absolute);
-      toast.success("คัดลอก URL แล้ว");
+      toast.success("คัดลอกลิงก์แล้ว");
     } catch {
       // Clipboard access is refused outside a secure context, and on http://
       // that is every browser — show the URL so it can still be copied by hand.
@@ -25,7 +25,7 @@ export function FileCopyUrlButton({ url, name }: { url: string; name: string }) 
   }
 
   return (
-    <Button variant="ghost" size="icon" aria-label={`คัดลอก URL ของ ${name}`} onClick={copy}>
+    <Button variant="ghost" size="icon" aria-label={`คัดลอกลิงก์ของ ${name}`} onClick={copy}>
       <Copy className="size-4" aria-hidden />
     </Button>
   );

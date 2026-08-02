@@ -122,7 +122,7 @@ function UserFormDialog({
                 id="user-prefix"
                 name="prefix"
                 defaultValue={user?.prefix ?? ""}
-                placeholder="นาย"
+                placeholder="นาย / นางสาว / นาง"
                 maxLength={50}
               />
             </div>
