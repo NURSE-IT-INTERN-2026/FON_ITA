@@ -52,10 +52,8 @@ export default async function OitDetailPage({ params }: Props) {
         breadcrumb={[
           { label: "หน้าแรก", href: "/" },
           { label: "รายการ ITA", href: "/ita-list" },
-          { label: `ปี พ.ศ. ${oit.ita.year}`, href: `/ita/by-year/${oit.ita.year}` },
           { label: oit.title },
         ]}
-        description={`แก้ไขล่าสุด ${formatBELong(oit.updatedAt)}`}
         actions={
           canManage ? (
             <>
@@ -70,25 +68,19 @@ export default async function OitDetailPage({ params }: Props) {
         }
       />
 
-      <Card className="mb-6 bg-muted/30">
-        <CardContent className="flex flex-wrap items-center gap-3 py-4">
-          <span className="text-sm text-muted-foreground">หัวข้อ ITA</span>
-          <span className="font-medium">{oit.ita.title}</span>
-          <YearBadge year={oit.ita.year} />
-        </CardContent>
-      </Card>
-
-      {oit.link && (
-        <a
-          href={oit.link}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mb-6 inline-flex max-w-full items-center gap-1.5 text-sm font-medium text-primary hover:underline"
-        >
-          <ExternalLink className="size-4 shrink-0" aria-hidden />
-          <span className="truncate">{oit.link}</span>
-        </a>
-      )}
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <YearBadge year={oit.ita.year} />
+        <span className="text-sm text-muted-foreground">
+          แก้ไขล่าสุด {formatBELong(oit.updatedAt)}
+        </span>
+        {oit.link && (
+          <Button asChild variant="secondary" size="sm">
+            <a href={oit.link} target="_blank" rel="noopener noreferrer">
+              <ExternalLink className="mr-1 size-4" aria-hidden /> เปิดลิงก์ภายนอก
+            </a>
+          </Button>
+        )}
+      </div>
 
       <Card>
         <CardContent className="py-6">

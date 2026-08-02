@@ -27,7 +27,7 @@ export function ProfileForms({ prefix, firstname, lastname, hasPassword }: Props
       <TabsList>
         <TabsTrigger value="profile" className="gap-1.5">
           <UserIcon className="size-4" aria-hidden />
-          ข้อมูลส่วนตัว
+          โปรไฟล์
         </TabsTrigger>
         <TabsTrigger value="password" className="gap-1.5">
           <KeyRound className="size-4" aria-hidden />
@@ -78,21 +78,22 @@ function ProfileForm({ prefix, firstname, lastname }: Omit<Props, "hasPassword">
         <div className="space-y-1">
           <h2 className="text-base font-semibold">ข้อมูลส่วนตัว</h2>
           <p className="text-sm text-muted-foreground">
-            ชื่อที่แสดงในระบบและกำกับไว้กับไฟล์ที่คุณอัปโหลด
+            ชื่อที่ใช้แสดงในระบบและใช้สำหรับการเข้าสู่ระบบ
           </p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-[8rem_1fr]">
-          <div className="space-y-1.5">
-            <Label htmlFor="profile-prefix">คำนำหน้า</Label>
-            <Input
-              id="profile-prefix"
-              name="prefix"
-              defaultValue={prefix ?? ""}
-              placeholder="นาย / นาง / นางสาว"
-              maxLength={50}
-            />
-          </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="profile-prefix">คำนำหน้า</Label>
+          <Input
+            id="profile-prefix"
+            name="prefix"
+            defaultValue={prefix ?? ""}
+            placeholder="นาย / นาง / นางสาว"
+            maxLength={50}
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <Label htmlFor="profile-firstname">
               ชื่อ <span className="text-destructive">*</span>
@@ -105,19 +106,18 @@ function ProfileForm({ prefix, firstname, lastname }: Omit<Props, "hasPassword">
               required
             />
           </div>
-        </div>
-
-        <div className="space-y-1.5">
-          <Label htmlFor="profile-lastname">
-            นามสกุล <span className="text-destructive">*</span>
-          </Label>
-          <Input
-            id="profile-lastname"
-            name="lastname"
-            defaultValue={lastname}
-            maxLength={100}
-            required
-          />
+          <div className="space-y-1.5">
+            <Label htmlFor="profile-lastname">
+              นามสกุล <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              id="profile-lastname"
+              name="lastname"
+              defaultValue={lastname}
+              maxLength={100}
+              required
+            />
+          </div>
         </div>
 
         <FormError message={error} />
