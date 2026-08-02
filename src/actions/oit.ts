@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { logActivity } from "@/lib/activity/log";
 import { FORBIDDEN_MESSAGE } from "@/lib/auth/errors";
 import { requireUser } from "@/lib/auth/guards";
 import { hasRole } from "@/lib/auth/roles";
@@ -92,6 +93,11 @@ export async function createOit(formData: FormData): Promise<OitActionState> {
     data: { itaId, title, link: link || null, content: prepared.content },
   });
 
+  await logActivity(user, "oit.create", {
+    target: title,
+    detail: `ภายใต้ ${ita.title} (ปี ${ita.year})`,
+  });
+
   revalidateOitViews(itaId, ita.year);
   return {};
 }
@@ -114,13 +120,23 @@ export async function updateOit(formData: FormData): Promise<OitActionState> {
 
   const existing = await prisma.oit.findUnique({
     where: { id },
-    select: { itaId: true, ita: { select: { year: true } } },
+    // The parent's title and the old OIT title are read for the activity log —
+    // the log has to say what was edited even after the title has changed.
+    select: { itaId: true, title: true, ita: { select: { year: true, title: true } } },
   });
   if (!existing) return { error: "ไม่พบ OIT ที่ต้องการแก้ไข" };
 
   await prisma.oit.update({
     where: { id },
     data: { title, link: link || null, content: prepared.content },
+  });
+
+  await logActivity(user, "oit.update", {
+    target: title,
+    detail:
+      existing.title === title
+        ? `ภายใต้ ${existing.ita.title} (ปี ${existing.ita.year})`
+        : `เดิม "${existing.title}" · ภายใต้ ${existing.ita.title} (ปี ${existing.ita.year})`,
   });
 
   revalidateOitViews(existing.itaId, existing.ita.year, id);
@@ -136,11 +152,16 @@ export async function deleteOit(formData: FormData): Promise<OitActionState> {
 
   const existing = await prisma.oit.findUnique({
     where: { id: parsed.data.id },
-    select: { id: true, itaId: true, ita: { select: { year: true } } },
+    select: { id: true, itaId: true, title: true, ita: { select: { year: true, title: true } } },
   });
   if (!existing) return { error: "ไม่พบ OIT ที่ต้องการลบ" };
 
   await prisma.oit.delete({ where: { id: existing.id } });
+
+  await logActivity(user, "oit.delete", {
+    target: existing.title,
+    detail: `ภายใต้ ${existing.ita.title} (ปี ${existing.ita.year})`,
+  });
 
   revalidateOitViews(existing.itaId, existing.ita.year, existing.id);
   return {};

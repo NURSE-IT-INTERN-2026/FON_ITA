@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { logActivity } from "@/lib/activity/log";
 import { FORBIDDEN_MESSAGE } from "@/lib/auth/errors";
 import { requireUser } from "@/lib/auth/guards";
 import { hasRole } from "@/lib/auth/roles";
@@ -70,6 +71,8 @@ export async function uploadFile(formData: FormData): Promise<FileActionState> {
     throw error;
   }
 
+  await logActivity(user, "file.upload", { target: name, detail: `เก็บเป็น ${storedName}` });
+
   revalidatePath("/ita-file");
   return {};
 }
@@ -119,6 +122,13 @@ export async function deleteFile(formData: FormData): Promise<FileActionState> {
   // is no longer there, which users would meet as a broken download.
   await prisma.itaFile.delete({ where: { id: file.id } });
   await deleteUpload(file.path);
+
+  await logActivity(user, "file.delete", {
+    target: file.name,
+    // Worth recording when a SUPERADMIN removes someone else's upload — that is
+    // the case anyone reading the log later will want explained.
+    detail: file.userId === user.id ? `เก็บเป็น ${file.path}` : `อัปโหลดโดย ${file.createdBy}`,
+  });
 
   revalidatePath("/ita-file");
   return {};

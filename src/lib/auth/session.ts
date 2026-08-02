@@ -118,6 +118,26 @@ export async function clearSession(): Promise<LoginMethod | null> {
   return loginMethod;
 }
 
+/**
+ * How the current session was started, or null when there is none.
+ *
+ * Used when a session has to be re-issued in place (F25 changes a password and
+ * revokes everything, including the caller's own row). Without this the new
+ * session would default to PASSWORD, and logging out of what began as a CMU
+ * login would stop clearing the Microsoft session.
+ */
+export async function getSessionLoginMethod(): Promise<LoginMethod | null> {
+  const cookieStore = await cookies();
+  const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
+  if (!token) return null;
+
+  const session = await prisma.session.findUnique({
+    where: { id: hashSessionToken(token) },
+    select: { loginMethod: true },
+  });
+  return session?.loginMethod ?? null;
+}
+
 /** Log out everywhere. Call after a password change or a role/status change. */
 export async function revokeAllSessions(userId: number): Promise<number> {
   const { count } = await prisma.session.deleteMany({ where: { userId } });

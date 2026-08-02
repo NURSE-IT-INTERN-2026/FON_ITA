@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { logActivity } from "@/lib/activity/log";
 import { fakeVerifyDelay, verifyPassword } from "@/lib/auth/password";
 import { getSafeRedirectPath } from "@/lib/auth/roles";
 import { createSession } from "@/lib/auth/session";
@@ -64,6 +65,10 @@ export async function authenticate(
   }
 
   await createSession(user.id);
+  // Only successful logins are recorded. A failed attempt would be worth having,
+  // but the log is readable by SUPERADMIN and a mistyped password lands in the
+  // email field often enough that storing the attempts is its own risk.
+  await logActivity(user, "login", { detail: "อีเมล + รหัสผ่าน" });
 
   // redirect() throws — it must stay outside any try/catch.
   // Back to the interrupted page, or the role's home if `next` is missing,

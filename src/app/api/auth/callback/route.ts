@@ -5,6 +5,7 @@ import {
   getCmuConfig,
   resolveCmuAccount,
 } from "@/lib/auth/cmu-oauth";
+import { logActivity } from "@/lib/activity/log";
 import { LoginError, type LoginErrorCode } from "@/lib/auth/errors";
 import { consumeOauthStateCookie, matchesOauthState } from "@/lib/auth/oauth-state";
 import { ROLE_HOME } from "@/lib/auth/roles";
@@ -71,6 +72,7 @@ export async function GET(request: Request): Promise<NextResponse> {
   // password hash from the MySQL migration, and this login never touches the
   // password.
   await createSession(user.id, "CMU_OAUTH");
+  await logActivity(user, "login", { detail: "บัญชี CMU (OAuth)" });
 
   return NextResponse.redirect(new URL(withBasePath(ROLE_HOME[user.role]), request.url));
 }

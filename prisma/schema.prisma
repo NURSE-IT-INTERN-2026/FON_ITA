@@ -54,9 +54,42 @@ model User {
 
   itaFiles ItaFile[]
   sessions Session[]
+  activityLogs ActivityLog[]
 
   @@index([cmuAccount])
   @@map("users")
+}
+
+/// บันทึกกิจกรรม (F26) — a NEW table; the legacy Laravel system had no audit
+/// trail, so nothing here is migrated and nothing depends on the old column names.
+model ActivityLog {
+  id Int @id @default(autoincrement())
+
+  /// Null once the account is gone. Accounts are disabled rather than deleted
+  /// today, but an audit row outliving its subject is the point of an audit row.
+  actorId Int? @map("actor_id")
+  /// Name as it was at the time, like ItaFile.createdBy. A later rename must not
+  /// rewrite history.
+  actorName String  @map("actor_name")
+  actorRole AppRole @map("actor_role")
+
+  /// Dotted key such as "ita.create". Deliberately a String, not an enum:
+  /// logging must never be the thing that fails a mutation, and a value the
+  /// database has not seen yet would do exactly that.
+  action String
+  /// What was acted on — a topic title, a file name, an account name.
+  target String?
+  /// Anything worth reading next to it (which year, which field changed).
+  detail String?
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([action])
+  @@index([actorId])
+  @@map("activity_logs")
 }
 
 /// หัวข้อหลัก ITA รายปี (legacy table: itas)

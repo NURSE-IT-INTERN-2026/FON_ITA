@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { logActivity } from "@/lib/activity/log";
 import { FORBIDDEN_MESSAGE } from "@/lib/auth/errors";
 import { requireUser } from "@/lib/auth/guards";
 import { hashPassword } from "@/lib/auth/password";
@@ -96,7 +97,7 @@ export async function createUser(formData: FormData): Promise<UserActionState> {
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) return { error: "มีบัญชีที่ใช้อีเมลนี้อยู่แล้ว" };
 
-  await prisma.user.create({
+  const created = await prisma.user.create({
     data: {
       email,
       // The local part of the CMU email, matching the legacy column and what
@@ -110,6 +111,11 @@ export async function createUser(formData: FormData): Promise<UserActionState> {
       password: password ? await hashPassword(password) : null,
       status: true,
     },
+  });
+
+  await logActivity(actor, "user.create", {
+    target: `${firstname} ${lastname}`.trim(),
+    detail: `${created.email} · ${role}`,
   });
 
   revalidatePath("/user-management");
@@ -156,6 +162,16 @@ export async function updateUser(formData: FormData): Promise<UserActionState> {
   // otherwise resetting a compromised account changes nothing.
   if (password) await revokeAllSessions(id);
 
+  await logActivity(actor, "user.update", {
+    target: `${firstname} ${lastname}`.trim(),
+    detail: [
+      target.role !== role ? `บทบาท ${target.role} → ${role}` : null,
+      password ? "ตั้งรหัสผ่านใหม่ (ออกจากระบบทุกอุปกรณ์)" : null,
+    ]
+      .filter(Boolean)
+      .join(" · ") || target.email,
+  });
+
   revalidatePath("/user-management");
   return {};
 }
@@ -182,6 +198,11 @@ export async function disableUser(formData: FormData): Promise<UserActionState> 
   await prisma.user.update({ where: { id: target.id }, data: { status: false } });
   await revokeAllSessions(target.id);
 
+  await logActivity(actor, "user.disable", {
+    target: `${target.firstname} ${target.lastname}`.trim(),
+    detail: target.email,
+  });
+
   revalidatePath("/user-management");
   return {};
 }
@@ -198,6 +219,11 @@ export async function restoreUser(formData: FormData): Promise<UserActionState> 
   if (!target) return { error: "ไม่พบบัญชีที่ต้องการเปิดใช้งาน" };
 
   await prisma.user.update({ where: { id: target.id }, data: { status: true } });
+
+  await logActivity(actor, "user.restore", {
+    target: `${target.firstname} ${target.lastname}`.trim(),
+    detail: target.email,
+  });
 
   revalidatePath("/user-management");
   return {};

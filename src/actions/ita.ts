@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { logActivity } from "@/lib/activity/log";
 import { FORBIDDEN_MESSAGE } from "@/lib/auth/errors";
 import { requireUser } from "@/lib/auth/guards";
 import { hasRole } from "@/lib/auth/roles";
@@ -80,6 +81,8 @@ export async function createIta(formData: FormData): Promise<ItaActionState> {
     data: { title, year, order: await nextOrder(year), userId: user.id },
   });
 
+  await logActivity(user, "ita.create", { target: title, detail: `ปี ${year}` });
+
   revalidateItaViews(year);
   return {};
 }
@@ -132,6 +135,16 @@ export async function updateIta(formData: FormData): Promise<ItaActionState> {
     await tx.ita.update({ where: { id }, data: { title, year, order } });
   });
 
+  await logActivity(user, "ita.update", {
+    target: title,
+    // Say what actually moved — a year change and a reorder read very
+    // differently when someone is retracing what happened to a topic.
+    detail:
+      year !== current.year
+        ? `ย้ายจากปี ${current.year} ไปปี ${year}`
+        : `ปี ${year}${order !== current.order ? ` · ลำดับ ${current.order} → ${order}` : ""}`,
+  });
+
   revalidateItaViews(year);
   // The old year's list changed too when the topic moved out of it.
   if (year !== current.year) revalidateItaViews(current.year);
@@ -150,6 +163,8 @@ export async function deleteIta(formData: FormData): Promise<ItaActionState> {
 
   // OIT children go with it — `onDelete: Cascade` on the relation (F1).
   await prisma.ita.delete({ where: { id: ita.id } });
+
+  await logActivity(user, "ita.delete", { target: ita.title, detail: `ปี ${ita.year}` });
 
   revalidateItaViews(ita.year);
   return {};
