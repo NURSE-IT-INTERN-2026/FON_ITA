@@ -1,5 +1,9 @@
 "use client";
 
+import { Clock, ExternalLink, FileText, Link as LinkIcon, Pencil, SearchX } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import {
   Accordion,
   AccordionContent,
@@ -7,8 +11,13 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
-import { Clock, ExternalLink, FileText, Link as LinkIcon, Pencil, SearchX } from "lucide-react";
-import Link from "next/link";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { formatBELong } from "@/lib/date";
 import { cn } from "@/lib/utils";
 
@@ -16,9 +25,11 @@ import { cn } from "@/lib/utils";
  * Public-facing accordion of ITA topics and their OIT children. On the home
  * page it sits below the hero/video.
  *
- * Client Component because Radix Accordion tracks open state in React. Clicking
- * an OIT row links to its detail page (`/ita-oit/[id]`) — the Lovable prototype
- * opened a modal here because it had no detail page; this app does (F15).
+ * Clicking a row opens the content in a modal, the way the Lovable prototype
+ * and the faculty's current website both behave: someone scanning a year's
+ * documents can read one and carry on without losing their place in the list.
+ * The `/ita-oit/[id]` page still exists — it is the shareable URL, and what the
+ * ITA management screen links to.
  *
  * `entries` are already filtered by year and search before they reach this
  * component; an empty list shows a contextual empty state.
@@ -40,6 +51,9 @@ export function ItaAccordion({
   isSearching: boolean;
   canManage: boolean;
 }) {
+  const router = useRouter();
+  const [activeOit, setActiveOit] = useState<AccordionOit | null>(null);
+
   const defaultValue =
     entries.length === 0
       ? []
@@ -47,78 +61,136 @@ export function ItaAccordion({
         ? entries.map((e) => String(e.id))
         : [String(entries[0].id)];
 
+  /**
+   * What a click on a row does, in order of what the reader most likely wants:
+   * read the content, or failing that follow the link. A row with neither is
+   * only actionable for staff, who are sent to the editor to fill it in.
+   */
+  function openOit(oit: AccordionOit) {
+    if (oit.contentHtml) {
+      setActiveOit(oit);
+      return;
+    }
+    if (oit.link) {
+      window.open(oit.link, "_blank", "noopener,noreferrer");
+      return;
+    }
+    if (canManage) router.push(`/ita-oit/edit/${oit.id}`);
+  }
+
   return (
-    <Accordion
-      type="multiple"
-      defaultValue={defaultValue}
-      className="rounded-lg border bg-card"
-    >
-      {entries.map((entry, idx) => (
-        <AccordionItem
-          key={entry.id}
-          value={String(entry.id)}
-          className={cn(idx === 0 && "border-t-0", "transition-colors hover:border-primary/40")}
-        >
-          <AccordionTrigger className="px-4 hover:no-underline">
-            <div className="flex min-w-0 items-center gap-3 pr-2">
-              <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-orange-500/10 font-mono text-sm font-bold tabular-nums text-orange-500">
-                {String(entry.order).padStart(2, "0")}
-              </span>
-              <div className="min-w-0 text-left">
-                <p className="truncate font-semibold text-orange-500">{entry.title}</p>
-                <p className="flex items-center gap-1 text-xs font-normal text-muted-foreground">
-                  <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 font-medium text-secondary-foreground">
-                    {entry.oits.length} รายการย่อย
-                  </span>
-                </p>
-              </div>
-            </div>
-          </AccordionTrigger>
-          <AccordionContent className="px-2 pb-3 pt-0">
-            {entry.oits.length === 0 ? (
-              <div className="flex items-center gap-2 px-2 py-3 text-sm text-muted-foreground">
-                <SearchX className="size-4 shrink-0" aria-hidden />
-                <span>
-                  {isSearching ? "ไม่พบรายการ OIT ที่ตรงกับการค้นหา" : "ยังไม่มีรายการ OIT ในหัวข้อนี้"}
+    <>
+      <Accordion
+        type="multiple"
+        defaultValue={defaultValue}
+        className="rounded-lg border bg-card"
+      >
+        {entries.map((entry, idx) => (
+          <AccordionItem
+            key={entry.id}
+            value={String(entry.id)}
+            className={cn(idx === 0 && "border-t-0", "transition-colors hover:border-primary/40")}
+          >
+            <AccordionTrigger className="px-4 hover:no-underline">
+              <div className="flex min-w-0 items-center gap-3 pr-2">
+                <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-orange-500/10 font-mono text-sm font-bold tabular-nums text-orange-500">
+                  {String(entry.order).padStart(2, "0")}
                 </span>
+                <div className="min-w-0 text-left">
+                  <p className="truncate font-semibold text-orange-500">{entry.title}</p>
+                  <p className="flex items-center gap-1 text-xs font-normal text-muted-foreground">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 font-medium text-secondary-foreground">
+                      {entry.oits.length} รายการย่อย
+                    </span>
+                  </p>
+                </div>
               </div>
-            ) : (
-              <ul className="space-y-1">
-                {entry.oits.map((oit) => (
-                  <OitRow key={oit.id} oit={oit} canManage={canManage} />
-                ))}
-              </ul>
-            )}
-          </AccordionContent>
-        </AccordionItem>
-      ))}
-    </Accordion>
+            </AccordionTrigger>
+            <AccordionContent className="px-2 pb-3 pt-0">
+              {entry.oits.length === 0 ? (
+                <div className="flex items-center gap-2 px-2 py-3 text-sm text-muted-foreground">
+                  <SearchX className="size-4 shrink-0" aria-hidden />
+                  <span>
+                    {isSearching ? "ไม่พบรายการ OIT ที่ตรงกับการค้นหา" : "ยังไม่มีรายการ OIT ในหัวข้อนี้"}
+                  </span>
+                </div>
+              ) : (
+                <ul className="space-y-1">
+                  {entry.oits.map((oit) => (
+                    <OitRow
+                      key={oit.id}
+                      oit={oit}
+                      canManage={canManage}
+                      onOpen={() => openOit(oit)}
+                    />
+                  ))}
+                </ul>
+              )}
+            </AccordionContent>
+          </AccordionItem>
+        ))}
+      </Accordion>
+
+      <OitDetailDialog oit={activeOit} canManage={canManage} onClose={() => setActiveOit(null)} />
+    </>
   );
 }
 
 function OitRow({
   oit,
   canManage,
+  onOpen,
 }: {
-  oit: ItaAccordionEntry["oits"][number];
+  oit: AccordionOit;
   canManage: boolean;
+  onOpen: () => void;
 }) {
+  // Nothing to read and nowhere to go: dead weight for a visitor, a to-do for
+  // staff. Only the latter gets a click target.
+  const isEmpty = !oit.contentHtml && !oit.link;
+  const disabled = isEmpty && !canManage;
+
   return (
-    <li className="group flex flex-col gap-2 rounded-md border border-transparent px-3 py-2.5 transition-colors sm:flex-row sm:items-center sm:justify-between sm:gap-3 hover:border-primary/40 hover:bg-accent/50">
-      <Link
-        href={oit.link ?? `/ita-oit/${oit.id}`}
-        {...(oit.link ? { target: "_blank", rel: "noreferrer" } : {})}
-        className="flex min-w-0 flex-1 items-start gap-2.5"
-      >
-        <span className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-md bg-primary/10 text-primary">
+    // A <button> would nest the link and edit buttons on the right inside
+    // another button, so the row carries the role instead.
+    <li
+      onClick={disabled ? undefined : onOpen}
+      onKeyDown={
+        disabled
+          ? undefined
+          : (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onOpen();
+              }
+            }
+      }
+      role={disabled ? undefined : "button"}
+      tabIndex={disabled ? -1 : 0}
+      aria-label={disabled ? undefined : `ดู ${oit.title}`}
+      className={cn(
+        "group flex flex-col gap-2 rounded-md border border-transparent px-3 py-2.5 transition-colors sm:flex-row sm:items-center sm:justify-between sm:gap-3",
+        !disabled && "cursor-pointer hover:border-primary/40 hover:bg-accent/50",
+      )}
+    >
+      <div className="flex min-w-0 flex-1 items-start gap-2.5">
+        <span
+          className={cn(
+            "mt-0.5 grid size-7 shrink-0 place-items-center rounded-md",
+            isEmpty ? "bg-muted text-muted-foreground" : "bg-primary/10 text-primary",
+          )}
+        >
           <FileText className="size-3.5" aria-hidden />
         </span>
         <div className="min-w-0 flex-1">
-          <span className="truncate text-sm font-semibold underline-offset-2 group-hover:underline">
+          <span className="truncate text-sm font-semibold">
             {oit.title}
-            {/* บอกว่าแถวนี้พาไปลิงก์ภายนอก ไม่ใช่หน้ารายละเอียดในระบบ */}
+            {/* Marks a row that leaves the site instead of opening the modal */}
             {oit.link && (
-              <LinkIcon className="ml-1.5 inline size-3 shrink-0 text-muted-foreground" aria-hidden />
+              <LinkIcon
+                className="ml-1.5 inline size-3 shrink-0 text-muted-foreground"
+                aria-hidden
+              />
             )}
           </span>
           <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
@@ -126,8 +198,10 @@ function OitRow({
             อัปเดต {formatBELong(oit.updatedAt)}
           </p>
         </div>
-      </Link>
-      <div className="flex shrink-0 items-center gap-2">
+      </div>
+
+      {/* Keeps the row's own handler from firing underneath these */}
+      <div className="flex shrink-0 items-center gap-2" onClick={(e) => e.stopPropagation()}>
         {oit.link && (
           <Button asChild size="sm" variant="ghost" className="gap-1.5">
             <a href={oit.link} target="_blank" rel="noreferrer">
@@ -150,15 +224,86 @@ function OitRow({
 }
 
 /**
- * Match the prisma select in `getItasByYear` — kept as a type alias so the page
- * can pass server data straight through without a mapping step. `updatedAt`
- * arrives as a serialisable ISO string after crossing the Server→Client
- * boundary, so the type accepts both forms.
+ * The OIT content, read in place.
+ *
+ * `contentHtml` was sanitised on the server before it was sent here
+ * (`getPublicItasByYear`), which is what makes the injection below safe.
  */
+function OitDetailDialog({
+  oit,
+  canManage,
+  onClose,
+}: {
+  oit: AccordionOit | null;
+  canManage: boolean;
+  onClose: () => void;
+}) {
+  return (
+    <Dialog open={oit !== null} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="flex max-h-[90vh] max-w-3xl flex-col gap-0 overflow-hidden p-0">
+        {oit && (
+          <>
+            <DialogHeader className="border-b px-6 py-4">
+              <DialogTitle className="text-left text-lg">{oit.title}</DialogTitle>
+              <DialogDescription className="flex items-center gap-1 pt-1 text-left">
+                <Clock className="size-3.5" aria-hidden />
+                อัปเดตล่าสุด {formatBELong(oit.updatedAt)}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="flex-1 overflow-y-auto px-6 py-4">
+              <div
+                className="prose-oit"
+                dangerouslySetInnerHTML={{ __html: oit.contentHtml ?? "" }}
+              />
+            </div>
+
+            {(oit.link || canManage) && (
+              <div className="flex flex-wrap justify-end gap-2 border-t px-6 py-3">
+                {oit.link && (
+                  <Button asChild variant="secondary" size="sm" className="gap-1.5">
+                    <a href={oit.link} target="_blank" rel="noreferrer">
+                      <ExternalLink className="size-3.5" aria-hidden />
+                      เปิดลิงก์ภายนอก
+                    </a>
+                  </Button>
+                )}
+                {canManage && (
+                  <Button asChild size="sm" className="gap-1.5">
+                    <Link href={`/ita-oit/edit/${oit.id}`}>
+                      <Pencil className="size-3.5" aria-hidden />
+                      แก้ไข
+                    </Link>
+                  </Button>
+                )}
+              </div>
+            )}
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/**
+ * Match the prisma select in `getPublicItasByYear` — kept as a type alias so
+ * the page can pass server data straight through without a mapping step.
+ * `updatedAt` arrives as a serialisable ISO string after crossing the
+ * Server→Client boundary, so the type accepts both forms.
+ */
+export type AccordionOit = {
+  id: number;
+  title: string;
+  link: string | null;
+  /** Already sanitised on the server. Null when the OIT has no content. */
+  contentHtml: string | null;
+  updatedAt: string | Date;
+};
+
 export type ItaAccordionEntry = {
   id: number;
   title: string;
   year: string;
   order: number;
-  oits: { id: number; title: string; link: string | null; updatedAt: string | Date }[];
+  oits: AccordionOit[];
 };

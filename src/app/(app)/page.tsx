@@ -4,7 +4,7 @@ import { VideoSection } from "@/components/public/video-section";
 import { hasRole } from "@/lib/auth/roles";
 import { getSessionUser } from "@/lib/auth/session";
 import { currentBEYear } from "@/lib/date";
-import { getItasByYear, listItaYears, yearOptions } from "@/lib/ita/queries";
+import { getPublicItasByYear, listItaYears, yearOptions } from "@/lib/ita/queries";
 
 // Allow the year filter to be cached per-year; the page stays dynamic for the
 // `getSessionUser` check that decides whether edit buttons render.
@@ -35,7 +35,8 @@ export default async function HomePage({ searchParams }: Props) {
     yearParam && /^\d{4}$/.test(yearParam) ? yearParam : fallbackYear;
 
   const [itas, user] = await Promise.all([
-    getItasByYear(year),
+    // Includes each OIT's sanitised content — the accordion opens it in a modal.
+    getPublicItasByYear(year),
     getSessionUser(),
   ]);
 
