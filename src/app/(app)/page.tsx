@@ -1,7 +1,6 @@
 import { PublicHero } from "@/components/public/public-hero";
 import { ItaSearchSection } from "@/components/public/ita-search-section";
 import { VideoSection } from "@/components/public/video-section";
-import { PageHeader } from "@/components/shell/page-header";
 import { hasRole } from "@/lib/auth/roles";
 import { getSessionUser } from "@/lib/auth/session";
 import { currentBEYear } from "@/lib/date";
@@ -22,6 +21,10 @@ type Props = {
  * `?year=` so a visitor can bookmark or share a specific year's view; search is
  * client-only and never reaches the server. Falls back to the most recent year
  * that has data, matching how `/ita-list` handles a current year with no rows.
+ *
+ * Title uses the faculty orange rather than the neutral PageHeader — the public
+ * landing page is the one place that should look like the marketing site, and
+ * that brand colour is the Lovable prototype's clearest visual signature.
  */
 export default async function HomePage({ searchParams }: Props) {
   const { year: yearParam } = await searchParams;
@@ -40,10 +43,14 @@ export default async function HomePage({ searchParams }: Props) {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="ระบบจัดการข้อมูลสาธารณะ"
-        description={`ข้อมูลการประเมินคุณธรรมและความโปร่งใส คณะพยาบาลศาสตร์ มหาวิทยาลัยเชียงใหม่`}
-      />
+      <header className="flex flex-col items-center gap-1.5 py-2 text-center sm:py-3">
+        <h1 className="text-2xl font-bold tracking-tight text-orange-500 sm:text-3xl">
+          ระบบข้อมูลสาธารณะ
+        </h1>
+        {/* <p className="text-sm text-muted-foreground">
+          ข้อมูลการประเมินคุณธรรมและความโปร่งใส คณะพยาบาลศาสตร์ มหาวิทยาลัยเชียงใหม่
+        </p> */}
+      </header>
 
       <div className="grid gap-4 lg:grid-cols-2 lg:gap-6">
         <PublicHero />

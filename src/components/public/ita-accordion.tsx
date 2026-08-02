@@ -61,11 +61,11 @@ export function ItaAccordion({
         >
           <AccordionTrigger className="px-4 hover:no-underline">
             <div className="flex min-w-0 items-center gap-3 pr-2">
-              <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 font-mono text-sm font-bold tabular-nums text-primary">
+              <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-orange-500/10 font-mono text-sm font-bold tabular-nums text-orange-500">
                 {String(entry.order).padStart(2, "0")}
               </span>
               <div className="min-w-0 text-left">
-                <p className="truncate font-semibold text-primary">{entry.title}</p>
+                <p className="truncate font-semibold text-orange-500">{entry.title}</p>
                 <p className="flex items-center gap-1 text-xs font-normal text-muted-foreground">
                   <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 font-medium text-secondary-foreground">
                     {entry.oits.length} รายการย่อย
@@ -110,7 +110,7 @@ function OitRow({
         {...(oit.link ? { target: "_blank", rel: "noreferrer" } : {})}
         className="flex min-w-0 flex-1 items-start gap-2.5"
       >
-        <span className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-md bg-primary/10 text-primary">
+        <span className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-md bg-orange-500/10 text-orange-500">
           <FileText className="size-3.5" aria-hidden />
         </span>
         <div className="min-w-0 flex-1">
