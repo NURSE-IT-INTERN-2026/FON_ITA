@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { requireRole } from "@/lib/auth/guards";
 import { getIta } from "@/lib/ita/queries";
 import { searchFilesByName } from "@/lib/files/queries";
+import { MAX_FILE_SIZE_BYTES, allowedExtensions } from "@/lib/files/storage";
 
 export const metadata: Metadata = { title: "เพิ่ม OIT — FON-ITA" };
 
@@ -26,6 +27,12 @@ export default async function CreateOitPage({ params }: Props) {
 
   // Seeds the "แนบไฟล์" picker in the editor (F21).
   const recentFiles = await searchFilesByName("");
+  // Built from the same env the Server Action validates against, so the
+  // picker's inline upload and the rule behind it cannot drift apart.
+  const fileAccept = allowedExtensions()
+    .map((ext) => `.${ext}`)
+    .join(",");
+  const fileMaxSizeMb = Math.round(MAX_FILE_SIZE_BYTES / (1024 * 1024));
 
   return (
     <div>
@@ -49,7 +56,13 @@ export default async function CreateOitPage({ params }: Props) {
         </CardContent>
       </Card>
 
-      <OitForm itaId={ita.id} year={ita.year} recentFiles={recentFiles} />
+      <OitForm
+        itaId={ita.id}
+        year={ita.year}
+        recentFiles={recentFiles}
+        fileAccept={fileAccept}
+        fileMaxSizeMb={fileMaxSizeMb}
+      />
     </div>
   );
 }

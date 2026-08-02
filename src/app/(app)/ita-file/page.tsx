@@ -1,10 +1,9 @@
-import { ExternalLink, FolderOpen } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 import type { Metadata } from "next";
 import { FileCopyUrlButton } from "@/components/files/file-copy-url-button";
 import { FileDeleteButton } from "@/components/files/file-delete-button";
 import { FileSearchInput } from "@/components/files/file-search-input";
-import { FileUploadDialog } from "@/components/files/file-upload-dialog";
-import { EmptyState } from "@/components/misc/empty-state";
+import { FileUploader } from "@/components/files/file-uploader";
 import { PaginationNav } from "@/components/misc/pagination-nav";
 import { PageHeader } from "@/components/shell/page-header";
 import {
@@ -16,6 +15,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { requireRole } from "@/lib/auth/guards";
+import { fileIcon, fileTypeLabel } from "@/lib/files/display";
 import { formatBEShort } from "@/lib/date";
 import { listFiles } from "@/lib/files/queries";
 import { MAX_FILE_SIZE_BYTES, allowedExtensions } from "@/lib/files/storage";
@@ -44,7 +44,7 @@ export default async function ItaFilePage({ searchParams }: Props) {
     search,
   );
 
-  // Built from the same env the Server Action validates against, so the picker
+  // Built from the same env the Server Action validates against, so the uploader
   // and the rule behind it cannot drift apart.
   const accept = allowedExtensions()
     .map((ext) => `.${ext}`)
@@ -56,65 +56,65 @@ export default async function ItaFilePage({ searchParams }: Props) {
       <PageHeader
         title="คลังไฟล์"
         breadcrumb={[{ label: "หน้าแรก", href: "/" }, { label: "คลังไฟล์" }]}
-        description={
-          total > 0
-            ? `${search ? `ผลการค้นหา “${search}” — ` : "ไฟล์ทั้งหมด "}${total} รายการ · หน้า ${page} จาก ${totalPages}`
-            : "ไฟล์กลางสำหรับแนบในหัวข้อ OIT"
-        }
-        actions={
-          <>
-            <FileSearchInput defaultValue={search} />
-            <FileUploadDialog accept={accept} maxSizeMb={maxSizeMb} />
-          </>
-        }
+        description="จัดการไฟล์เอกสารประกอบสำหรับการประเมิน ITA"
       />
 
-      {files.length === 0 ? (
-        <EmptyState
-          icon={FolderOpen}
-          title={search ? `ไม่พบไฟล์ที่ตรงกับ “${search}”` : "ยังไม่มีไฟล์ในคลัง"}
-          description={
-            search
-              ? "ลองใช้คำค้นอื่น หรือล้างคำค้นหาเพื่อดูไฟล์ทั้งหมด"
-              : "เริ่มต้นด้วยการอัปโหลดไฟล์แรก — รายการใหม่สุดจะแสดงบนสุดเสมอ"
-          }
-          action={search ? undefined : <FileUploadDialog accept={accept} maxSizeMb={maxSizeMb} />}
-        />
-      ) : (
-        <>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>ชื่อไฟล์</TableHead>
-                  <TableHead className="w-48">ผู้อัปโหลด</TableHead>
-                  <TableHead className="w-36">วันที่อัปโหลด</TableHead>
-                  <TableHead className="w-24 text-right">จัดการ</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {files.map((file) => (
+      <div className="mb-6">
+        <FileUploader accept={accept} maxSizeMb={maxSizeMb} />
+      </div>
+
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <FileSearchInput defaultValue={search} />
+        <span className="text-xs text-muted-foreground">ทั้งหมด {total} รายการ</span>
+      </div>
+
+      <div className="overflow-x-auto rounded-lg border bg-card">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>ชื่อไฟล์</TableHead>
+              <TableHead className="w-24">ประเภท</TableHead>
+              <TableHead className="w-48">ผู้อัปโหลด</TableHead>
+              <TableHead className="w-32">วันที่</TableHead>
+              <TableHead className="w-32 text-right">การกระทำ</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {files.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="py-10 text-center text-muted-foreground">
+                  {search ? `ไม่พบไฟล์ที่ตรงกับ “${search}”` : "ยังไม่มีไฟล์ในคลัง"}
+                </TableCell>
+              </TableRow>
+            ) : (
+              files.map((file) => {
+                const Icon = fileIcon(file.path);
+                return (
                   <TableRow key={file.id}>
-                    <TableCell className="font-medium">
+                    <TableCell>
                       {/* Route handler, not a page — a plain <a> with the
                           basePath added, since <Link> would try an RSC fetch. */}
                       <a
                         href={fileUrl(file.path)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 hover:text-primary hover:underline"
+                        className="inline-flex items-center gap-2 font-medium text-primary hover:underline"
                       >
-                        {file.name}
-                        <ExternalLink className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+                        <Icon className="size-4 shrink-0" aria-hidden />
+                        <span className="truncate">{file.name}</span>
+                        <ExternalLink className="size-3 shrink-0 opacity-60" aria-hidden />
                       </a>
                     </TableCell>
-                    <TableCell className="text-muted-foreground">{file.createdBy}</TableCell>
+                    <TableCell className="text-xs uppercase text-muted-foreground">
+                      {fileTypeLabel(file.path)}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{file.createdBy}</TableCell>
                     {/* พ.ศ. via lib/date.ts — never inline +543 */}
-                    <TableCell className="tabular-nums text-muted-foreground">
+                    <TableCell className="text-sm tabular-nums text-muted-foreground">
                       {formatBEShort(file.createdAt)}
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex justify-end">
+                      <div className="flex justify-end gap-1">
                         <FileCopyUrlButton url={fileUrl(file.path)} name={file.name} />
                         {/* Owner, or SUPERADMIN for anything (D5). The action
                             re-decides this — hiding the button is only UX. */}
@@ -124,25 +124,25 @@ export default async function ItaFilePage({ searchParams }: Props) {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                );
+              })
+            )}
+          </TableBody>
+        </Table>
+      </div>
 
-          <PaginationNav
-            page={page}
-            totalPages={totalPages}
-            // The term rides along, or page 2 of a search would show everything.
-            hrefFor={(n) => {
-              const params = new URLSearchParams();
-              if (search) params.set("q", search);
-              if (n > 1) params.set("page", String(n));
-              const query = params.toString();
-              return query ? `/ita-file?${query}` : "/ita-file";
-            }}
-          />
-        </>
-      )}
+      <PaginationNav
+        page={page}
+        totalPages={totalPages}
+        // The term rides along, or page 2 of a search would show everything.
+        hrefFor={(n) => {
+          const params = new URLSearchParams();
+          if (search) params.set("q", search);
+          if (n > 1) params.set("page", String(n));
+          const query = params.toString();
+          return query ? `/ita-file?${query}` : "/ita-file";
+        }}
+      />
     </div>
   );
 }

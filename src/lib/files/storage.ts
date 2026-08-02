@@ -24,9 +24,11 @@ const MIME_BY_EXTENSION: Record<string, string[]> = {
   png: ["image/png"],
   jpg: ["image/jpeg"],
   jpeg: ["image/jpeg"],
+  webp: ["image/webp"],
   pdf: ["application/pdf"],
   csv: ["text/csv", "application/csv", "application/vnd.ms-excel", "text/plain"],
   xlsx: ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"],
+  docx: ["application/vnd.openxmlformats-officedocument.wordprocessingml.document"],
 };
 
 /**
@@ -44,12 +46,12 @@ export function contentTypeFor(storedName: string): string {
 /** Whether a browser can display this type, rather than having to download it. */
 export function isInlineType(storedName: string): boolean {
   const ext = path.extname(storedName).replace(".", "").toLowerCase();
-  return ["pdf", "png", "jpg", "jpeg"].includes(ext);
+  return ["pdf", "png", "jpg", "jpeg", "webp"].includes(ext);
 }
 
 /** Extensions actually enabled for this deployment. */
 export function allowedExtensions(): string[] {
-  const configured = (process.env.ALLOWED_FILE_TYPES ?? "png,jpg,jpeg,pdf,csv,xlsx")
+  const configured = (process.env.ALLOWED_FILE_TYPES ?? "png,jpg,jpeg,webp,pdf,csv,xlsx,docx")
     .split(",")
     .map((e) => e.trim().toLowerCase())
     .filter(Boolean);

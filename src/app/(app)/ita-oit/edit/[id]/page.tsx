@@ -8,6 +8,7 @@ import { requireRole } from "@/lib/auth/guards";
 import { formatBELong } from "@/lib/date";
 import { getOit } from "@/lib/ita/queries";
 import { searchFilesByName } from "@/lib/files/queries";
+import { MAX_FILE_SIZE_BYTES, allowedExtensions } from "@/lib/files/storage";
 
 export const metadata: Metadata = { title: "แก้ไข OIT — FON-ITA" };
 
@@ -26,6 +27,12 @@ export default async function EditOitPage({ params }: Props) {
 
   // Seeds the "แนบไฟล์" picker in the editor (F21).
   const recentFiles = await searchFilesByName("");
+  // Built from the same env the Server Action validates against, so the
+  // picker's inline upload and the rule behind it cannot drift apart.
+  const fileAccept = allowedExtensions()
+    .map((ext) => `.${ext}`)
+    .join(",");
+  const fileMaxSizeMb = Math.round(MAX_FILE_SIZE_BYTES / (1024 * 1024));
 
   return (
     <div>
@@ -54,6 +61,8 @@ export default async function EditOitPage({ params }: Props) {
         year={oit.ita.year}
         oit={{ id: oit.id, title: oit.title, link: oit.link, content: oit.content }}
         recentFiles={recentFiles}
+        fileAccept={fileAccept}
+        fileMaxSizeMb={fileMaxSizeMb}
       />
     </div>
   );

@@ -80,7 +80,7 @@ export async function searchFilesByName(search: string) {
     where: nameFilter(search),
     orderBy: { createdAt: "desc" },
     take: PICKER_LIMIT,
-    select: { id: true, name: true, path: true },
+    select: { id: true, name: true, path: true, createdBy: true, createdAt: true },
   });
 }
 

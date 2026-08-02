@@ -19,7 +19,9 @@ import {
   RemoveFormatting,
   Undo2,
 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useRef, useState, useTransition } from "react";
+import { toast } from "sonner";
+import { uploadFile } from "@/actions/file";
 import { FilePickerDialog } from "@/components/files/file-picker-dialog";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,6 +34,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { PickerFile } from "@/lib/files/queries";
+import { fileUrl } from "@/lib/files/url";
 import { cn } from "@/lib/utils";
 
 /**
@@ -48,18 +51,41 @@ export function TiptapEditor({
   onChange,
   maxChars,
   recentFiles,
+  fileAccept,
+  fileMaxSizeMb,
 }: {
   value: string;
   onChange: (html: string, charCount: number) => void;
   maxChars: number;
   /** Seeds the "แนบไฟล์" picker so it shows something the moment it opens. */
   recentFiles: PickerFile[];
+  /** `accept` for the picker's inline upload — same value the page passes to FileUploadDialog. */
+  fileAccept: string;
+  /** Mirrors MAX_FILE_SIZE_BYTES for the picker's inline upload pre-check. */
+  fileMaxSizeMb: number;
 }) {
   const [linkOpen, setLinkOpen] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
+  // Pre-fill for the picker's label step, captured from the editor selection at
+  // open time (the selection is lost while the dialog holds focus).
+  const [pickerDefaultLabel, setPickerDefaultLabel] = useState<string | undefined>(undefined);
   // The selection is lost while the dialog holds focus, so remember it.
   const selectionRef = useRef<{ from: number; to: number } | null>(null);
+  // Drag-drop upload runs through the same Server Action as the picker; this
+  // flips a pending flag so the toolbar can show "กำลังอัปโหลด…" on the cursor.
+  const [dropPending, startDropTransition] = useTransition();
+  // Latest drop handler, handed to Tiptap's `handleDrop` via a ref so the
+  // config object passed to `useEditor` once can still call a function that
+  // sees the current editor instance.
+  const handleDropRef = useRef<(file: File, pos: number) => void>(() => {});
+
+  // Pre-compute the allowed extension list once per render so the drop handler
+  // doesn't allocate on every drag-over event.
+  const allowedExts = fileAccept
+    .split(",")
+    .map((e) => e.trim().replace(/^\./, "").toLowerCase())
+    .filter(Boolean);
 
   const editor = useEditor({
     extensions: [
@@ -73,6 +99,21 @@ export function TiptapEditor({
     editorProps: {
       attributes: {
         class: "tiptap-content min-h-40 px-3 py-2 focus:outline-none",
+      },
+      // Drop a file onto the editor → upload through `uploadFile`, then insert a
+      // link at the cursor. Internal content drags (`moved` / no files) fall
+      // through to Tiptap's default handling.
+      handleDrop: (view, event) => {
+        const files = event.dataTransfer?.files;
+        if (!files || files.length === 0) return false;
+
+        const coords = { left: event.clientX, top: event.clientY };
+        const dropPos = view.posAtCoords(coords);
+        if (!dropPos) return false;
+
+        event.preventDefault();
+        handleDropRef.current(files[0], dropPos.pos);
+        return true;
       },
     },
     onUpdate: ({ editor }) => onChange(editor.getHTML(), editor.getText().trim().length),
@@ -143,6 +184,9 @@ export function TiptapEditor({
     if (!editor) return;
     const { from, to } = editor.state.selection;
     selectionRef.current = { from, to };
+    // Capture the selected text so the picker's label step can pre-fill with it.
+    const selectedText = from !== to ? editor.state.doc.textBetween(from, to, " ").trim() : "";
+    setPickerDefaultLabel(selectedText || undefined);
     setPickerOpen(true);
   }
 
@@ -152,9 +196,34 @@ export function TiptapEditor({
    */
   function insertFile({ url, label }: { url: string; label: string }) {
     if (!editor) return;
+    insertLinkAt(url, label);
+    selectionRef.current = null;
+    setPickerOpen(false);
+  }
+
+  /**
+   * Shared link inserter. With `pos` (drop target) it inserts at that position;
+   * without it, it respects the saved selection so the picker can wrap a
+   * highlighted range in the link.
+   */
+  function insertLinkAt(url: string, label: string, pos?: number) {
+    if (!editor) return;
+    const chain = editor.chain().focus();
+
+    if (pos != null) {
+      chain
+        .setTextSelection(pos)
+        .insertContent({
+          type: "text",
+          text: label,
+          marks: [{ type: "link", attrs: { href: url, target: "_blank" } }],
+        })
+        .run();
+      return;
+    }
+
     const selection = selectionRef.current;
     const hasSelection = !!selection && selection.from !== selection.to;
-    const chain = editor.chain().focus();
     if (selection) chain.setTextSelection(selection);
 
     if (hasSelection) {
@@ -170,10 +239,60 @@ export function TiptapEditor({
         })
         .run();
     }
-
-    selectionRef.current = null;
-    setPickerOpen(false);
   }
+
+  /**
+   * Upload a dropped file and insert a link to it at the drop position. Shares
+   * the Server Action with the picker's upload tab, so all rules (extension,
+   * size, uniqueness) are enforced identically.
+   */
+  function handleDroppedFile(file: File, pos: number) {
+    if (!editor) return;
+
+    if (file.size > fileMaxSizeMb * 1024 * 1024) {
+      toast.error(`ไฟล์ต้องมีขนาดไม่เกิน ${fileMaxSizeMb} MB`);
+      return;
+    }
+    const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+    if (!allowedExts.includes(ext)) {
+      toast.error(`รองรับเฉพาะไฟล์ ${allowedExts.join(", ")}`);
+      return;
+    }
+
+    // Default display name = filename without extension, matching the picker.
+    const dot = file.name.lastIndexOf(".");
+    const displayName = dot > 0 ? file.name.slice(0, dot) : file.name;
+
+    const formData = new FormData();
+    formData.set("name", displayName);
+    formData.set("file", file);
+
+    const toastId = `drop-${Date.now()}`;
+    toast.loading("กำลังอัปโหลดไฟล์…", { id: toastId });
+
+    startDropTransition(async () => {
+      try {
+        const result = await uploadFile(formData);
+        if (result.error) {
+          toast.error(result.error, { id: toastId });
+          return;
+        }
+        if (!result.file) {
+          toast.error("อัปโหลดไม่สำเร็จ โปรดลองอีกครั้ง", { id: toastId });
+          return;
+        }
+        insertLinkAt(fileUrl(result.file.path), result.file.name, pos);
+        toast.success(`แนบ "${result.file.name}" แล้ว`, { id: toastId });
+      } catch {
+        toast.error("อัปโหลดไม่สำเร็จ โปรดลองอีกครั้ง", { id: toastId });
+      }
+    });
+  }
+
+  // Keep the ref pointing at the latest handler so `editorProps.handleDrop`,
+  // which Tiptap captured once at editor creation, calls a function that sees
+  // the current editor instance.
+  handleDropRef.current = handleDroppedFile;
 
   return (
     <div className={cn("rounded-md border bg-card", overLimit && "border-destructive")}>
@@ -246,7 +365,7 @@ export function TiptapEditor({
         <ToolButton label="ลิงก์" active={state.link} onClick={openLinkDialog}>
           <LinkIcon />
         </ToolButton>
-        <ToolButton label="แนบไฟล์จากคลัง" onClick={openPicker}>
+        <ToolButton label="แนบไฟล์" onClick={openPicker}>
           <Paperclip />
         </ToolButton>
         <ToolButton
@@ -270,7 +389,11 @@ export function TiptapEditor({
 
       <div className="flex items-center justify-between gap-2 border-t px-3 py-1.5 text-xs">
         <span className="text-muted-foreground">
-          {overLimit ? "เนื้อหายาวเกินกำหนด — ลบบางส่วนออกก่อนบันทึก" : "รองรับตัวหนา ตัวเอียง รายการ และลิงก์"}
+          {overLimit
+            ? "เนื้อหายาวเกินกำหนด — ลบบางส่วนออกก่อนบันทึก"
+            : dropPending
+              ? "กำลังอัปโหลดไฟล์…"
+              : "รองรับตัวหนา ตัวเอียง รายการ และลิงก์"}
         </span>
         <span
           className={cn(
@@ -287,6 +410,9 @@ export function TiptapEditor({
         onOpenChange={setPickerOpen}
         onPick={insertFile}
         recentFiles={recentFiles}
+        accept={fileAccept}
+        maxSizeMb={fileMaxSizeMb}
+        defaultLabel={pickerDefaultLabel}
       />
 
       <Dialog open={linkOpen} onOpenChange={setLinkOpen}>

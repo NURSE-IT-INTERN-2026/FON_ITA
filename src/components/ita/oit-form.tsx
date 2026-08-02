@@ -29,12 +29,18 @@ export function OitForm({
   year,
   oit,
   recentFiles,
+  fileAccept,
+  fileMaxSizeMb,
 }: {
   itaId: number;
   year: string;
   oit?: OitDefaults;
   /** Loaded on the server so the file picker opens with content (F21). */
   recentFiles: PickerFile[];
+  /** `accept` for the picker's inline upload — built from the same env the server validates against. */
+  fileAccept: string;
+  /** Mirrors MAX_FILE_SIZE_BYTES for the picker's inline upload pre-check. */
+  fileMaxSizeMb: number;
 }) {
   const router = useRouter();
   const editMode = !!oit;
@@ -111,6 +117,8 @@ export function OitForm({
               }}
               maxChars={MAX_CHARS}
               recentFiles={recentFiles}
+              fileAccept={fileAccept}
+              fileMaxSizeMb={fileMaxSizeMb}
             />
           </div>
 

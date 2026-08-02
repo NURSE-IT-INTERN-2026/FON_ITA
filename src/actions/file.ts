@@ -13,7 +13,7 @@ import { prisma } from "@/lib/prisma";
 // Write side of the file library (F19). ADMIN+ only — visitors have no account
 // and USER accounts no longer exist (decisions.md D12).
 
-export type FileActionState = { error?: string };
+export type FileActionState = { error?: string; file?: PickerFile };
 
 const deleteSchema = z.object({ id: z.coerce.number().int().positive() });
 
@@ -50,7 +50,7 @@ export async function uploadFile(formData: FormData): Promise<FileActionState> {
   const storedName = await saveUpload(file, check.ext);
 
   try {
-    await prisma.itaFile.create({
+    const created = await prisma.itaFile.create({
       data: {
         userId: user.id,
         // Denormalised in the legacy schema so the uploader's name survives even
@@ -59,7 +59,15 @@ export async function uploadFile(formData: FormData): Promise<FileActionState> {
         name,
         path: storedName,
       },
+      select: { id: true, name: true, path: true, createdBy: true, createdAt: true },
     });
+
+    await logActivity(user, "file.upload", { target: name, detail: `เก็บเป็น ${storedName}` });
+
+    revalidatePath("/ita-file");
+    // Return the new row so callers (the OIT editor drag-drop, the inline picker
+    // upload) can insert a link to it without re-running a search to find it.
+    return { file: created };
   } catch (error) {
     // The row is what makes a file reachable — without it the bytes on disk are
     // an orphan nobody can see or delete. Undo the write.
@@ -70,11 +78,6 @@ export async function uploadFile(formData: FormData): Promise<FileActionState> {
     }
     throw error;
   }
-
-  await logActivity(user, "file.upload", { target: name, detail: `เก็บเป็น ${storedName}` });
-
-  revalidatePath("/ita-file");
-  return {};
 }
 
 /**

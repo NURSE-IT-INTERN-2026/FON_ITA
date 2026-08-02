@@ -1,32 +1,51 @@
 "use client";
 
-import { FileText, Search } from "lucide-react";
+import { ArrowLeft, FileImage, Link2, Search, Upload } from "lucide-react";
 import { useRef, useState, useTransition } from "react";
-import { searchFiles } from "@/actions/file";
+import { toast } from "sonner";
+import { searchFiles, uploadFile } from "@/actions/file";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { formatBEShort } from "@/lib/date";
+import { fileIcon } from "@/lib/files/display";
 import type { PickerFile } from "@/lib/files/queries";
 import { fileUrl } from "@/lib/files/url";
-
-const DEBOUNCE_MS = 300;
+import { cn } from "@/lib/utils";
 
 /**
- * Pick a file from the library and drop a link to it into the editor (F21).
+ * Pick a file from the library and insert a link to it into the editor (F21).
+ *
+ * Two-step flow like Lovable:
+ *   1. List (with inline uploader + search) — pick a file
+ *   2. Edit the link's label before inserting
  *
  * Searching runs through the `searchFiles` Server Action, so the library is
  * never shipped to the browser — only the handful of rows that match.
+ *
+ * The inline uploader shares the `uploadFile` Server Action with the library
+ * page, so all rules (extension, size, uniqueness) stay in one place. On
+ * success the new row is prepended to the list so it can be picked immediately.
  */
+
+const DEBOUNCE_MS = 300;
+
 export function FilePickerDialog({
   open,
   onOpenChange,
   onPick,
   recentFiles,
+  accept,
+  maxSizeMb,
+  defaultLabel,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -41,29 +60,111 @@ export function FilePickerDialog({
    * something the instant it opens.
    */
   recentFiles: PickerFile[];
+  /** e.g. ".png,.jpg,.pdf" — built from the same env list the server uses. */
+  accept: string;
+  /** Mirrors MAX_FILE_SIZE_BYTES so the client can pre-check before upload. */
+  maxSizeMb: number;
+  /** Editor selection text — pre-fills the label so staff don't retype it. */
+  defaultLabel?: string;
 }) {
   const [term, setTerm] = useState("");
   const [files, setFiles] = useState<PickerFile[]>(recentFiles);
-  const [pending, startTransition] = useTransition();
+  const [selected, setSelected] = useState<PickerFile | null>(null);
+  const [label, setLabel] = useState("");
+  const [searchPending, startSearchTransition] = useTransition();
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadPending, startUploadTransition] = useTransition();
+  // Inline-upload form state. Same shape as FileUploader, but trimmed to fit
+  // inside a dialog.
+  const [uploadName, setUploadName] = useState("");
+  const [uploadFileObj, setUploadFileObj] = useState<File | null>(null);
+  const [dragOver, setDragOver] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   function runSearch(value: string) {
-    startTransition(async () => {
+    startSearchTransition(async () => {
       setFiles(await searchFiles(value));
     });
   }
 
-  /** Back to the opening state, so the next open is not the last search. */
+  /** Reset to opening state, so the next open is not the last search/upload. */
   function reset() {
     if (timer.current) clearTimeout(timer.current);
     setTerm("");
     setFiles(recentFiles);
+    setSelected(null);
+    setLabel("");
+    setUploadError(null);
+    setUploadName("");
+    setUploadFileObj(null);
+    setDragOver(false);
+    if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
   function onChange(value: string) {
     setTerm(value);
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => runSearch(value), DEBOUNCE_MS);
+  }
+
+  function pickFile(file: PickerFile) {
+    setSelected(file);
+    // Pre-fill with the editor selection if we have one, otherwise the file's
+    // display name — matching Lovable's default behaviour.
+    setLabel(defaultLabel?.trim() || file.name);
+  }
+
+  function confirm() {
+    if (!selected) return;
+    const finalLabel = label.trim() || selected.name;
+    onPick({ url: fileUrl(selected.path), label: finalLabel });
+    reset();
+    onOpenChange(false);
+  }
+
+  function handleUploadPick(f: File | null) {
+    if (!f) return;
+    if (f.size > maxSizeMb * 1024 * 1024) {
+      setUploadError(`ไฟล์ต้องมีขนาดไม่เกิน ${maxSizeMb} MB`);
+      return;
+    }
+    setUploadError(null);
+    setUploadFileObj(f);
+    if (!uploadName.trim()) {
+      const dot = f.name.lastIndexOf(".");
+      setUploadName(dot > 0 ? f.name.slice(0, dot) : f.name);
+    }
+  }
+
+  function submitUpload(formData: FormData) {
+    const file = formData.get("file");
+    if (file instanceof File && file.size > maxSizeMb * 1024 * 1024) {
+      setUploadError(`ไฟล์ต้องมีขนาดไม่เกิน ${maxSizeMb} MB`);
+      return;
+    }
+
+    startUploadTransition(async () => {
+      try {
+        const result = await uploadFile(formData);
+        if (result.error) {
+          setUploadError(result.error);
+          return;
+        }
+        setUploadError(null);
+        if (result.file) {
+          toast.success(`อัปโหลด "${result.file.name}" แล้ว`);
+          // Prepend so the new file is the top hit and can be picked in one click.
+          setFiles((prev) => [result.file!, ...prev.filter((f) => f.id !== result.file!.id)]);
+          // Reset the inline form, keep the picker on the list step.
+          setUploadName("");
+          setUploadFileObj(null);
+          if (fileInputRef.current) fileInputRef.current.value = "";
+        }
+      } catch {
+        setUploadError("อัปโหลดไม่สำเร็จ โปรดลองอีกครั้ง");
+      }
+    });
   }
 
   return (
@@ -74,56 +175,201 @@ export function FilePickerDialog({
         onOpenChange(next);
       }}
     >
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="flex max-h-[85vh] max-w-2xl flex-col overflow-hidden">
         <DialogHeader>
-          <DialogTitle>แนบไฟล์จากคลัง</DialogTitle>
-          <DialogDescription>
-            เลือกไฟล์เพื่อแทรกเป็นลิงก์ในเนื้อหา — ไฟล์ต้องอัปโหลดไว้ในคลังก่อน
-          </DialogDescription>
+          <DialogTitle>{selected ? "ตั้งชื่อลิงก์" : "เลือกไฟล์แนบ"}</DialogTitle>
+          {!selected && (
+            <DialogDescription>
+              อัปโหลดไฟล์ใหม่ หรือเลือกจากคลังเพื่อแทรกเป็นลิงก์ในเนื้อหา
+            </DialogDescription>
+          )}
         </DialogHeader>
 
-        <div className="relative">
-          <Search
-            className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-            aria-hidden
-          />
-          <Input
-            value={term}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder="ค้นหาชื่อไฟล์"
-            aria-label="ค้นหาชื่อไฟล์ในคลัง"
-            className="pl-8"
-            autoFocus
-          />
-        </div>
+        {selected ? (
+          // ── Step 2: edit label ───────────────────────────────────────
+          <div className="flex-1 overflow-y-auto px-1">
+            <button
+              type="button"
+              onClick={() => {
+                setSelected(null);
+                setLabel("");
+              }}
+              className="mb-3 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+            >
+              <ArrowLeft className="size-3.5" aria-hidden />
+              กลับไปเลือกไฟล์อื่น
+            </button>
 
-        <div className="max-h-72 space-y-1 overflow-y-auto">
-          {pending && <p className="px-1 py-2 text-sm text-muted-foreground">กำลังค้นหา…</p>}
+            <div className="mb-4 flex items-center gap-2 rounded-md border bg-muted/30 px-3 py-2">
+              {(() => {
+                const Icon = fileIcon(selected.path);
+                return <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden />;
+              })()}
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">{selected.name}</p>
+                <p className="text-xs text-muted-foreground">
+                  {formatBEShort(selected.createdAt)}
+                  {selected.createdBy ? ` · ${selected.createdBy}` : ""}
+                </p>
+              </div>
+            </div>
 
-          {!pending && files.length === 0 && (
-            <p className="px-1 py-2 text-sm text-muted-foreground">
-              {term ? `ไม่พบไฟล์ที่ตรงกับ “${term}”` : "ยังไม่มีไฟล์ในคลัง"}
+            <Label htmlFor="picker-link-label" className="mb-1.5 block text-sm">
+              ข้อความลิงก์ <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              id="picker-link-label"
+              value={label}
+              onChange={(e) => setLabel(e.target.value)}
+              placeholder="ข้อความที่จะแสดงเป็นลิงก์"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  confirm();
+                }
+              }}
+            />
+            <p className="mt-1.5 text-xs text-muted-foreground">
+              ข้อความนี้จะเป็น label ของลิงก์ในเนื้อหา ถ้าปล่อยว่างจะใช้ชื่อไฟล์
             </p>
-          )}
-
-          {!pending &&
-            files.map((file) => (
-              <button
-                key={file.id}
-                type="button"
-                onClick={() => {
-                  // Reset here too: the parent closes the dialog after a pick,
-                  // which Radix never reports back as an open change.
-                  reset();
-                  onPick({ url: fileUrl(file.path), label: file.name });
+          </div>
+        ) : (
+          // ── Step 1: upload + list ────────────────────────────────────
+          <div className="flex-1 overflow-y-auto px-1">
+            {/* Inline uploader. Drag-drop + click-to-pick like the standalone
+                panel on the library page, just tighter padding for the dialog. */}
+            <form action={submitUpload} className="mb-3 space-y-3">
+              <div
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setDragOver(true);
                 }}
-                className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm transition-colors hover:bg-accent"
+                onDragLeave={() => setDragOver(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setDragOver(false);
+                  handleUploadPick(e.dataTransfer.files?.[0] ?? null);
+                }}
+                onClick={() => fileInputRef.current?.click()}
+                className={cn(
+                  "flex cursor-pointer flex-col items-center justify-center rounded-md border-2 border-dashed p-5 text-center transition-colors",
+                  dragOver
+                    ? "border-primary bg-primary/5"
+                    : "border-muted-foreground/25 hover:bg-muted/40",
+                )}
               >
-                <FileText className="size-4 shrink-0 text-primary" aria-hidden />
-                <span className="truncate">{file.name}</span>
-              </button>
-            ))}
-        </div>
+                <Upload className="mb-1.5 size-6 text-muted-foreground" aria-hidden />
+                <p className="text-xs font-medium">ลากไฟล์มาวาง หรือคลิกเพื่อเลือกไฟล์</p>
+                <p className="mt-0.5 text-[11px] text-muted-foreground">
+                  {accept.replaceAll(".", "").replaceAll(",", ", ")} · สูงสุด {maxSizeMb} MB
+                </p>
+                {uploadFileObj && (
+                  <p className="mt-2 flex items-center gap-1.5 rounded bg-muted px-2 py-1 text-[11px]">
+                    <FileImage className="size-3" aria-hidden /> {uploadFileObj.name}
+                  </p>
+                )}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept={accept}
+                  className="hidden"
+                  onChange={(e) => handleUploadPick(e.target.files?.[0] ?? null)}
+                  name="file"
+                />
+              </div>
+
+              <div className="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-end">
+                <div>
+                  <Label htmlFor="picker-upload-name" className="mb-1 block text-xs">
+                    ชื่อไฟล์ที่จะแสดง <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="picker-upload-name"
+                    name="name"
+                    value={uploadName}
+                    onChange={(e) => setUploadName(e.target.value)}
+                    placeholder="เช่น รายงานผลการดำเนินงาน 2569"
+                    maxLength={255}
+                    required
+                  />
+                </div>
+                <Button type="submit" disabled={uploadPending} className="w-full sm:w-auto">
+                  {uploadPending ? "กำลังอัปโหลด…" : "อัปโหลด"}
+                </Button>
+              </div>
+
+              {uploadError && (
+                <p
+                  role="alert"
+                  className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
+                >
+                  {uploadError}
+                </p>
+              )}
+            </form>
+
+            <div className="relative mb-2">
+              <Search
+                className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+                aria-hidden
+              />
+              <Input
+                value={term}
+                onChange={(e) => onChange(e.target.value)}
+                placeholder="ค้นหาชื่อไฟล์"
+                aria-label="ค้นหาชื่อไฟล์ในคลัง"
+                className="pl-8"
+              />
+            </div>
+
+            <div className="max-h-64 overflow-y-auto rounded-md border">
+              {searchPending && files.length === 0 ? (
+                <p className="px-3 py-6 text-center text-sm text-muted-foreground">กำลังค้นหา…</p>
+              ) : files.length === 0 ? (
+                <div className="flex flex-col items-center gap-1 py-8 text-center text-sm text-muted-foreground">
+                  {term ? <>ไม่พบไฟล์ที่ตรงกับ “{term}”</> : <>ยังไม่มีไฟล์ — อัปโหลดไฟล์ใหม่ด้านบน</>}
+                </div>
+              ) : (
+                <ul className="divide-y">
+                  {files.map((file) => {
+                    const Icon = fileIcon(file.path);
+                    return (
+                      <li key={file.id}>
+                        <button
+                          type="button"
+                          onClick={() => pickFile(file)}
+                          className="flex w-full items-center gap-3 px-3 py-2 text-left transition-colors hover:bg-accent"
+                        >
+                          <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-medium">{file.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {formatBEShort(file.createdAt)}
+                              {file.createdBy ? ` · ${file.createdBy}` : ""}
+                            </p>
+                          </div>
+                          <Link2 className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          </div>
+        )}
+
+        <DialogFooter>
+          <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
+            ยกเลิก
+          </Button>
+          {selected && (
+            <Button type="button" onClick={confirm} disabled={!label.trim()}>
+              แนบลิงก์
+            </Button>
+          )}
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
