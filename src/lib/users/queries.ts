@@ -16,7 +16,7 @@ export type ManagedUser = {
   createdAt: Date;
 };
 
-export type UserListFilter = "active" | "disabled";
+export type UserListFilter = "active" | "disabled" | "all";
 
 /**
  * Every account, SUPERADMIN included.
@@ -29,10 +29,14 @@ export type UserListFilter = "active" | "disabled";
  *
  * Ordered SUPERADMIN → ADMIN → USER (the enum's own order), then by name, so
  * the accounts with the most power are at the top where they get looked at.
+ *
+ * `all` is the default since P9 — the Switch toggle in the table makes active
+ * and disabled rows visually distinct, so the filter tabs the old UI used are
+ * no longer needed.
  */
-export async function listManagedUsers(filter: UserListFilter = "active"): Promise<ManagedUser[]> {
+export async function listManagedUsers(filter: UserListFilter = "all"): Promise<ManagedUser[]> {
   const users = await prisma.user.findMany({
-    where: { status: filter === "active" },
+    where: filter === "all" ? {} : { status: filter === "active" },
     orderBy: [{ role: "asc" }, { firstname: "asc" }, { lastname: "asc" }],
     select: {
       id: true,
@@ -51,15 +55,6 @@ export async function listManagedUsers(filter: UserListFilter = "active"): Promi
   });
 
   return users.map(({ password, ...user }) => ({ ...user, hasPassword: !!password }));
-}
-
-/** Counts for the two tabs, so each one can say how many rows it holds. */
-export async function countManagedUsers(): Promise<{ active: number; disabled: number }> {
-  const [active, disabled] = await Promise.all([
-    prisma.user.count({ where: { status: true } }),
-    prisma.user.count({ where: { status: false } }),
-  ]);
-  return { active, disabled };
 }
 
 /**

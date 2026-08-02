@@ -58,7 +58,7 @@ export default async function ActivityLogPage({ searchParams }: Props) {
         <div className="mb-4 flex flex-wrap items-center gap-3">
           <ActivityFilter value={action} counts={counts} total={grandTotal} />
           <span className="text-xs text-muted-foreground">
-            {filtered ? `พบ ${total} จาก ${grandTotal} รายการ` : `ทั้งหมด ${grandTotal} รายการ`}
+            {filtered ? `แสดง ${total} จาก ${grandTotal} รายการ` : `ทั้งหมด ${grandTotal} รายการ`}
           </span>
         </div>
       )}

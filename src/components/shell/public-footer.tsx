@@ -8,6 +8,9 @@ export function PublicFooter() {
         <a href="mailto:nurse@cmu.ac.th" className="hover:text-foreground">
           ติดต่อเรา
         </a>
+        <a href="#" className="hover:text-foreground">
+          นโยบายความเป็นส่วนตัว
+        </a>
       </div>
     </footer>
   );
