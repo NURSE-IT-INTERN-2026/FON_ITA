@@ -32,13 +32,12 @@ const itaFields = {
 
 const createSchema = z.object(itaFields);
 
+// No `order` here on purpose. Ordering is drag-and-drop only (reorderIta), so
+// the edit form has no field for it and this action must never move a topic by
+// accident — the number a user last saw could be stale by the time they save.
 const updateSchema = z.object({
   ...itaFields,
   id: z.coerce.number().int().positive(),
-  order: z.coerce
-    .number({ message: "ลำดับต้องเป็นตัวเลข" })
-    .int({ message: "ลำดับต้องเป็นจำนวนเต็ม" })
-    .min(1, { message: "ลำดับต้องเริ่มจาก 1" }),
 });
 
 const deleteSchema = z.object({ id: z.coerce.number().int().positive() });
@@ -100,19 +99,19 @@ export async function updateIta(formData: FormData): Promise<ItaActionState> {
     id: formData.get("id"),
     title: formData.get("title"),
     year: formData.get("year"),
-    order: formData.get("order"),
   });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? YEAR_MESSAGE };
 
-  const { id, title, year, order } = parsed.data;
+  const { id, title, year } = parsed.data;
 
   const current = await prisma.ita.findUnique({ where: { id } });
   if (!current) return { error: "ไม่พบหัวข้อที่ต้องการแก้ไข" };
 
-  await prisma.$transaction(async (tx) => {
-    if (year !== current.year) {
-      // Moved to another year: the submitted order belongs to the old year's
-      // sequence and would collide, so the topic goes to the end of the new one.
+  if (year !== current.year) {
+    // Moved to another year: its old order belongs to the old year's sequence
+    // and would collide there, so the topic goes to the end of the new year.
+    // In a transaction because the next free slot must not change underneath.
+    await prisma.$transaction(async (tx) => {
       const last = await tx.ita.findFirst({
         where: { year },
         orderBy: { order: "desc" },
@@ -122,32 +121,19 @@ export async function updateIta(formData: FormData): Promise<ItaActionState> {
         where: { id },
         data: { title, year, order: (last?.order ?? 0) + 1 },
       });
-      return;
-    }
-
-    if (order !== current.order) {
-      // Swap rather than shift everything — the legacy Laravel behaviour, and it
-      // keeps the change to two rows. Inside a transaction so the two rows can
-      // never both hold the same order.
-      const occupant = await tx.ita.findFirst({
-        where: { year, order, id: { not: id } },
-      });
-      if (occupant) {
-        await tx.ita.update({ where: { id: occupant.id }, data: { order: current.order } });
-      }
-    }
-
-    await tx.ita.update({ where: { id }, data: { title, year, order } });
-  });
+    });
+  } else {
+    // Same year: only the title can have changed. The order stays exactly where
+    // dragging last put it.
+    await prisma.ita.update({ where: { id }, data: { title } });
+  }
 
   await logActivity(user, "ita.update", {
     target: title,
     // Say what actually moved — a year change and a reorder read very
     // differently when someone is retracing what happened to a topic.
     detail:
-      year !== current.year
-        ? `ย้ายจากปี ${current.year} ไปปี ${year}`
-        : `ปี ${year}${order !== current.order ? ` · ลำดับ ${current.order} → ${order}` : ""}`,
+      year !== current.year ? `ย้ายจากปี ${current.year} ไปปี ${year}` : `ปี ${year}`,
   });
 
   revalidateItaViews(year);

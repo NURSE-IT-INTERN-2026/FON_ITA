@@ -122,13 +122,29 @@ function ItaFormDialog({
           <DialogHeader>
             <DialogTitle>{editMode ? "แก้ไขหัวข้อ ITA" : "เพิ่มหัวข้อ ITA"}</DialogTitle>
             <DialogDescription>
-              {editMode
-                ? "แก้ไขชื่อ ปี หรือลำดับการแสดงผลของหัวข้อนี้"
-                : "หัวข้อใหม่จะถูกเพิ่มต่อท้ายรายการของปีที่ระบุ"}
+              {editMode ? "แก้ไขปีและชื่อของหัวข้อนี้" : "ระบุปีและชื่อหัวข้อที่ต้องการเพิ่ม"}
             </DialogDescription>
           </DialogHeader>
 
           {editMode && <input type="hidden" name="id" value={ita.id} />}
+
+          {/* ปีมาก่อนชื่อหัวข้อ: ปีคือสิ่งที่ตัดสินว่าหัวข้อนี้จะไปอยู่ในชุดไหน
+              ส่วนชื่อเป็นรายละเอียดของหัวข้อนั้น */}
+          <div className="space-y-1.5">
+            <Label htmlFor="ita-year">
+              ปี พ.ศ. <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              id="ita-year"
+              name="year"
+              defaultValue={ita?.year ?? defaultYear}
+              placeholder="เช่น 2568"
+              inputMode="numeric"
+              maxLength={4}
+              className="sm:w-40"
+              required
+            />
+          </div>
 
           <div className="space-y-1.5">
             <Label htmlFor="ita-title">
@@ -145,43 +161,13 @@ function ItaFormDialog({
             />
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="ita-year">
-                ปี พ.ศ. <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="ita-year"
-                name="year"
-                defaultValue={ita?.year ?? defaultYear}
-                placeholder="เช่น 2568"
-                inputMode="numeric"
-                maxLength={4}
-                required
-              />
-            </div>
-
-            {editMode && (
-              <div className="space-y-1.5">
-                <Label htmlFor="ita-order">ลำดับ</Label>
-                <Input
-                  id="ita-order"
-                  name="order"
-                  type="number"
-                  min={1}
-                  defaultValue={ita.order}
-                  required
-                />
-              </div>
-            )}
-          </div>
-
-          {editMode && (
-            <p className="text-xs text-muted-foreground">
-              การเปลี่ยนลำดับจะสลับกับหัวข้อที่ถือลำดับนั้นอยู่ · ถ้าเปลี่ยนปี
-              หัวข้อจะถูกย้ายไปต่อท้ายรายการของปีใหม่
-            </p>
-          )}
+          {/* ไม่มีช่อง "ลำดับ" โดยตั้งใจ — ลำดับเปลี่ยนด้วยการลากการ์ดในหน้ารายการ
+              การให้พิมพ์เลขเองซ้ำซ้อนกับการลาก และเป็นเลขที่เปลี่ยนได้ตลอดเวลา */}
+          <p className="text-xs text-muted-foreground">
+            {editMode
+              ? "ลำดับการแสดงผลปรับได้ด้วยการลากการ์ดในหน้ารายการ · ถ้าเปลี่ยนปี หัวข้อจะถูกย้ายไปต่อท้ายรายการของปีใหม่"
+              : "หัวข้อใหม่จะถูกเพิ่มต่อท้ายรายการของปีที่ระบุ · จัดลำดับภายหลังได้ด้วยการลากการ์ด"}
+          </p>
 
           {error && (
             <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">

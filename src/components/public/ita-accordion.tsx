@@ -131,7 +131,12 @@ export function ItaAccordion({
         ))}
       </Accordion>
 
-      <OitDetailDialog oit={activeOit} canManage={canManage} onClose={() => setActiveOit(null)} />
+      <OitDetailDialog
+        oit={activeOit}
+        canManage={canManage}
+        onEdit={(id) => router.push(`/ita-oit/edit/${id}`)}
+        onClose={() => setActiveOit(null)}
+      />
     </>
   );
 }
@@ -228,19 +233,52 @@ function OitRow({
  *
  * `contentHtml` was sanitised on the server before it was sent here
  * (`getPublicItasByYear`), which is what makes the injection below safe.
+ *
+ * Staff see the same modal a visitor sees — that is the point of showing it to
+ * them rather than jumping straight to the editor: what the public reads is
+ * what they are about to change. Editing is one keystroke away (Enter) or one
+ * click on the button the footer leads with.
  */
 function OitDetailDialog({
   oit,
   canManage,
+  onEdit,
   onClose,
 }: {
   oit: AccordionOit | null;
   canManage: boolean;
+  onEdit: (id: number) => void;
   onClose: () => void;
 }) {
+  /**
+   * Enter opens the editor — but only when the keystroke was not meant for
+   * something else. A link or button inside the modal handles its own Enter,
+   * and swallowing that would break the footer's own buttons.
+   */
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (!canManage || !oit) return;
+    if (e.key !== "Enter" || e.defaultPrevented) return;
+    if ((e.target as HTMLElement).closest("a, button, input, textarea, select")) return;
+    e.preventDefault();
+    onEdit(oit.id);
+  }
+
   return (
     <Dialog open={oit !== null} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="flex max-h-[90vh] max-w-3xl flex-col gap-0 overflow-hidden p-0">
+      <DialogContent
+        onKeyDown={handleKeyDown}
+        // Radix focuses the close button when the modal opens, which would make
+        // Enter mean "close" for staff. Point it at the edit button instead, so
+        // the shortcut the footer advertises is the one the keyboard performs.
+        onOpenAutoFocus={(e) => {
+          if (!canManage) return;
+          e.preventDefault();
+          (e.currentTarget as HTMLElement)
+            .querySelector<HTMLElement>("[data-edit-link]")
+            ?.focus();
+        }}
+        className="flex max-h-[90vh] max-w-3xl flex-col gap-0 overflow-hidden p-0"
+      >
         {oit && (
           <>
             <DialogHeader className="border-b px-6 py-4">
@@ -259,7 +297,13 @@ function OitDetailDialog({
             </div>
 
             {(oit.link || canManage) && (
-              <div className="flex flex-wrap justify-end gap-2 border-t px-6 py-3">
+              <div className="flex flex-wrap items-center justify-end gap-2 border-t px-6 py-3">
+                {canManage && (
+                  <span className="mr-auto hidden text-xs text-muted-foreground sm:inline">
+                    กด <kbd className="rounded border bg-muted px-1 py-0.5 font-mono">Enter</kbd>{" "}
+                    เพื่อแก้ไขเนื้อหานี้
+                  </span>
+                )}
                 {oit.link && (
                   <Button asChild variant="secondary" size="sm" className="gap-1.5">
                     <a href={oit.link} target="_blank" rel="noreferrer">
@@ -270,7 +314,7 @@ function OitDetailDialog({
                 )}
                 {canManage && (
                   <Button asChild size="sm" className="gap-1.5">
-                    <Link href={`/ita-oit/edit/${oit.id}`}>
+                    <Link href={`/ita-oit/edit/${oit.id}`} data-edit-link>
                       <Pencil className="size-3.5" aria-hidden />
                       แก้ไข
                     </Link>
