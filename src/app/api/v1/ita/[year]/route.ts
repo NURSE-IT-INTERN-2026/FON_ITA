@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { legacyHeaders, legacyTimestamp, tooManyRequests } from "@/lib/api/legacy-response";
+import { ITA_SELECT, type LegacyIta, OIT_SELECT, toLegacyIta } from "@/lib/api/legacy-ita";
+import { legacyHeaders, tooManyRequests } from "@/lib/api/legacy-response";
 import { clientKey, consumeRateLimit, sameOrigin } from "@/lib/api/rate-limit";
 import { prisma } from "@/lib/prisma";
 
@@ -20,26 +21,6 @@ import { prisma } from "@/lib/prisma";
 const yearSchema = z.string().regex(/^\d{4}$/);
 
 const CORS_ORIGIN = "*";
-
-type LegacyOit = {
-  id: number;
-  ita_id: string;
-  title: string;
-  link: string | null;
-  content: string | null;
-  created_at: string;
-  updated_at: string;
-};
-
-type LegacyIta = {
-  id: number;
-  title: string;
-  year: string;
-  order: string;
-  created_at: string;
-  updated_at: string;
-  oits: LegacyOit[];
-};
 
 export async function GET(
   request: Request,
@@ -72,50 +53,10 @@ async function loadYear(year: string): Promise<LegacyIta[]> {
     // return PK order by accident; relying on that here would scramble the
     // published page.
     orderBy: { order: "asc" },
-    select: {
-      id: true,
-      title: true,
-      year: true,
-      order: true,
-      createdAt: true,
-      updatedAt: true,
-      oits: {
-        orderBy: { id: "asc" },
-        select: {
-          id: true,
-          itaId: true,
-          title: true,
-          link: true,
-          content: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      },
-    },
+    select: { ...ITA_SELECT, oits: { orderBy: { id: "asc" }, select: OIT_SELECT } },
   });
 
-  // Eloquent + the legacy MySQL column types produced a response where `id` is a
-  // number but `order` and `ita_id` are strings. It is inconsistent, and it is
-  // the contract: mirror it rather than tidy it.
-  //
-  // `user_id` is NOT in the legacy response for either level — do not add it.
-  return rows.map((ita) => ({
-    id: ita.id,
-    title: ita.title,
-    year: ita.year,
-    order: String(ita.order),
-    created_at: legacyTimestamp(ita.createdAt),
-    updated_at: legacyTimestamp(ita.updatedAt),
-    oits: ita.oits.map((oit) => ({
-      id: oit.id,
-      ita_id: String(oit.itaId),
-      title: oit.title,
-      link: oit.link,
-      content: oit.content,
-      created_at: legacyTimestamp(oit.createdAt),
-      updated_at: legacyTimestamp(oit.updatedAt),
-    })),
-  }));
+  return rows.map(({ oits, ...ita }) => toLegacyIta(ita, oits));
 }
 
 /**
