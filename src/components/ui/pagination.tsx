@@ -2,12 +2,15 @@ import * as React from "react";
 import { ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+
+// ป้ายกำกับทั้งหมดแปลเป็นไทยแล้ว (F31) — ต้นฉบับ shadcn เป็นภาษาอังกฤษ
+// รวมถึง aria-label ที่ผู้ใช้ screen reader ได้ยิน ไม่ใช่แค่ข้อความที่มองเห็น
 import { ButtonProps, buttonVariants } from "@/components/ui/button";
 
 const Pagination = ({ className, ...props }: React.ComponentProps<"nav">) => (
   <nav
     role="navigation"
-    aria-label="pagination"
+    aria-label="การแบ่งหน้า"
     className={cn("mx-auto flex w-full justify-center", className)}
     {...props}
   />
@@ -51,25 +54,25 @@ const PaginationPrevious = ({
   ...props
 }: React.ComponentProps<typeof PaginationLink>) => (
   <PaginationLink
-    aria-label="Go to previous page"
+    aria-label="หน้าก่อนหน้า"
     size="default"
     className={cn("gap-1 pl-2.5", className)}
     {...props}
   >
     <ChevronLeft className="h-4 w-4" />
-    <span>Previous</span>
+    <span>ก่อนหน้า</span>
   </PaginationLink>
 );
 PaginationPrevious.displayName = "PaginationPrevious";
 
 const PaginationNext = ({ className, ...props }: React.ComponentProps<typeof PaginationLink>) => (
   <PaginationLink
-    aria-label="Go to next page"
+    aria-label="หน้าถัดไป"
     size="default"
     className={cn("gap-1 pr-2.5", className)}
     {...props}
   >
-    <span>Next</span>
+    <span>ถัดไป</span>
     <ChevronRight className="h-4 w-4" />
   </PaginationLink>
 );
@@ -82,7 +85,7 @@ const PaginationEllipsis = ({ className, ...props }: React.ComponentProps<"span"
     {...props}
   >
     <MoreHorizontal className="h-4 w-4" />
-    <span className="sr-only">More pages</span>
+    <span className="sr-only">หน้าอื่น ๆ</span>
   </span>
 );
 PaginationEllipsis.displayName = "PaginationEllipsis";
