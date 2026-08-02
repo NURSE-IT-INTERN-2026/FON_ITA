@@ -20,7 +20,7 @@ type NavLink = {
   icon: LucideIcon;
   /** match the path exactly instead of by prefix */
   exact?: boolean;
-  /** roles allowed to see the link; omitted means every signed-in role */
+  /** roles allowed to see the link; omitted means everyone, signed in or not */
   roles?: AppRole[];
 };
 
@@ -29,14 +29,18 @@ type NavLink = {
 export const NAV_LINKS: NavLink[] = [
   { href: "/", label: "หน้าแรก", icon: Home, exact: true },
   { href: "/ita-list", label: "รายการ ITA", icon: ListChecks },
-  { href: "/ita-file", label: "คลังไฟล์", icon: FolderOpen },
-  { href: "/activity-log", label: "บันทึกกิจกรรม", icon: History, roles: ["ADMIN", "SUPERADMIN"] },
+  { href: "/ita-file", label: "คลังไฟล์", icon: FolderOpen, roles: ["ADMIN", "SUPERADMIN"] },
+  { href: "/activity-log", label: "บันทึกกิจกรรม", icon: History, roles: ["SUPERADMIN"] },
   { href: "/user-management", label: "จัดการผู้ใช้", icon: Users, roles: ["SUPERADMIN"] },
 ];
 
+/**
+ * Links for the current visitor. Anonymous visitors get the public ones
+ * (decisions.md D12) rather than an empty bar — reading ITA/OIT is what most
+ * people come here for and needs no account.
+ */
 export function visibleNavLinks(user: ShellUser | null): NavLink[] {
-  if (!user) return [];
-  return NAV_LINKS.filter((l) => !l.roles || l.roles.includes(user.role));
+  return NAV_LINKS.filter((l) => (user ? !l.roles || l.roles.includes(user.role) : !l.roles));
 }
 
 /**

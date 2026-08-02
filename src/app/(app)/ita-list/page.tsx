@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { ItaListView } from "@/components/ita/ita-list-view";
-import { requireUser } from "@/lib/auth/guards";
 import { hasRole } from "@/lib/auth/roles";
+import { getSessionUser } from "@/lib/auth/session";
 import { currentBEYear } from "@/lib/date";
 import { getItasByYear, listItaYears, yearOptions } from "@/lib/ita/queries";
 
@@ -16,9 +16,9 @@ export const metadata: Metadata = { title: "รายการ ITA — FON-ITA" 
  * does, so staff land on real data instead of an empty page.
  */
 export default async function ItaListPage() {
-  // Guard before querying: the layout guards too, but a page is its own entry
-  // point and must not do work for a request that is about to be rejected.
-  const user = await requireUser();
+  // Public page (decisions.md D12) — `user` is null for a visitor who is not
+  // signed in, which only decides whether the management controls are drawn.
+  const user = await getSessionUser();
 
   const year = String(currentBEYear());
   const years = await listItaYears();

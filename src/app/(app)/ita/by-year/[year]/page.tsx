@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ItaListView } from "@/components/ita/ita-list-view";
-import { requireUser } from "@/lib/auth/guards";
 import { hasRole } from "@/lib/auth/roles";
+import { getSessionUser } from "@/lib/auth/session";
 import { currentBEYear } from "@/lib/date";
 import { getItasByYear, listItaYears, yearOptions } from "@/lib/ita/queries";
 
@@ -20,7 +20,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 /** ITA topics for one พ.ศ. year — the URL staff bookmark (decisions.md D9). */
 export default async function ItaByYearPage({ params }: Props) {
-  const user = await requireUser();
+  // Public page (decisions.md D12).
+  const user = await getSessionUser();
 
   const { year } = await params;
   if (!YEAR_PATTERN.test(year)) notFound();

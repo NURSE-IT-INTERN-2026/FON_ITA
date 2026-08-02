@@ -5,6 +5,10 @@ import { withBasePath } from "@/lib/base-path";
 /**
  * Route protection — the FIRST gate only (docs/rules/route-map.md).
  *
+ * Reading ITA/OIT needs no session at all (decisions.md D12): the data is
+ * published transparency information, and the app is the place people read it.
+ * A session is only needed to change something or to reach a staff-only page.
+ *
  * This checks that a session cookie is *present*, nothing more. It does not
  * validate the token, look up the row, or read the role: Next.js documents the
  * proxy as an optimistic check and explicitly not a session/authorization
@@ -23,6 +27,10 @@ import { withBasePath } from "@/lib/base-path";
 // proxy runs. Writing "/fonita/login" here would silently never match and leave
 // every guarded route open.
 const PUBLIC_PREFIXES = [
+  "/", // landing page
+  "/ita-list", // ITA browsing — open to anyone (see decisions.md D12)
+  "/ita", // /ita/by-year/[year]
+  "/ita-oit", // OIT detail — but NOT /ita-oit/create and /ita-oit/edit, below
   "/login", // form login page
   "/api/auth", // /cmu, /callback, /logout — the login flow itself
   "/api/v1", // Public API (FROZEN) — consumed by the faculty website
@@ -32,11 +40,25 @@ const PUBLIC_PREFIXES = [
 ];
 
 /**
+ * Carved out of the public prefixes above. `/ita-oit` is public for reading, so
+ * without this the editor routes underneath it would inherit that and open up.
+ * Listed longest-first is not enough — these are checked BEFORE the public list.
+ */
+const PRIVATE_EXCEPTIONS = ["/ita-oit/create", "/ita-oit/edit"];
+
+/**
  * Prefix matching has to stop at a segment boundary: a bare
  * `startsWith("/login")` would also make "/login-history" public.
  */
+function matches(pathname: string, prefix: string): boolean {
+  // "/" would otherwise prefix-match every path in the app.
+  if (prefix === "/") return pathname === "/";
+  return pathname === prefix || pathname.startsWith(`${prefix}/`);
+}
+
 function isPublicPath(pathname: string): boolean {
-  return PUBLIC_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+  if (PRIVATE_EXCEPTIONS.some((p) => matches(pathname, p))) return false;
+  return PUBLIC_PREFIXES.some((p) => matches(pathname, p));
 }
 
 export function proxy(request: NextRequest): NextResponse {

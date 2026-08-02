@@ -7,8 +7,8 @@ import { YearBadge } from "@/components/ita/year-badge";
 import { PageHeader } from "@/components/shell/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { requireUser } from "@/lib/auth/guards";
 import { hasRole } from "@/lib/auth/roles";
+import { getSessionUser } from "@/lib/auth/session";
 import { formatBELong } from "@/lib/date";
 import { getOit } from "@/lib/ita/queries";
 import { sanitizeHtml } from "@/lib/sanitize";
@@ -27,11 +27,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 /**
- * OIT detail — readable by any signed-in role. The old Laravel page was empty;
- * this one actually shows the content (route-map).
+ * OIT detail — public (decisions.md D12). The old Laravel page was empty; this
+ * one actually shows the content (route-map).
  */
 export default async function OitDetailPage({ params }: Props) {
-  const user = await requireUser();
+  const user = await getSessionUser();
 
   const { id: raw } = await params;
   const id = parseId(raw);
