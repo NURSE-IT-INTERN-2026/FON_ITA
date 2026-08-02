@@ -9,7 +9,7 @@ export type ItaWithOits = {
   title: string;
   year: string;
   order: number;
-  oits: { id: number; title: string; link: string | null }[];
+  oits: { id: number; title: string; link: string | null; updatedAt: Date }[];
 };
 
 /** Every year that has at least one ITA, newest first — feeds the year picker. */
@@ -78,7 +78,7 @@ export async function getItasByYear(year: string): Promise<ItaWithOits[]> {
       order: true,
       oits: {
         orderBy: { id: "asc" },
-        select: { id: true, title: true, link: true },
+        select: { id: true, title: true, link: true, updatedAt: true },
       },
     },
   });
