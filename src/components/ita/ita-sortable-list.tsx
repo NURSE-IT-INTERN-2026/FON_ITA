@@ -168,7 +168,7 @@ function ItaCard({
                 <GripVertical className="size-4" aria-hidden />
               </button>
             )}
-            <span className="mt-0.5 inline-flex h-7 min-w-7 shrink-0 items-center justify-center rounded-md bg-primary/10 px-1.5 font-mono text-xs font-semibold text-primary tabular-nums">
+            <span className="mt-0.5 inline-flex h-7 min-w-7 shrink-0 items-center justify-center rounded-md bg-orange-500/10 px-1.5 font-mono text-xs font-semibold text-orange-500 tabular-nums">
               {String(ita.order).padStart(2, "0")}
             </span>
             <div className="min-w-0">

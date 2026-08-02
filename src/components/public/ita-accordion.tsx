@@ -110,7 +110,7 @@ function OitRow({
         {...(oit.link ? { target: "_blank", rel: "noreferrer" } : {})}
         className="flex min-w-0 flex-1 items-start gap-2.5"
       >
-        <span className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-md bg-orange-500/10 text-orange-500">
+        <span className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-md bg-primary/10 text-primary">
           <FileText className="size-3.5" aria-hidden />
         </span>
         <div className="min-w-0 flex-1">
