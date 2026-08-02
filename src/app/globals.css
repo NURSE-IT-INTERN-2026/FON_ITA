@@ -154,3 +154,42 @@
     @apply bg-background text-foreground font-sans antialiased;
   }
 }
+
+/* Tiptap content — used both inside the editor (F17) and when rendering saved
+   OIT content (F16). Tailwind's preflight strips list markers and heading
+   sizes, so the tags the editor produces need their look restored here. */
+@layer components {
+  .tiptap-content {
+    @apply text-sm leading-relaxed;
+  }
+
+  .tiptap-content p {
+    @apply my-2;
+  }
+
+  .tiptap-content ul {
+    @apply my-2 list-disc ps-6;
+  }
+
+  .tiptap-content ol {
+    @apply my-2 list-decimal ps-6;
+  }
+
+  .tiptap-content li {
+    @apply my-1;
+  }
+
+  .tiptap-content a {
+    @apply text-primary underline underline-offset-2;
+  }
+
+  .tiptap-content strong {
+    @apply font-semibold;
+  }
+
+  /* The editor's own empty paragraph would otherwise collapse to zero height */
+  .tiptap-content p:only-child:empty::before {
+    content: "";
+    @apply inline-block h-5;
+  }
+}

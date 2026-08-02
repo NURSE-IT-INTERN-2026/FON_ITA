@@ -1,6 +1,8 @@
-import { FileText, ListChecks } from "lucide-react";
+import { ExternalLink, FileText, ListChecks, Plus } from "lucide-react";
+import Link from "next/link";
 import { ItaCardActions, ItaCreateButton } from "@/components/ita/ita-manage";
 import { YearBadge } from "@/components/ita/year-badge";
+import { Button } from "@/components/ui/button";
 import { YearSelect } from "@/components/ita/year-select";
 import { EmptyState } from "@/components/misc/empty-state";
 import { PageHeader, type Crumb } from "@/components/shell/page-header";
@@ -102,28 +104,64 @@ function ItaCard({ ita, canManage }: { ita: ItaWithOits; canManage: boolean }) {
 
       <CardContent className="pt-0">
         <div className="rounded-md border bg-muted/30 p-2">
-          {ita.oits.length === 0 ? (
-            <p className="px-1 py-1 text-xs italic text-muted-foreground">ยังไม่มี OIT ในหัวข้อนี้</p>
-          ) : (
-            <div className="flex flex-wrap items-center gap-1.5">
-              {ita.oits.slice(0, OIT_PREVIEW).map((oit) => (
-                <span
-                  key={oit.id}
-                  className="inline-flex max-w-[240px] items-center gap-1.5 rounded-md border bg-card px-2.5 py-1 text-xs font-medium"
-                >
-                  <FileText className="size-3 shrink-0 text-primary" aria-hidden />
-                  <span className="truncate">{oit.title}</span>
-                </span>
-              ))}
-              {extra > 0 && (
-                <span className="px-1.5 py-1 text-xs text-muted-foreground">
-                  +{extra} รายการ
-                </span>
-              )}
-            </div>
-          )}
+          <div className="flex flex-wrap items-center gap-1.5">
+            {canManage && (
+              <Button asChild size="sm" variant="secondary">
+                <Link href={`/ita-oit/create/${ita.id}`}>
+                  <Plus className="mr-1 size-3.5" aria-hidden /> เพิ่ม OIT
+                </Link>
+              </Button>
+            )}
+
+            {ita.oits.length === 0 ? (
+              <span className="px-2 py-1 text-xs italic text-muted-foreground">
+                ยังไม่มี OIT ในหัวข้อนี้
+              </span>
+            ) : (
+              <>
+                {ita.oits.slice(0, OIT_PREVIEW).map((oit) => (
+                  <OitChip key={oit.id} oit={oit} />
+                ))}
+                {extra > 0 && (
+                  <span className="px-1.5 py-1 text-xs text-muted-foreground">
+                    +{extra} รายการ
+                  </span>
+                )}
+              </>
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+const CHIP_CLASS =
+  "inline-flex max-w-[240px] items-center gap-1.5 rounded-md border bg-card px-2.5 py-1 text-xs font-medium transition-colors hover:border-primary/40 hover:bg-accent";
+
+/**
+ * An OIT is either a shortcut to a document elsewhere or a page of its own.
+ *
+ * With a `link` it opens that link in a new tab — the behaviour staff know from
+ * the old system. Without one it goes to the OIT page, which shows the content
+ * (and, for ADMIN+, the way to edit it). The Lovable prototype popped a modal
+ * here instead; that existed because it had no detail page, and this one does.
+ */
+function OitChip({ oit }: { oit: ItaWithOits["oits"][number] }) {
+  if (oit.link) {
+    return (
+      <a href={oit.link} target="_blank" rel="noopener noreferrer" className={CHIP_CLASS}>
+        <FileText className="size-3 shrink-0 text-primary" aria-hidden />
+        <span className="truncate">{oit.title}</span>
+        <ExternalLink className="size-3 shrink-0 text-muted-foreground" aria-hidden />
+      </a>
+    );
+  }
+
+  return (
+    <Link href={`/ita-oit/${oit.id}`} className={CHIP_CLASS}>
+      <FileText className="size-3 shrink-0 text-primary" aria-hidden />
+      <span className="truncate">{oit.title}</span>
+    </Link>
   );
 }

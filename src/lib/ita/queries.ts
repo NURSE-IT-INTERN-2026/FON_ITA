@@ -42,6 +42,31 @@ export function yearOptions(years: string[], ...ensure: string[]): string[] {
  * faculty website shows O1…O26 in sequence, so leaving it out would scramble
  * the public page (see F27).
  */
+/** One ITA topic — the parent shown read-only on the OIT create form (F15). */
+export async function getIta(id: number) {
+  return prisma.ita.findUnique({
+    where: { id },
+    select: { id: true, title: true, year: true },
+  });
+}
+
+/** One OIT with its parent, for the detail and edit pages (F15). */
+export async function getOit(id: number) {
+  return prisma.oit.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      title: true,
+      link: true,
+      content: true,
+      updatedAt: true,
+      ita: { select: { id: true, title: true, year: true } },
+    },
+  });
+}
+
+export type OitDetail = NonNullable<Awaited<ReturnType<typeof getOit>>>;
+
 export async function getItasByYear(year: string): Promise<ItaWithOits[]> {
   return prisma.ita.findMany({
     where: { year },
