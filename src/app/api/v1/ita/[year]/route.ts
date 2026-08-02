@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { legacyHeaders, legacyTimestamp, tooManyRequests } from "@/lib/api/legacy-response";
-import { clientKey, consumeRateLimit } from "@/lib/api/rate-limit";
+import { clientKey, consumeRateLimit, sameOrigin } from "@/lib/api/rate-limit";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -46,7 +46,8 @@ export async function GET(
   { params }: { params: Promise<{ year: string }> },
 ) {
   const rate = consumeRateLimit(clientKey(request));
-  if (!rate.allowed) return tooManyRequests(rate, CORS_ORIGIN);
+  // The home page is one of the callers now — see sameOrigin().
+  if (!rate.allowed && !sameOrigin(request)) return tooManyRequests(rate, CORS_ORIGIN);
 
   const { year: raw } = await params;
   const parsed = yearSchema.safeParse(raw);

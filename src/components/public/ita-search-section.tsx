@@ -1,9 +1,9 @@
 "use client";
 
-import { ListChecks, Search, X } from "lucide-react";
+import { ListChecks, Search, TriangleAlert, X } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import { ItaAccordion, type ItaAccordionEntry } from "@/components/public/ita-accordion";
 import { EmptyState } from "@/components/misc/empty-state";
 import { Button } from "@/components/ui/button";
@@ -15,33 +15,81 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { currentBEYear } from "@/lib/date";
+import { fetchItaYears, fetchItasByYear } from "@/lib/ita/public-api";
 
 /**
  * Public "ITA ปี …" section on the home page: year picker + search box +
  * accordion of matching topics.
  *
- * Year is in the URL (/?year=2568) so the server component re-renders with that
- * year's data — the picker just calls `router.push`. Search is pure client
- * state, filtered against the rows the server already sent: a search box for a
- * few dozen rows should never round-trip.
+ * **Reads its data from the Public API in the browser**, not from the server
+ * (stakeholder requirement) — the same `/api/v1/ita/{year}` the faculty website
+ * consumes, so the published page and the published contract can never drift
+ * apart without someone noticing.
+ *
+ * Year stays in the URL (/?year=2568) so a view can be linked to; the picker
+ * pushes the new URL and the fetch below follows it. Search is pure client
+ * state over the rows already fetched: filtering a few dozen rows should never
+ * round-trip.
  *
  * The filter matches both the ITA title and any OIT titles under it, so a
  * search hit on a single OIT still shows the parent topic. A topic that
  * matches only by OIT title keeps just those OITs in the result.
  */
-export function ItaSearchSection({
-  year,
-  years,
-  entries,
-  canManage,
-}: {
-  year: string;
-  years: string[];
-  entries: ItaAccordionEntry[];
-  canManage: boolean;
-}) {
+export function ItaSearchSection({ canManage }: { canManage: boolean }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const requestedYear = searchParams.get("year");
+  const yearParam = requestedYear && /^\d{4}$/.test(requestedYear) ? requestedYear : null;
+
   const [q, setQ] = useState("");
+  const [years, setYears] = useState<string[]>([]);
+  const [data, setData] = useState<{
+    status: "loading" | "ready" | "error";
+    year: string | null;
+    entries: ItaAccordionEntry[];
+  }>({ status: "loading", year: yearParam, entries: [] });
+
+  const { status, year, entries } = data;
+
+  // Both effects set state from a fetch callback, after the network answers —
+  // never synchronously while the effect runs, which is the thing that cascades
+  // renders. Each is guarded by an AbortController so a response for a year the
+  // reader has already navigated away from cannot land.
+
+  // Which years exist. Fetched once — the list only changes when staff file a
+  // topic in a year nobody had used yet.
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchItaYears(controller.signal)
+      .then((list) => {
+        setYears(list);
+      })
+      .catch((error: unknown) => {
+        if (!controller.signal.aborted) console.error("[ita-years]", error);
+      });
+    return () => controller.abort();
+  }, []);
+
+  // The year's topics. Runs again whenever ?year= changes, and once more when
+  // the year had to be resolved from the list above.
+  useEffect(() => {
+    const controller = new AbortController();
+    // Nothing asked for: show the newest year that has data, falling back to the
+    // current พ.ศ. year so an empty database still renders the page.
+    const target = yearParam ?? years[0] ?? String(currentBEYear());
+
+    fetchItasByYear(target, controller.signal)
+      .then((rows) => {
+        setData({ status: "ready", year: target, entries: rows });
+      })
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) return;
+        console.error("[ita-by-year]", error);
+        setData({ status: "error", year: target, entries: [] });
+      });
+    return () => controller.abort();
+  }, [yearParam, years]);
 
   const isSearching = q.trim().length > 0;
 
@@ -69,10 +117,10 @@ export function ItaSearchSection({
     <section className="space-y-3">
       <div className="min-w-0 border-b pb-3">
         <h2 className="text-xl font-bold tracking-tight sm:text-2xl">
-          ITA ปี {year}
+          ITA ปี {year ?? "…"}
         </h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          ข้อมูลสาธารณะประจำปี {year}
+          ข้อมูลสาธารณะประจำปี {year ?? "…"}
         </p>
       </div>
 
@@ -102,15 +150,16 @@ export function ItaSearchSection({
         </div>
 
         <Select
-          value={year}
+          value={year ?? undefined}
+          disabled={years.length === 0}
           onValueChange={(next) => {
-            // No basePath — router.push prepends it. Stays on the landing page,
-            // the server component re-renders with the new year's rows.
+            // No basePath — router.push prepends it. Stays on this page; the
+            // effect above sees the new ?year= and fetches it.
             router.push(`/?year=${next}`);
           }}
         >
           <SelectTrigger className="h-9 w-full shrink-0 sm:w-[160px]" aria-label="เลือกปี พ.ศ.">
-            <SelectValue />
+            <SelectValue placeholder="เลือกปี" />
           </SelectTrigger>
           <SelectContent>
             {years.map((y) => (
@@ -128,7 +177,27 @@ export function ItaSearchSection({
         </p>
       )}
 
-      {filtered.length === 0 ? (
+      {status === "loading" ? (
+        <ul className="space-y-2" aria-busy>
+          <li className="sr-only">กำลังโหลดข้อมูล…</li>
+          {/* Placeholder rows rather than a spinner: the list settles into the
+              same shape, so the page does not jump when the data lands. */}
+          {[0, 1, 2].map((i) => (
+            <li key={i} className="h-[74px] animate-pulse rounded-lg border bg-card" />
+          ))}
+        </ul>
+      ) : status === "error" ? (
+        <EmptyState
+          icon={TriangleAlert}
+          title="โหลดข้อมูล ITA ไม่สำเร็จ"
+          description="อาจเป็นปัญหาการเชื่อมต่อชั่วคราว ลองโหลดหน้านี้ใหม่อีกครั้ง"
+          action={
+            <Button onClick={() => router.refresh()} variant="secondary">
+              ลองใหม่อีกครั้ง
+            </Button>
+          }
+        />
+      ) : filtered.length === 0 ? (
         <EmptyState
           icon={ListChecks}
           title={isSearching ? "ไม่พบหัวข้อที่ตรงกับการค้นหา" : `ยังไม่มีหัวข้อ ITA ในปี พ.ศ. ${year}`}

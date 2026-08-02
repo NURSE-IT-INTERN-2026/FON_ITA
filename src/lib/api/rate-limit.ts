@@ -58,6 +58,24 @@ export function consumeRateLimit(key: string): RateLimitResult {
 }
 
 /**
+ * True when the browser says this request came from our own pages.
+ *
+ * The 60/min budget was sized for the old world, where the only caller was the
+ * faculty web server. Now the landing page calls the same endpoints from the
+ * visitor's browser, and a whole faculty can sit behind one NAT address — a few
+ * dozen people opening the page in the same minute would lock each other out.
+ * Requests carrying `Sec-Fetch-Site: same-origin` are still counted, so the
+ * headers stay meaningful, but they are not turned away.
+ *
+ * A header a browser sets, so this is a fairness knob and not a security
+ * control: `curl` can claim same-origin, exactly as it can claim any
+ * `X-Forwarded-For`. Nothing behind these endpoints is protected by the limit.
+ */
+export function sameOrigin(request: Request): boolean {
+  return request.headers.get("sec-fetch-site") === "same-origin";
+}
+
+/**
  * Best-effort client identity.
  *
  * The app sits behind the faculty's nginx, so the socket address is always the

@@ -1,5 +1,4 @@
 import { prisma } from "@/lib/prisma";
-import { sanitizeHtml } from "@/lib/sanitize";
 
 // Read side of the ITA list (F13). `year` is a 4-digit พ.ศ. string in the
 // database — the frozen Public API returns it as a string, so it is stored that
@@ -67,50 +66,6 @@ export async function getOit(id: number) {
 }
 
 export type OitDetail = NonNullable<Awaited<ReturnType<typeof getOit>>>;
-
-/**
- * Same rows as `getItasByYear`, plus each OIT's content — for the public
- * landing page, which opens the content in a modal instead of navigating.
- *
- * Kept as a separate function rather than a flag on the one above: the content
- * of every OIT in a year is a few dozen KB, it crosses to a Client Component,
- * and /ita-list has no use for it. Only the page that renders it pays for it.
- *
- * Sanitised here, on the server. Rendering it means `dangerouslySetInnerHTML`,
- * and the alternative — cleaning it in the browser — would ship DOMPurify to
- * every visitor to redo work the server can do once (decisions.md D3).
- */
-export async function getPublicItasByYear(year: string): Promise<PublicIta[]> {
-  const rows = await prisma.ita.findMany({
-    where: { year },
-    orderBy: { order: "asc" },
-    select: {
-      id: true,
-      title: true,
-      year: true,
-      order: true,
-      oits: {
-        orderBy: { id: "asc" },
-        select: { id: true, title: true, link: true, content: true, updatedAt: true },
-      },
-    },
-  });
-
-  return rows.map((ita) => ({
-    ...ita,
-    oits: ita.oits.map(({ content, ...oit }) => ({
-      ...oit,
-      // An "empty" editor document is stored as null (F16), but a row written
-      // before that rule, or one whose tags are all stripped, can still clean
-      // down to nothing — so the emptiness test happens after sanitising.
-      contentHtml: content ? sanitizeHtml(content) || null : null,
-    })),
-  }));
-}
-
-export type PublicIta = ItaWithOits & {
-  oits: (ItaWithOits["oits"][number] & { contentHtml: string | null })[];
-};
 
 export async function getItasByYear(year: string): Promise<ItaWithOits[]> {
   return prisma.ita.findMany({
