@@ -55,3 +55,6 @@ next-env.d.ts
 /.claude/
 AGENTS.md
 CLAUDE.md
+
+# Uploaded files (UPLOAD_DIR) — real documents, never committed
+/storage/

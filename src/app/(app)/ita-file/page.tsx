@@ -1,5 +1,7 @@
 import { FolderOpen } from "lucide-react";
 import type { Metadata } from "next";
+import { FileDeleteButton } from "@/components/files/file-delete-button";
+import { FileUploadDialog } from "@/components/files/file-upload-dialog";
 import { EmptyState } from "@/components/misc/empty-state";
 import { PaginationNav } from "@/components/misc/pagination-nav";
 import { PageHeader } from "@/components/shell/page-header";
@@ -14,6 +16,7 @@ import {
 import { requireRole } from "@/lib/auth/guards";
 import { formatBEShort } from "@/lib/date";
 import { listFiles } from "@/lib/files/queries";
+import { MAX_FILE_SIZE_BYTES, allowedExtensions } from "@/lib/files/storage";
 
 export const metadata: Metadata = { title: "คลังไฟล์ — FON-ITA" };
 
@@ -27,7 +30,7 @@ type Props = { searchParams: Promise<{ page?: string }> };
  * served publicly by /storage/itafile/[file] (F22).
  */
 export default async function ItaFilePage({ searchParams }: Props) {
-  await requireRole("ADMIN", "SUPERADMIN");
+  const user = await requireRole("ADMIN", "SUPERADMIN");
 
   const { page: rawPage } = await searchParams;
   // Anything unparseable falls back to page 1; listFiles() clamps the rest.
@@ -35,6 +38,13 @@ export default async function ItaFilePage({ searchParams }: Props) {
   const { files, page, totalPages, total } = await listFiles(
     Number.isInteger(requested) && requested > 0 ? requested : 1,
   );
+
+  // Built from the same env the Server Action validates against, so the picker
+  // and the rule behind it cannot drift apart.
+  const accept = allowedExtensions()
+    .map((ext) => `.${ext}`)
+    .join(",");
+  const maxSizeMb = Math.round(MAX_FILE_SIZE_BYTES / (1024 * 1024));
 
   return (
     <div>
@@ -46,13 +56,15 @@ export default async function ItaFilePage({ searchParams }: Props) {
             ? `ไฟล์ทั้งหมด ${total} รายการ · หน้า ${page} จาก ${totalPages}`
             : "ไฟล์กลางสำหรับแนบในหัวข้อ OIT"
         }
+        actions={<FileUploadDialog accept={accept} maxSizeMb={maxSizeMb} />}
       />
 
       {files.length === 0 ? (
         <EmptyState
           icon={FolderOpen}
           title="ยังไม่มีไฟล์ในคลัง"
-          description="ไฟล์ที่อัปโหลดไว้จะแสดงที่นี่ เรียงจากรายการใหม่สุด"
+          description="เริ่มต้นด้วยการอัปโหลดไฟล์แรก — รายการใหม่สุดจะแสดงบนสุดเสมอ"
+          action={<FileUploadDialog accept={accept} maxSizeMb={maxSizeMb} />}
         />
       ) : (
         <>
@@ -63,6 +75,7 @@ export default async function ItaFilePage({ searchParams }: Props) {
                   <TableHead>ชื่อไฟล์</TableHead>
                   <TableHead className="w-48">ผู้อัปโหลด</TableHead>
                   <TableHead className="w-36">วันที่อัปโหลด</TableHead>
+                  <TableHead className="w-16 text-right">จัดการ</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -73,6 +86,13 @@ export default async function ItaFilePage({ searchParams }: Props) {
                     {/* พ.ศ. via lib/date.ts — never inline +543 */}
                     <TableCell className="tabular-nums text-muted-foreground">
                       {formatBEShort(file.createdAt)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {/* Owner, or SUPERADMIN for anything (D5). The action
+                          re-decides this — hiding the button is only UX. */}
+                      {(file.userId === user.id || user.role === "SUPERADMIN") && (
+                        <FileDeleteButton fileId={file.id} name={file.name} />
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}

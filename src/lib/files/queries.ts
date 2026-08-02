@@ -9,6 +9,8 @@ export type FileRow = {
   id: number;
   name: string;
   path: string;
+  /** uploader — decides who sees the delete button (D5) */
+  userId: number;
   createdBy: string;
   createdAt: Date;
 };
@@ -35,7 +37,14 @@ export async function listFiles(page: number): Promise<FilePage> {
     orderBy: { createdAt: "desc" },
     skip: (current - 1) * FILES_PER_PAGE,
     take: FILES_PER_PAGE,
-    select: { id: true, name: true, path: true, createdBy: true, createdAt: true },
+    select: {
+      id: true,
+      name: true,
+      path: true,
+      userId: true,
+      createdBy: true,
+      createdAt: true,
+    },
   });
 
   return { files, page: current, totalPages, total };

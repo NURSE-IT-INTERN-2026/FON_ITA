@@ -16,10 +16,20 @@ const nextConfig: NextConfig = {
   basePath,
   reactCompiler: true,
 
-  // Required for unauthorized() / forbidden() from next/navigation, which render
-  // src/app/unauthorized.tsx (401) and src/app/forbidden.tsx (403). Still flagged
-  // experimental by Next.js 16 — without this they throw instead of rendering.
-  experimental: { authInterrupts: true },
+  experimental: {
+    // Required for unauthorized() / forbidden() from next/navigation, which render
+    // src/app/unauthorized.tsx (401) and src/app/forbidden.tsx (403). Still flagged
+    // experimental by Next.js 16 — without this they throw instead of rendering.
+    authInterrupts: true,
+
+    serverActions: {
+      // File uploads go through a Server Action, and the default cap is 1MB —
+      // every upload over that fails before the action runs. MAX_FILE_SIZE_BYTES
+      // allows 10MB, plus room for multipart boundaries and the other fields.
+      // The action still enforces the real limit; this only lets the body reach it.
+      bodySizeLimit: "11mb",
+    },
+  },
 };
 
 export default nextConfig;
