@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ItaListView } from "@/components/ita/ita-list-view";
 import { requireUser } from "@/lib/auth/guards";
+import { hasRole } from "@/lib/auth/roles";
 import { currentBEYear } from "@/lib/date";
 import { getItasByYear, listItaYears, yearOptions } from "@/lib/ita/queries";
 
@@ -19,7 +20,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 /** ITA topics for one พ.ศ. year — the URL staff bookmark (decisions.md D9). */
 export default async function ItaByYearPage({ params }: Props) {
-  await requireUser();
+  const user = await requireUser();
 
   const { year } = await params;
   if (!YEAR_PATTERN.test(year)) notFound();
@@ -39,6 +40,7 @@ export default async function ItaByYearPage({ params }: Props) {
         { label: "รายการ ITA", href: "/ita-list" },
         { label: `ปี พ.ศ. ${year}` },
       ]}
+      canManage={hasRole(user, "ADMIN", "SUPERADMIN")}
     />
   );
 }

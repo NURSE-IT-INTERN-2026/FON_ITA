@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { ItaListView } from "@/components/ita/ita-list-view";
 import { requireUser } from "@/lib/auth/guards";
+import { hasRole } from "@/lib/auth/roles";
 import { currentBEYear } from "@/lib/date";
 import { getItasByYear, listItaYears, yearOptions } from "@/lib/ita/queries";
 
@@ -17,7 +18,7 @@ export const metadata: Metadata = { title: "รายการ ITA — FON-ITA" 
 export default async function ItaListPage() {
   // Guard before querying: the layout guards too, but a page is its own entry
   // point and must not do work for a request that is about to be rejected.
-  await requireUser();
+  const user = await requireUser();
 
   const year = String(currentBEYear());
   const years = await listItaYears();
@@ -34,6 +35,7 @@ export default async function ItaListPage() {
       years={yearOptions(years, year)}
       itas={itas}
       breadcrumb={[{ label: "หน้าแรก", href: "/" }, { label: "รายการ ITA" }]}
+      canManage={hasRole(user, "ADMIN", "SUPERADMIN")}
     />
   );
 }
