@@ -15,6 +15,11 @@ const nextConfig: NextConfig = {
   // so no `rewrites` are needed. See docs/chapters/05-public-api.md.
   basePath,
   reactCompiler: true,
+
+  // Required for unauthorized() / forbidden() from next/navigation, which render
+  // src/app/unauthorized.tsx (401) and src/app/forbidden.tsx (403). Still flagged
+  // experimental by Next.js 16 — without this they throw instead of rendering.
+  experimental: { authInterrupts: true },
 };
 
 export default nextConfig;

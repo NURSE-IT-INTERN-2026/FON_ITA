@@ -1,3 +1,10 @@
+/**
+ * Shown when a signed-in user lacks the role for something.
+ * `requireRole()` raises Next.js `forbidden()`, which renders it via
+ * `src/app/forbidden.tsx`.
+ */
+export const FORBIDDEN_MESSAGE = "คุณไม่มีสิทธิ์เข้าถึงส่วนนี้";
+
 /** Login failure codes. Passed as `?error=` from route handlers; the login page maps them to Thai. */
 export const LoginError = {
   // CMU OAuth (F8)

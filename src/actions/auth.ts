@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { fakeVerifyDelay, verifyPassword } from "@/lib/auth/password";
+import { getSafeRedirectPath } from "@/lib/auth/roles";
 import { createSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 
@@ -15,6 +16,9 @@ const loginSchema = z.object({
   // User creation (F24) must normalise the same way.
   email: z.email({ message: "รูปแบบอีเมลไม่ถูกต้อง" }).trim().toLowerCase(),
   password: z.string().min(1, { message: "กรุณากรอกรหัสผ่าน" }),
+  // Hidden field carrying the page the proxy interrupted. Never trusted as-is —
+  // getSafeRedirectPath() decides whether it is usable for this role.
+  next: z.string().optional(),
 });
 
 export type LoginState = { error?: string };
@@ -26,13 +30,14 @@ export async function authenticate(
   const parsed = loginSchema.safeParse({
     email: formData.get("email"),
     password: formData.get("password"),
+    next: formData.get("next") ?? undefined,
   });
 
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? INVALID_CREDENTIALS };
   }
 
-  const { email, password } = parsed.data;
+  const { email, password, next } = parsed.data;
   const user = await prisma.user.findUnique({ where: { email } });
 
   if (!user) {
@@ -61,6 +66,8 @@ export async function authenticate(
   await createSession(user.id);
 
   // redirect() throws — it must stay outside any try/catch.
-  // TODO(F13): change to "/ita-list" once that page exists.
-  redirect("/");
+  // Back to the interrupted page, or the role's home if `next` is missing,
+  // off-site, or not a path this role may reach. No basePath here: redirect()
+  // in a Server Action adds it.
+  redirect(getSafeRedirectPath(user.role, next));
 }

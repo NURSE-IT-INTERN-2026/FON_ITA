@@ -19,11 +19,15 @@ function SubmitButton() {
   );
 }
 
-export function LoginForm() {
+export function LoginForm({ next }: { next?: string }) {
   const [state, formAction] = useActionState<LoginState, FormData>(authenticate, {});
 
   return (
     <form action={formAction} className="space-y-4 text-left">
+      {/* Where the proxy wanted to send them. Anyone can edit a hidden field,
+          so authenticate() validates it before redirecting. */}
+      {next && <input type="hidden" name="next" value={next} />}
+
       <div className="space-y-1.5">
         <Label htmlFor="email">อีเมล</Label>
         <Input

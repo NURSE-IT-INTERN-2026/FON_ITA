@@ -1,10 +1,13 @@
 import { cookies } from "next/headers";
+import { cache } from "react";
 import type { AppRole, LoginMethod } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
 import {
   SESSION_COOKIE_NAME,
   SESSION_COOKIE_PATH,
   SESSION_COOKIE_SAMESITE,
+} from "@/lib/auth/session-cookie";
+import {
   generateSessionToken,
   getSessionExpiry,
   hashSessionToken,
@@ -57,8 +60,11 @@ export async function createSession(
  *
  * One DB read per request, by design (decisions.md D2): it is what makes
  * "log out everywhere" and disabling an account take effect immediately.
+ *
+ * Wrapped in React `cache()` so a layout and its page — which both guard
+ * themselves — share a single query per request instead of repeating it.
  */
-export async function getSessionUser(): Promise<SessionUser | null> {
+export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
   if (!token) return null;
@@ -86,7 +92,7 @@ export async function getSessionUser(): Promise<SessionUser | null> {
     role: user.role,
     mustResetPassword: user.mustResetPassword,
   };
-}
+});
 
 /**
  * Log out: delete the row first, then the cookie.

@@ -4,14 +4,8 @@ import { createHash, randomBytes } from "node:crypto";
 // a random string whose SHA-256 hash is the primary key of the `sessions` row.
 // Nothing here signs or encrypts, so no secret is involved.
 
-export const SESSION_COOKIE_NAME = process.env.SESSION_COOKIE_NAME ?? "session";
-
-// Must match `basePath` in next.config.ts, or the cookie is sent to sibling apps
-// on the same domain.
-export const SESSION_COOKIE_PATH = process.env.SESSION_COOKIE_PATH ?? "/fonita";
-
-export const SESSION_COOKIE_SAMESITE = (process.env.SESSION_COOKIE_SAMESITE ??
-  "lax") as "lax" | "strict" | "none";
+// Cookie name/path/sameSite live in session-cookie.ts — proxy.ts needs them and
+// must not import `node:crypto`.
 
 const SESSION_MAX_AGE_DAYS = Number(process.env.SESSION_MAX_AGE_DAYS ?? 30);
 

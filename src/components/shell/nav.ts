@@ -3,8 +3,9 @@ import type { AppRole } from "@/generated/prisma/enums";
 
 /**
  * The subset of the signed-in user the shell needs.
- * `null` means nobody is signed in — the shell renders its public form.
- * F5/F11 will supply this from `getSessionUser()`.
+ * `null` means nobody is signed in — the shell renders its public form. Inside
+ * the (app) group `requireUser()` guarantees a user, but the header is also
+ * usable on public pages, so the type stays nullable.
  */
 export type ShellUser = {
   prefix: string | null;

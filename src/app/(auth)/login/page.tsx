@@ -5,6 +5,7 @@ import nurseLogo from "@/../public/nurse-th.png";
 import { LoginForm } from "@/app/(auth)/login/login-form";
 import { Card, CardContent } from "@/components/ui/card";
 import { LOGIN_ERROR_MESSAGES, type LoginErrorCode } from "@/lib/auth/errors";
+import { getSafeRedirectPath } from "@/lib/auth/roles";
 import { getSessionUser } from "@/lib/auth/session";
 import { withBasePath } from "@/lib/base-path";
 
@@ -13,13 +14,15 @@ export const metadata: Metadata = { title: "เข้าสู่ระบบ �
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; next?: string }>;
 }) {
-  // Already signed in — no reason to show the form again.
-  // TODO(F13): send them to "/ita-list" once it exists.
-  if (await getSessionUser()) redirect("/");
+  const { error, next } = await searchParams;
 
-  const { error } = await searchParams;
+  // Already signed in — no reason to show the form again. `next` is validated
+  // against the role's own paths, so it cannot be used as an open redirect.
+  const user = await getSessionUser();
+  if (user) redirect(getSafeRedirectPath(user.role, next));
+
   // Only render codes we recognise; an arbitrary ?error= value must not be
   // reflected back into the page.
   const message = error ? LOGIN_ERROR_MESSAGES[error as LoginErrorCode] : undefined;
@@ -53,7 +56,7 @@ export default async function LoginPage({
 
         <Card>
           <CardContent className="space-y-5 pt-6">
-            <LoginForm />
+            <LoginForm next={next} />
 
             <div className="flex items-center gap-3">
               <span className="h-px flex-1 bg-border" />
