@@ -17,6 +17,14 @@ generator client {
   output   = "../src/generated/prisma"
 }
 
+/// How a session was started. Logout has to know: a CMU_OAUTH session must also
+/// bounce through Microsoft to clear the identity provider's own session, while
+/// a PASSWORD session must not (there is nothing there to clear).
+enum LoginMethod {
+  PASSWORD
+  CMU_OAUTH
+}
+
 /// User roles. Values stay English; Thai display labels live in the UI layer.
 enum AppRole {
   SUPERADMIN
@@ -112,10 +120,11 @@ model ItaFile {
 /// Session สำหรับ custom auth — opaque token, server-side (D2)
 model Session {
   /// SHA-256 hash of the raw token; the raw token only ever lives in the cookie
-  id        String   @id
-  userId    Int      @map("user_id")
-  expiresAt DateTime @map("expires_at")
-  createdAt DateTime @default(now()) @map("created_at")
+  id          String      @id
+  userId      Int         @map("user_id")
+  expiresAt   DateTime    @map("expires_at")
+  loginMethod LoginMethod @default(PASSWORD) @map("login_method")
+  createdAt   DateTime    @default(now()) @map("created_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

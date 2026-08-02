@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import type { AppRole } from "@/generated/prisma/enums";
+import type { AppRole, LoginMethod } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
 import {
   SESSION_COOKIE_NAME,
@@ -31,12 +31,15 @@ export type SessionUser = {
  * Only callable from a Server Action or Route Handler — Next.js forbids writing
  * cookies while rendering a Server Component.
  */
-export async function createSession(userId: number): Promise<void> {
+export async function createSession(
+  userId: number,
+  loginMethod: LoginMethod = "PASSWORD",
+): Promise<void> {
   const token = generateSessionToken();
   const expiresAt = getSessionExpiry();
 
   await prisma.session.create({
-    data: { id: hashSessionToken(token), userId, expiresAt },
+    data: { id: hashSessionToken(token), userId, expiresAt, loginMethod },
   });
 
   const cookieStore = await cookies();
@@ -91,16 +94,22 @@ export async function getSessionUser(): Promise<SessionUser | null> {
  * Deleting only the cookie would leave a working session for anyone who copied
  * it. Server Action / Route Handler only, same as `createSession`.
  */
-export async function clearSession(): Promise<void> {
+export async function clearSession(): Promise<LoginMethod | null> {
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
+  let loginMethod: LoginMethod | null = null;
 
   if (token) {
+    const id = hashSessionToken(token);
+    // Read the method before deleting — the caller needs it to decide whether
+    // logout must also bounce through the identity provider.
+    loginMethod = (await prisma.session.findUnique({ where: { id } }))?.loginMethod ?? null;
     // deleteMany, not delete — a stale or forged cookie must not throw on logout.
-    await prisma.session.deleteMany({ where: { id: hashSessionToken(token) } });
+    await prisma.session.deleteMany({ where: { id } });
   }
 
   cookieStore.delete({ name: SESSION_COOKIE_NAME, path: SESSION_COOKIE_PATH });
+  return loginMethod;
 }
 
 /** Log out everywhere. Call after a password change or a role/status change. */
