@@ -1,5 +1,7 @@
+import { ArrowLeft } from "lucide-react";
 import type { Metadata } from "next";
 import Image from "next/image";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import cmuLogo from "@/../public/cmu_logo.png";
 import nurseLogo from "@/../public/nurse-th.png";
@@ -99,9 +101,20 @@ export default async function LoginPage({
           </CardContent>
         </Card>
 
-        <p className="text-center text-xs text-muted-foreground">
-          หากเข้าใช้งานไม่ได้ โปรดติดต่อผู้ดูแลระบบ
-        </p>
+        {/* The login page is its own full-screen `<main>` with no shell header,
+            so without this there is no way back other than the browser button.
+            Anyone who lands here from a staff-only link but only wanted to read
+            ITA data can get to the public landing page instead of being stuck. */}
+        <div className="space-y-3 text-center text-xs text-muted-foreground">
+          <p>หากเข้าใช้งานไม่ได้ โปรดติดต่อผู้ดูแลระบบ</p>
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1.5 font-medium text-foreground underline-offset-4 hover:underline"
+          >
+            <ArrowLeft className="size-3.5" aria-hidden />
+            กลับหน้าแรก
+          </Link>
+        </div>
       </div>
     </main>
   );
