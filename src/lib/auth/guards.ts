@@ -28,6 +28,37 @@ import { getSessionUser, type SessionUser } from "@/lib/auth/session";
  * no null check. Keep it out of any try/catch or the interrupt gets swallowed.
  */
 export async function requireUser(): Promise<SessionUser> {
+  const user = await requireSession();
+  if (needsPasswordReset(user)) redirect(RESET_PASSWORD_PATH);
+  return user;
+}
+
+/** Where a flagged account is sent, and the one page `requireUser()` cannot guard. */
+export const RESET_PASSWORD_PATH = "/reset-password";
+
+/**
+ * Must this session set a new password before it may do anything else? (F34)
+ *
+ * Only for sessions started with a password. `mustResetPassword` marks the
+ * stored hash as one nobody should keep using — a temporary password a
+ * SUPERADMIN handed over, or a legacy bcrypt hash from the MySQL migration.
+ * A CMU OAuth session never presented that hash, and a CMU-only account is
+ * allowed to have no password at all (D7), so forcing one there would demand a
+ * credential the account does not want.
+ */
+export function needsPasswordReset(user: SessionUser): boolean {
+  return user.mustResetPassword && user.loginMethod === "PASSWORD";
+}
+
+/**
+ * A valid session, with **no** forced-reset check.
+ *
+ * Exists only for the reset page and its action: they are what clears the flag,
+ * so routing them through `requireUser()` would redirect them to themselves
+ * forever. Nothing else should call this — using it elsewhere reopens the
+ * account that the flag was meant to hold shut.
+ */
+export async function requireSession(): Promise<SessionUser> {
   const user = await getSessionUser();
   if (user) return user;
 

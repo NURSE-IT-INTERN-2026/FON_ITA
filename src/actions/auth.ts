@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { logActivity } from "@/lib/activity/log";
+import { RESET_PASSWORD_PATH } from "@/lib/auth/guards";
 import { fakeVerifyDelay, verifyPassword } from "@/lib/auth/password";
 import { getSafeRedirectPath } from "@/lib/auth/roles";
 import { createSession } from "@/lib/auth/session";
@@ -58,17 +59,18 @@ export async function authenticate(
     return { error: "บัญชีนี้ถูกปิดใช้งาน โปรดติดต่อผู้ดูแลระบบ" };
   }
 
-  if (user.mustResetPassword) {
-    // TODO: replace with a redirect to the reset-password page once it exists.
-    // Blocking here rather than redirecting avoids sending users to a 404.
-    return { error: "บัญชีนี้ต้องตั้งรหัสผ่านใหม่ก่อนใช้งาน โปรดติดต่อผู้ดูแลระบบ" };
-  }
-
   await createSession(user.id);
   // Only successful logins are recorded. A failed attempt would be worth having,
   // but the log is readable by SUPERADMIN and a mistyped password lands in the
   // email field often enough that storing the attempts is its own risk.
   await logActivity(user, "login", { detail: "อีเมล + รหัสผ่าน" });
+
+  // A password marked as temporary gets a session — they proved they own the
+  // account — but the session cannot go anywhere else: requireUser() sends every
+  // guarded page and action back here until the flag is cleared (F34). Handing
+  // out a session rather than refusing the login is what makes the reset
+  // reachable at all; before this, the flag simply locked people out.
+  if (user.mustResetPassword) redirect(RESET_PASSWORD_PATH);
 
   // redirect() throws — it must stay outside any try/catch.
   // Back to the interrupted page, or the role's home if `next` is missing,

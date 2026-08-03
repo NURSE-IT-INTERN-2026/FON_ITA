@@ -1,5 +1,7 @@
+import { redirect } from "next/navigation";
 import { AppHeader } from "@/components/shell/app-header";
 import { AdminFooter } from "@/components/shell/admin-footer";
+import { needsPasswordReset, RESET_PASSWORD_PATH } from "@/lib/auth/guards";
 import { getSessionUser } from "@/lib/auth/session";
 
 export default async function AppLayout({
@@ -14,6 +16,15 @@ export default async function AppLayout({
   // Pages that DO need one call requireUser() / requireRole() themselves — the
   // guard belongs where the requirement is known.
   const user = await getSessionUser();
+
+  // A session still on a temporary password gets no further (F34). The pages
+  // that call requireUser() would each bounce on their own, but the public
+  // reading pages in this group do not — and showing a signed-in shell, with
+  // edit buttons that all lead back here, is a worse answer than saying it once.
+  //
+  // Only for someone signed in: a visitor with no session is not affected, which
+  // is what keeps the ITA data public (D12).
+  if (user && needsPasswordReset(user)) redirect(RESET_PASSWORD_PATH);
 
   return (
     <div className="flex min-h-screen w-full flex-col">

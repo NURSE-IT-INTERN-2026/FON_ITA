@@ -26,6 +26,12 @@ export type SessionUser = {
   lastname: string;
   role: AppRole;
   mustResetPassword: boolean;
+  /**
+   * How *this* session was started. Carried here because the forced-reset gate
+   * (F34) has to tell the two channels apart: `mustResetPassword` is about the
+   * stored password, and a CMU OAuth session never touched it.
+   */
+  loginMethod: LoginMethod;
 };
 
 /**
@@ -91,6 +97,7 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
     lastname: user.lastname,
     role: user.role,
     mustResetPassword: user.mustResetPassword,
+    loginMethod: session.loginMethod,
   };
 });
 

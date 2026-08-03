@@ -56,6 +56,7 @@ const createSchema = z.object({
   email: z.email({ message: "รูปแบบอีเมลไม่ถูกต้อง" }).trim().toLowerCase(),
   role: createRoleField,
   password: passwordField,
+  mustReset: z.boolean(),
 });
 
 const updateSchema = z.object({
@@ -66,6 +67,7 @@ const updateSchema = z.object({
   role: updateRoleField,
   // Blank means "leave the current password alone".
   password: passwordField,
+  mustReset: z.boolean(),
 });
 
 const idSchema = z.object({ id: z.coerce.number().int().positive() });
@@ -82,6 +84,8 @@ function fields(formData: FormData) {
     lastname: formData.get("lastname"),
     role: formData.get("role"),
     password: (formData.get("password") as string | null) ?? "",
+    // An unchecked checkbox sends nothing at all, so absence is the "false".
+    mustReset: formData.get("mustReset") === "on",
   };
 }
 
@@ -92,7 +96,7 @@ export async function createUser(formData: FormData): Promise<UserActionState> {
   const parsed = createSchema.safeParse({ ...fields(formData), email: formData.get("email") });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "ข้อมูลไม่ถูกต้อง" };
 
-  const { email, password, prefix, firstname, lastname, role } = parsed.data;
+  const { email, password, prefix, firstname, lastname, role, mustReset } = parsed.data;
 
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) return { error: "มีบัญชีที่ใช้อีเมลนี้อยู่แล้ว" };
@@ -109,13 +113,23 @@ export async function createUser(formData: FormData): Promise<UserActionState> {
       role,
       // No password means CMU OAuth only — valid, and the schema allows it.
       password: password ? await hashPassword(password) : null,
+      // Only meaningful alongside a password: the forced-reset gate (F34) fires
+      // on password sessions, so flagging a CMU-only account would do nothing
+      // but leave a confusing row in the database.
+      mustResetPassword: !!password && mustReset,
       status: true,
     },
   });
 
   await logActivity(actor, "user.create", {
     target: `${firstname} ${lastname}`.trim(),
-    detail: `${created.email} · ${role}`,
+    detail: [
+      created.email,
+      role,
+      created.mustResetPassword ? "บังคับตั้งรหัสผ่านใหม่เมื่อเข้าใช้" : null,
+    ]
+      .filter(Boolean)
+      .join(" · "),
   });
 
   revalidatePath("/user-management");
@@ -129,7 +143,7 @@ export async function updateUser(formData: FormData): Promise<UserActionState> {
   const parsed = updateSchema.safeParse({ ...fields(formData), id: formData.get("id") });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "ข้อมูลไม่ถูกต้อง" };
 
-  const { id, prefix, firstname, lastname, role, password } = parsed.data;
+  const { id, prefix, firstname, lastname, role, password, mustReset } = parsed.data;
 
   const target = await prisma.user.findUnique({ where: { id } });
   if (!target) return { error: "ไม่พบบัญชีที่ต้องการแก้ไข" };
@@ -154,7 +168,9 @@ export async function updateUser(formData: FormData): Promise<UserActionState> {
       firstname,
       lastname,
       role,
-      ...(password ? { password: await hashPassword(password), mustResetPassword: false } : {}),
+      ...(password
+        ? { password: await hashPassword(password), mustResetPassword: mustReset }
+        : {}),
     },
   });
 
@@ -167,6 +183,7 @@ export async function updateUser(formData: FormData): Promise<UserActionState> {
     detail: [
       target.role !== role ? `บทบาท ${target.role} → ${role}` : null,
       password ? "ตั้งรหัสผ่านใหม่ (ออกจากระบบทุกอุปกรณ์)" : null,
+      password && mustReset ? "บังคับตั้งรหัสผ่านใหม่เมื่อเข้าใช้" : null,
     ]
       .filter(Boolean)
       .join(" · ") || target.email,

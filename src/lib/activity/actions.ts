@@ -21,6 +21,7 @@ export const ACTIVITY_ACTIONS = [
   "user.restore",
   "profile.update",
   "profile.password_change",
+  "profile.password_reset",
 ] as const;
 
 export type ActivityAction = (typeof ACTIVITY_ACTIONS)[number];
@@ -42,6 +43,7 @@ const LABELS: Record<ActivityAction, string> = {
   "user.restore": "เปิดใช้งานบัญชี",
   "profile.update": "แก้ไขโปรไฟล์ตนเอง",
   "profile.password_change": "เปลี่ยนรหัสผ่านตนเอง",
+  "profile.password_reset": "ตั้งรหัสผ่านใหม่ (ระบบบังคับ)",
 };
 
 /**

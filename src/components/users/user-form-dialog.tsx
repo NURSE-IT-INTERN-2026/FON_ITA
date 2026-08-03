@@ -143,8 +143,30 @@ function PasswordField({
         </Button>
       </div>
       <p className="text-xs text-muted-foreground">
-        {suggested ? "แจ้งรหัสนี้ให้ผู้ใช้ แล้วแนะนำให้เปลี่ยนเองที่หน้าโปรไฟล์" : hint}
+        {suggested ? "แจ้งรหัสนี้ให้ผู้ใช้ เมื่อเข้าใช้ครั้งแรกระบบจะให้ตั้งรหัสใหม่เอง" : hint}
       </p>
+
+      {/* Only meaningful when a password is actually being set — the flag hangs
+          off the password, and `createUser` ignores it without one. Hiding it
+          keeps a CMU-only account from looking like it has an unread setting.
+          A native checkbox: shadcn has no Checkbox here, and adding a Radix
+          dependency for one box is not worth it. */}
+      {value !== "" && (
+        <label className="flex items-start gap-2 pt-1 text-xs text-muted-foreground">
+          <input
+            type="checkbox"
+            name="mustReset"
+            defaultChecked
+            className="mt-0.5 size-3.5 accent-primary"
+          />
+          <span>
+            บังคับให้ตั้งรหัสผ่านใหม่เมื่อเข้าใช้ครั้งแรก
+            <span className="block text-[11px]">
+              ผู้ใช้จะเข้าหน้าอื่นไม่ได้จนกว่าจะตั้งรหัสของตนเอง (ใช้กับการล็อกอินด้วยรหัสผ่านเท่านั้น)
+            </span>
+          </span>
+        </label>
+      )}
     </div>
   );
 }
