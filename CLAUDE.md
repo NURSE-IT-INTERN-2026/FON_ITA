@@ -72,6 +72,8 @@ Read the SKILL.md files for every topic that applies to your task:
 | If your task involves... | Read this skill first |
 |---|---|
 | ANY Next.js code (routes, pages, layouts, components) | `.agents/skills/next-best-practices/SKILL.md` |
+| **Any form that submits to a Server Action** | `.agents/skills/react-form-actions/SKILL.md` |
+| Paginated or capped lists (page links, "top N", type-ahead) | `.agents/skills/api-pagination/SKILL.md` |
 | Redirects, navigation, URL matching, proxy, basePath | `.agents/skills/basepath-handling/SKILL.md` |
 | Implementing a new feature or modifying an existing one | `.agents/skills/implement-feature/SKILL.md` |
 | CMU OAuth login, token exchange, user info | `.agents/skills/cmu-oauth-integration/SKILL.md` |

@@ -103,5 +103,7 @@ Available skills:
 - `review-feature` — post-implementation review checklist
 - `cmu-oauth-integration` — OAuth patterns reference
 - `custom-auth` — opaque token session patterns (no library)
+- `react-form-actions` — why `<form action={fn}>` discards input, and what to use instead
+- `api-pagination` — page/cursor strategies, unique sort keys, capped-list disclosure
 
 <!-- END:nextjs-agent-rules -->
