@@ -1,16 +1,13 @@
 "use client";
 
 import { KeyRound } from "lucide-react";
-import { useActionState } from "react";
-import { useFormStatus } from "react-dom";
+import { startTransition, useActionState } from "react";
 import { resetPassword, type ResetPasswordState } from "@/actions/reset-password";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-function SubmitButton() {
-  // Must be a child of <form> — useFormStatus reads the enclosing form's state.
-  const { pending } = useFormStatus();
+function SubmitButton({ pending }: { pending: boolean }) {
   return (
     <Button type="submit" className="w-full gap-1.5" disabled={pending}>
       <KeyRound className="h-4 w-4" aria-hidden />
@@ -20,11 +17,22 @@ function SubmitButton() {
 }
 
 export function ResetPasswordForm() {
-  const [state, formAction] = useActionState<ResetPasswordState, FormData>(resetPassword, {});
+  const [state, formAction, pending] = useActionState<ResetPasswordState, FormData>(
+    resetPassword,
+    {},
+  );
+
+  // Same as the login form: React 19 would clear both password boxes on a
+  // rejected reset, so the person retypes everything to fix one typo.
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    startTransition(() => formAction(formData));
+  }
   const describedBy = state.error ? "reset-error" : "reset-hint";
 
   return (
-    <form action={formAction} className="space-y-4 text-left">
+    <form onSubmit={handleSubmit} className="space-y-4 text-left">
       {/* No "current password" field: they typed it moments ago at the login
           form, and this page is only reachable with the session it produced. */}
       <div className="space-y-1.5">
@@ -68,7 +76,7 @@ export function ResetPasswordForm() {
         </p>
       )}
 
-      <SubmitButton />
+      <SubmitButton pending={pending} />
     </form>
   );
 }

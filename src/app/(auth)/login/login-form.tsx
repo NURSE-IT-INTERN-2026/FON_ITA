@@ -1,18 +1,15 @@
 "use client";
 
 import { LogIn } from "lucide-react";
-import { useActionState } from "react";
-import { useFormStatus } from "react-dom";
+import { startTransition, useActionState } from "react";
 import { authenticate, type LoginState } from "@/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-function SubmitButton() {
-  // Must be a child of <form> — useFormStatus reads the enclosing form's state.
-  const { pending } = useFormStatus();
-  // Outline, not the default: the CMU button above is the primary action now,
-  // and two solid buttons would give equal weight to the fallback.
+// Outline, not the default: the CMU button above is the primary action now,
+// and two solid buttons would give equal weight to the fallback.
+function SubmitButton({ pending }: { pending: boolean }) {
   return (
     <Button type="submit" variant="outline" className="w-full gap-1.5" disabled={pending}>
       <LogIn className="h-4 w-4" aria-hidden />
@@ -22,10 +19,25 @@ function SubmitButton() {
 }
 
 export function LoginForm({ next }: { next?: string }) {
-  const [state, formAction] = useActionState<LoginState, FormData>(authenticate, {});
+  const [state, formAction, pending] = useActionState<LoginState, FormData>(authenticate, {});
+
+  /**
+   * onSubmit, not `action={formAction}`.
+   *
+   * React 19 resets the form once the action returns. `authenticate` redirects
+   * on success, so only the failure path is affected — and there it wiped the
+   * email too, making every mistyped password cost two fields instead of one.
+   * useFormStatus goes with it: it reads the `action` prop's state, so pending
+   * now comes from useActionState itself.
+   */
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    startTransition(() => formAction(formData));
+  }
 
   return (
-    <form action={formAction} className="space-y-4 text-left">
+    <form onSubmit={handleSubmit} className="space-y-4 text-left">
       {/* Where the proxy wanted to send them. Anyone can edit a hidden field,
           so authenticate() validates it before redirecting. */}
       {next && <input type="hidden" name="next" value={next} />}
@@ -66,7 +78,7 @@ export function LoginForm({ next }: { next?: string }) {
         </p>
       )}
 
-      <SubmitButton />
+      <SubmitButton pending={pending} />
     </form>
   );
 }

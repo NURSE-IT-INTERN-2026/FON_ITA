@@ -93,7 +93,19 @@ function ItaFormDialog({
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  function submit(formData: FormData) {
+  /**
+   * onSubmit, not `<form action={...}>`.
+   *
+   * React 19 resets an action form as soon as the action returns, assuming the
+   * submit succeeded. Ours returns `{ error }` instead of throwing, so a
+   * rejected save silently reverted every field to its defaultValue — the
+   * person saw an error above fields that looked untouched, with their edits
+   * already gone. Building the FormData ourselves keeps the values put.
+   */
+  function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+
     startTransition(async () => {
       const result = editMode ? await updateIta(formData) : await createIta(formData);
       if (result.error) {
@@ -118,7 +130,7 @@ function ItaFormDialog({
       <DialogContent>
         {/* key remounts the form when the dialog reopens, so defaultValue is
             re-applied instead of keeping whatever was typed last time. */}
-        <form key={open ? "open" : "closed"} action={submit} className="space-y-4">
+        <form key={open ? "open" : "closed"} onSubmit={submit} className="space-y-4">
           <DialogHeader>
             <DialogTitle>{editMode ? "แก้ไขหัวข้อ ITA" : "เพิ่มหัวข้อ ITA"}</DialogTitle>
             <DialogDescription>

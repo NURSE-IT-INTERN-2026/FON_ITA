@@ -61,7 +61,12 @@ function ProfileForm({ prefix, firstname, lastname }: Omit<Props, "hasPassword">
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  function submit(formData: FormData) {
+  // onSubmit, not `action=`: React 19 resets an action form when the action
+  // returns, and ours returns `{ error }` rather than throwing — a rejected
+  // save would put the old name back while showing an error about the new one.
+  function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
     startTransition(async () => {
       const result = await updateProfile(formData);
       if (result.error) {
@@ -75,7 +80,7 @@ function ProfileForm({ prefix, firstname, lastname }: Omit<Props, "hasPassword">
 
   return (
     <Card className="mt-4 p-6">
-      <form action={submit} className="space-y-4">
+      <form onSubmit={submit} className="space-y-4">
         <div className="space-y-1">
           <h2 className="text-base font-semibold">ข้อมูลส่วนตัว</h2>
           <p className="text-sm text-muted-foreground">
@@ -135,7 +140,11 @@ function PasswordForm({ hasPassword }: { hasPassword: boolean }) {
   // without any of them becoming controlled inputs.
   const [formKey, setFormKey] = useState(0);
 
-  function submit(formData: FormData) {
+  // Same reason as ProfileForm. The deliberate clear on SUCCESS still happens,
+  // via formKey below — what this stops is the clear on FAILURE.
+  function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
     startTransition(async () => {
       const result = await changePassword(formData);
       if (result.error) {
@@ -150,7 +159,7 @@ function PasswordForm({ hasPassword }: { hasPassword: boolean }) {
 
   return (
     <Card className="mt-4 p-6">
-      <form key={formKey} action={submit} className="space-y-4">
+      <form key={formKey} onSubmit={submit} className="space-y-4">
         <div className="space-y-1">
           <h2 className="text-base font-semibold">
             {hasPassword ? "เปลี่ยนรหัสผ่าน" : "ตั้งรหัสผ่าน"}

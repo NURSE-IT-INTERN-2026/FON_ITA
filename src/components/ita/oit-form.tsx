@@ -55,7 +55,19 @@ export function OitForm({
 
   const overLimit = charCount > MAX_CHARS;
 
-  function submit(formData: FormData) {
+  /**
+   * onSubmit, not `<form action={...}>`.
+   *
+   * React 19 resets an action form as soon as the action returns, assuming the
+   * submit succeeded. Ours returns `{ error }` instead of throwing, so a
+   * rejected save silently reverted every field to its defaultValue — the
+   * person saw an error above fields that looked untouched, with their edits
+   * already gone. Building the FormData ourselves keeps the values put.
+   */
+  function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+
     // The editor lives in React state, not in a form field.
     formData.set("content", content);
 
@@ -72,7 +84,7 @@ export function OitForm({
   }
 
   return (
-    <form action={submit} className="space-y-6">
+    <form onSubmit={submit} className="space-y-6">
       {editMode ? (
         <input type="hidden" name="id" value={oit.id} />
       ) : (

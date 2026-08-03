@@ -38,6 +38,28 @@ const headersList = await headers();          // headers()
 - `forbidden()` — throws 403, renders `forbidden.tsx` (needs `experimental.authInterrupts` in next.config)
 - Both work like `notFound()` — call directly, don't wrap in try/catch
 
+### Form Actions Reset the Form (React 19)
+
+`<form action={fn}>` **resets every uncontrolled field as soon as `fn` returns** — React assumes
+the submit succeeded. Every Server Action in this project returns `{ error }` instead of throwing
+(so the message can be Thai), so a rejected save wiped the form. Fields using `defaultValue` are
+worse than blank: they revert to the **last saved value**, so the person sees an error above
+fields that look untouched while their edits are gone.
+
+```tsx
+// ✗ loses user input whenever the action returns an error
+<form action={submit}>
+
+// ✓
+<form onSubmit={(e) => { e.preventDefault(); submit(new FormData(e.currentTarget)); }}>
+```
+
+`useActionState` is affected too. Call `formAction(formData)` yourself inside `startTransition`,
+and drop `useFormStatus` — it reads the `action` prop that no longer exists; use the third value
+returned by `useActionState` for pending instead.
+
+`action={fn}` is only safe when the action **always** redirects or throws. See `decisions.md` D24.
+
 ### RSC Headers Stripped in Proxy
 
 Next.js 16 strips `RSC`, `next-router-state-tree`, `next-router-prefetch` headers from `request.headers` in proxy. Do NOT check these headers to detect RSC requests — they are always `null`.
