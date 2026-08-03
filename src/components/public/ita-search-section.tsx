@@ -206,10 +206,14 @@ export function ItaSearchSection({ canManage }: { canManage: boolean }) {
               ? "ลองเปลี่ยนคำค้นหา หรือเลือกปีอื่น"
               : "ลองเลือกปีอื่นจากรายการด้านบน"
           }
+          // Staff-only: "/ita-list" is ADMIN+ (decisions.md D12 amendment), so
+          // for a visitor this button would just bounce to the login page.
           action={
-            <Button asChild>
-              <Link href="/ita-list">ไปจัดการรายการ ITA</Link>
-            </Button>
+            canManage ? (
+              <Button asChild>
+                <Link href="/ita-list">ไปจัดการรายการ ITA</Link>
+              </Button>
+            ) : undefined
           }
         />
       ) : (

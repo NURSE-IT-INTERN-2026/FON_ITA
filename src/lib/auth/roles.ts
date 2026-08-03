@@ -12,13 +12,28 @@ import type { AppRole } from "@/generated/prisma/enums";
 export const ROLE_HOME: Record<AppRole, string> = {
   SUPERADMIN: "/ita-list",
   ADMIN: "/ita-list",
-  USER: "/ita-list",
+  // USER accounts are not created any more (decisions.md D12) — but a row left
+  // over from the legacy import still has to land somewhere it may actually go,
+  // and "/ita-list" is now ADMIN+. The public landing page is that somewhere.
+  USER: "/",
 };
 
 // Whitelist, never blacklist: a route that nobody remembered to list is denied,
 // which fails closed instead of leaking.
-const USER_PREFIXES = ["/", "/ita-list", "/ita", "/ita-oit", "/ita-file", "/profile"];
-const ADMIN_PREFIXES = [...USER_PREFIXES, "/activity-log"];
+//
+// USER keeps only the public routes: per D12 the role has no accounts, and the
+// staff screens ("/ita-list", "/ita", "/ita-file", "/profile") all raise
+// forbidden() for it at the page anyway — listing them here would send someone
+// to a 403 instead of somewhere they can use.
+const USER_PREFIXES = ["/", "/ita-oit"];
+const ADMIN_PREFIXES = [
+  ...USER_PREFIXES,
+  "/ita-list",
+  "/ita",
+  "/ita-file",
+  "/profile",
+  "/activity-log",
+];
 const SUPERADMIN_PREFIXES = [...ADMIN_PREFIXES, "/user-management"];
 
 /**

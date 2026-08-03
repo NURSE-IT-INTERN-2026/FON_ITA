@@ -22,11 +22,11 @@ export default function NotFound() {
       title="ไม่พบหน้าที่คุณเรียก"
       description="หน้านี้อาจถูกลบไปแล้ว หรือที่อยู่เว็บอาจพิมพ์ไม่ถูกต้อง"
     >
-      <Button asChild variant="outline">
-        <Link href="/">กลับหน้าแรก</Link>
-      </Button>
+      {/* Only the landing page: 404 is reachable signed out, and "/ita-list" is
+          ADMIN+ (decisions.md D12 amendment) — offering it here would answer a
+          missing page with a login redirect. Reading ITA lives on "/" anyway. */}
       <Button asChild>
-        <Link href="/ita-list">ดูรายการ ITA</Link>
+        <Link href="/">กลับหน้าแรก</Link>
       </Button>
     </StatusMessage>
   );

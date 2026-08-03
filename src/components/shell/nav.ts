@@ -28,7 +28,9 @@ type NavLink = {
 // docs/specs/_features.md — /ita-list per decisions.md D9.
 export const NAV_LINKS: NavLink[] = [
   { href: "/", label: "หน้าแรก", icon: Home, exact: true },
-  { href: "/ita-list", label: "รายการ ITA", icon: ListChecks },
+  // Staff working view (decisions.md D12 amendment) — a visitor reads the same
+  // ITA data on "/", so this link would only lead them to a login redirect.
+  { href: "/ita-list", label: "รายการ ITA", icon: ListChecks, roles: ["ADMIN", "SUPERADMIN"] },
   { href: "/ita-file", label: "คลังไฟล์", icon: FolderOpen, roles: ["ADMIN", "SUPERADMIN"] },
   { href: "/user-management", label: "จัดการผู้ใช้", icon: Users, roles: ["SUPERADMIN"] },
   { href: "/activity-log", label: "บันทึกกิจกรรม", icon: History, roles: ["SUPERADMIN"] },

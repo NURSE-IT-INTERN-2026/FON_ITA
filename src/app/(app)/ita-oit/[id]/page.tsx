@@ -49,9 +49,12 @@ export default async function OitDetailPage({ params }: Props) {
     <div>
       <PageHeader
         title={oit.title}
+        // This page stays public, but "/ita-list" is ADMIN+ (decisions.md D12
+        // amendment) — a visitor following that crumb would hit the login page,
+        // so they get the trail they can actually walk.
         breadcrumb={[
           { label: "หน้าแรก", href: "/" },
-          { label: "รายการ ITA", href: "/ita-list" },
+          ...(canManage ? [{ label: "รายการ ITA", href: "/ita-list" }] : []),
           { label: oit.title },
         ]}
         actions={

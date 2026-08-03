@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { ItaListView } from "@/components/ita/ita-list-view";
-import { hasRole } from "@/lib/auth/roles";
-import { getSessionUser } from "@/lib/auth/session";
+import { requireRole } from "@/lib/auth/guards";
 import { currentBEYear } from "@/lib/date";
 import { getItasByYear, listItaYears, yearOptions } from "@/lib/ita/queries";
 
@@ -16,9 +15,9 @@ export const metadata: Metadata = { title: "รายการ ITA — FON-ITA" 
  * does, so staff land on real data instead of an empty page.
  */
 export default async function ItaListPage() {
-  // Public page (decisions.md D12) — `user` is null for a visitor who is not
-  // signed in, which only decides whether the management controls are drawn.
-  const user = await getSessionUser();
+  // Staff working view (decisions.md D12 amendment) — the proxy is the first
+  // gate, this is the real one. Visitors read the same data on `/`.
+  await requireRole("ADMIN", "SUPERADMIN");
 
   const year = String(currentBEYear());
   const years = await listItaYears();
@@ -35,7 +34,7 @@ export default async function ItaListPage() {
       years={yearOptions(years, year)}
       itas={itas}
       breadcrumb={[{ label: "หน้าแรก", href: "/" }, { label: "รายการ ITA" }]}
-      canManage={hasRole(user, "ADMIN", "SUPERADMIN")}
+      canManage
     />
   );
 }

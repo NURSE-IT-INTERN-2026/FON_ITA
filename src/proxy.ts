@@ -5,8 +5,10 @@ import { withBasePath } from "@/lib/base-path";
 /**
  * Route protection — the FIRST gate only (docs/rules/route-map.md).
  *
- * Reading ITA/OIT needs no session at all (decisions.md D12): the data is
+ * Reading ITA/OIT content needs no session (decisions.md D12): the data is
  * published transparency information, and the app is the place people read it.
+ * Visitors read it on `/` and on `/ita-oit/[id]`; the ITA *list* screens are
+ * the staff working view (D12 amendment) and are gated.
  * A session is only needed to change something or to reach a staff-only page.
  *
  * This checks that a session cookie is *present*, nothing more. It does not
@@ -27,10 +29,11 @@ import { withBasePath } from "@/lib/base-path";
 // proxy runs. Writing "/fonita/login" here would silently never match and leave
 // every guarded route open.
 const PUBLIC_PREFIXES = [
-  "/", // landing page
-  "/ita-list", // ITA browsing — open to anyone (see decisions.md D12)
-  "/ita", // /ita/by-year/[year]
-  "/ita-oit", // OIT detail — but NOT /ita-oit/create and /ita-oit/edit, below
+  "/", // landing page — where visitors read ITA/OIT (search + accordion)
+  // NOT "/ita-list" or "/ita": those are the staff working view (drag to
+  // reorder, add OIT, edit/delete). A visitor gets nothing there that the
+  // landing page does not already give them. See decisions.md D12 amendment.
+  "/ita-oit", // OIT detail — the shareable URL. NOT /create and /edit, below
   "/login", // form login page
   "/api/auth", // /cmu, /callback, /logout — the login flow itself
   "/api/v1", // Public API (FROZEN) — consumed by the faculty website

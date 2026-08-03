@@ -15,7 +15,7 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { ExternalLink, FileText, GripVertical, Plus } from "lucide-react";
+import { ExternalLink, FileText, GripVertical, Pencil, Plus } from "lucide-react";
 import Link from "next/link";
 import { useOptimistic, useTransition } from "react";
 import { toast } from "sonner";
@@ -259,37 +259,45 @@ function ItaCard({
   );
 }
 
-const CHIP_CLASS =
-  "inline-flex max-w-[240px] items-center gap-1.5 rounded-md border bg-card px-2.5 py-1 text-xs font-medium transition-colors hover:border-primary/40 hover:bg-accent";
-
 /**
- * An OIT is either a shortcut to a document elsewhere or a page of its own.
+ * An OIT chip with two targets.
  *
- * With a `link` it opens that link in a new tab — the behaviour staff know from
- * the old system. Without one it goes to the OIT page, which shows the content
- * (and, for ADMIN+, the way to edit it). The Lovable prototype popped a modal
- * here instead; that existed because it had no detail page, and this one does.
+ * The title goes straight to the editor. This screen is ADMIN+ only
+ * (decisions.md D12 amendment) — everyone here came to change something, and
+ * the read-only page they would otherwise land on is one extra click in front
+ * of the only thing they wanted. Visitors read the same OIT on `/`.
+ *
+ * Before this, a chip with a `link` was *entirely* an `<a>` to that link, so
+ * every OIT that had one had no reachable edit path from this list at all. The
+ * external link keeps its own affordance as a trailing icon button instead.
+ *
+ * Padding is larger below `sm` — the icon button is the smallest touch target
+ * on the page, and a mis-tap there means leaving the site.
  */
 function OitChip({ oit }: { oit: ItaWithOits["oits"][number] }) {
-  if (oit.link) {
-    return (
-      <a
-        href={oit.link}
-        target="_blank"
-        rel="noopener noreferrer"
-        className={CHIP_CLASS}
-      >
-        <FileText className="size-3 shrink-0 text-primary" aria-hidden />
-        <span className="truncate">{oit.title}</span>
-        <ExternalLink className="size-3 shrink-0 text-muted-foreground" aria-hidden />
-      </a>
-    );
-  }
-
   return (
-    <Link href={`/ita-oit/${oit.id}`} className={CHIP_CLASS}>
-      <FileText className="size-3 shrink-0 text-primary" aria-hidden />
-      <span className="truncate">{oit.title}</span>
-    </Link>
+    <span className="inline-flex max-w-[260px] overflow-hidden rounded-md border bg-card transition-colors focus-within:border-primary/40 hover:border-primary/40">
+      <Link
+        href={`/ita-oit/edit/${oit.id}`}
+        title={`แก้ไข ${oit.title}`}
+        className="inline-flex min-w-0 items-center gap-1.5 px-3 py-2.5 text-xs font-medium transition-colors hover:bg-accent sm:px-2.5 sm:py-1"
+      >
+        <Pencil className="size-3 shrink-0 text-primary" aria-hidden />
+        <span className="truncate">{oit.title}</span>
+      </Link>
+
+      {oit.link && (
+        <a
+          href={oit.link}
+          target="_blank"
+          rel="noopener noreferrer"
+          title="เปิดลิงก์ภายนอกในแท็บใหม่"
+          aria-label={`เปิดลิงก์ภายนอกของ ${oit.title}`}
+          className="inline-flex shrink-0 items-center border-l px-3 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground sm:px-2"
+        >
+          <ExternalLink className="size-3" aria-hidden />
+        </a>
+      )}
+    </span>
   );
 }
