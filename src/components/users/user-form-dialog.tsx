@@ -1,9 +1,10 @@
 "use client";
 
-import { Pencil, UserPlus } from "lucide-react";
+import { Check, Copy, Pencil, Shuffle, UserPlus } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { createUser, updateUser } from "@/actions/user";
+import { generatePassword } from "@/lib/generate-password";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -64,6 +65,87 @@ export function UserEditButton({ user }: { user: EditableUser }) {
       </Button>
       <UserFormDialog open={open} onOpenChange={setOpen} user={user} />
     </>
+  );
+}
+
+/**
+ * The password input, plus an opt-in "สุ่ม" button.
+ *
+ * Deliberately empty by default. Every account here also logs in through CMU
+ * OAuth, so a password nobody asked for is a second way in that nobody watches
+ * — `createUser` stores null when this is blank, and that is the common case.
+ */
+function PasswordField({
+  label,
+  placeholder,
+  hint,
+}: {
+  label: string;
+  placeholder: string;
+  hint: string;
+}) {
+  const [value, setValue] = useState("");
+  // Suggested passwords are shown in the clear: an unreadable one cannot be
+  // handed over, and it is not a secret the SUPERADMIN needs hidden from
+  // themselves. A typed one stays masked.
+  const [suggested, setSuggested] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  function suggest() {
+    setValue(generatePassword());
+    setSuggested(true);
+    setCopied(false);
+  }
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Denied permission, or an insecure origin. The password is on screen in
+      // plain text, so selecting it by hand still works.
+      toast.error("คัดลอกไม่สำเร็จ — เลือกข้อความแล้วคัดลอกเองได้");
+    }
+  }
+
+  return (
+    <div className="space-y-1.5">
+      <Label htmlFor="user-password">{label}</Label>
+      <div className="flex gap-2">
+        <Input
+          id="user-password"
+          name="password"
+          type={suggested ? "text" : "password"}
+          autoComplete="new-password"
+          placeholder={placeholder}
+          value={value}
+          onChange={(event) => {
+            setValue(event.target.value);
+            // Edited by hand — mask it again and stop calling it a suggestion.
+            setSuggested(false);
+            setCopied(false);
+          }}
+          className={suggested ? "font-mono" : undefined}
+        />
+        {suggested && (
+          <Button type="button" variant="outline" size="icon" aria-label="คัดลอกรหัสผ่าน" onClick={copy}>
+            {copied ? (
+              <Check className="size-4 text-primary" aria-hidden />
+            ) : (
+              <Copy className="size-4" aria-hidden />
+            )}
+          </Button>
+        )}
+        <Button type="button" variant="outline" onClick={suggest}>
+          <Shuffle className="mr-1 size-4" aria-hidden />
+          {suggested ? "สุ่มใหม่" : "สุ่ม"}
+        </Button>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        {suggested ? "แจ้งรหัสนี้ให้ผู้ใช้ แล้วแนะนำให้เปลี่ยนเองที่หน้าโปรไฟล์" : hint}
+      </p>
+    </div>
   );
 }
 
@@ -197,25 +279,17 @@ function UserFormDialog({
             </p>
           </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="user-password">
-              {editMode ? "ตั้งรหัสผ่านใหม่" : "รหัสผ่าน"}
-            </Label>
-            <Input
-              id="user-password"
-              name="password"
-              type="password"
-              autoComplete="new-password"
-              placeholder={editMode ? "เว้นว่างไว้หากไม่ต้องการเปลี่ยน" : "อย่างน้อย 8 ตัวอักษร"}
-            />
-            <p className="text-xs text-muted-foreground">
-              {editMode
+          <PasswordField
+            label={editMode ? "ตั้งรหัสผ่านใหม่" : "รหัสผ่าน"}
+            placeholder={editMode ? "เว้นว่างไว้หากไม่ต้องการเปลี่ยน" : "อย่างน้อย 8 ตัวอักษร"}
+            hint={
+              editMode
                 ? user.hasPassword
                   ? "ถ้าตั้งรหัสใหม่ ผู้ใช้จะถูกออกจากระบบทุกอุปกรณ์ทันที"
                   : "บัญชีนี้ยังไม่มีรหัสผ่าน — ใช้ล็อกอินด้วยบัญชี CMU เท่านั้น"
-                : "เว้นว่างได้ถ้าให้ล็อกอินด้วยบัญชี CMU เท่านั้น"}
-            </p>
-          </div>
+                : "เว้นว่างได้ถ้าให้ล็อกอินด้วยบัญชี CMU เท่านั้น"
+            }
+          />
 
           {error && (
             <p
