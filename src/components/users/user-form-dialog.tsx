@@ -83,12 +83,20 @@ function PasswordField({
   label,
   placeholder,
   hint,
+  value,
+  onValueChange,
 }: {
   label: string;
   placeholder: string;
   hint: string;
+  /**
+   * Owned by the dialog, not this component: whether to ask the operator to
+   * confirm depends on the role as well (D23), and that lives up there.
+   */
+  value: string;
+  onValueChange: (value: string) => void;
 }) {
-  const [value, setValue] = useState("");
+  const setValue = onValueChange;
   // Suggested passwords are shown in the clear: an unreadable one cannot be
   // handed over, and it is not a secret the SUPERADMIN needs hidden from
   // themselves. A typed one stays masked.
@@ -171,6 +179,32 @@ function PasswordField({
           </span>
         </label>
       )}
+
+    </div>
+  );
+}
+
+/**
+ * "Confirm with your own password", shown when the edit hands out access (D23).
+ *
+ * Lives outside the folded password block: granting SUPERADMIN triggers it too,
+ * and that decision is made in the role dropdown, which is always visible.
+ * The Server Action re-checks — this field is the prompt, not the guard.
+ */
+function ActorConfirmField({ reason }: { reason: string }) {
+  return (
+    <div className="space-y-1.5 rounded-md border border-destructive/30 bg-destructive/5 p-3">
+      <Label htmlFor="actor-password" className="text-xs">
+        ยืนยันด้วยรหัสผ่านของคุณ <span className="text-destructive">*</span>
+      </Label>
+      <Input
+        id="actor-password"
+        name="actorPassword"
+        type="password"
+        autoComplete="current-password"
+        placeholder="รหัสผ่านของบัญชีที่คุณกำลังใช้อยู่"
+      />
+      <p className="text-[11px] text-muted-foreground">{reason}</p>
     </div>
   );
 }
@@ -188,7 +222,30 @@ function UserFormDialog({
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  function submit(formData: FormData) {
+  // Both feed the same question: does this save hand out access? (D23)
+  const [password, setPassword] = useState("");
+  const [role, setRole] = useState<AppRole>(user?.role ?? "ADMIN");
+
+  // Re-saving a row that is already SUPERADMIN grants nothing new, so it does
+  // not ask — mirrors the `promotes` check in updateUser().
+  const promotes = role === "SUPERADMIN" && user?.role !== "SUPERADMIN";
+  const confirmReason = password
+    ? "การตั้งรหัสผ่านให้บัญชีนี้เท่ากับเข้าถึงบัญชีนั้นได้ — ระบบจึงขอยืนยันว่าเป็นคุณจริง"
+    : "การให้สิทธิ์ผู้ดูแลสูงสุดเท่ากับให้จัดการผู้ใช้ทุกคนได้ — ระบบจึงขอยืนยันว่าเป็นคุณจริง";
+
+  /**
+   * onSubmit, deliberately not `<form action={...}>`.
+   *
+   * React 19 resets an `action` form as soon as the action returns, on the
+   * assumption that the submission succeeded. Ours returns `{ error }` instead
+   * of throwing, so a rejected password wiped every field the person had just
+   * filled in and left them retyping the whole row. Handling submit ourselves
+   * keeps the values exactly where they were, and only the error line changes.
+   */
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+
     startTransition(async () => {
       const result = editMode ? await updateUser(formData) : await createUser(formData);
       if (result.error) {
@@ -205,13 +262,20 @@ function UserFormDialog({
     <Dialog
       open={open}
       onOpenChange={(next) => {
-        if (!next) setError(null);
+        // The `key` on <form> remounts the inputs, but this state sits above it
+        // and would otherwise survive a close — reopening would show the confirm
+        // box for a password the person can no longer see.
+        if (!next) {
+          setError(null);
+          setPassword("");
+          setRole(user?.role ?? "ADMIN");
+        }
         onOpenChange(next);
       }}
     >
       <DialogContent>
         {/* key remounts the form on each open so nothing is left over. */}
-        <form key={open ? "open" : "closed"} action={submit} className="space-y-4">
+        <form key={open ? "open" : "closed"} onSubmit={handleSubmit} className="space-y-4">
           <DialogHeader>
             <DialogTitle>{editMode ? "แก้ไขผู้ใช้" : "เพิ่มผู้ใช้"}</DialogTitle>
             <DialogDescription>
@@ -287,7 +351,12 @@ function UserFormDialog({
             <Label htmlFor="user-role">
               บทบาท <span className="text-destructive">*</span>
             </Label>
-            <Select name="role" defaultValue={user?.role ?? "ADMIN"} disabled={user?.isSelf}>
+            <Select
+              name="role"
+              value={role}
+              onValueChange={(next) => setRole(next as AppRole)}
+              disabled={user?.isSelf}
+            >
               <SelectTrigger id="user-role">
                 <SelectValue />
               </SelectTrigger>
@@ -328,17 +397,21 @@ function UserFormDialog({
               </span>
             </summary>
             <PasswordField
+              value={password}
+              onValueChange={setPassword}
               label={editMode ? "รหัสผ่านใหม่" : "รหัสผ่าน"}
               placeholder={editMode ? "เว้นว่างไว้หากไม่ต้องการเปลี่ยน" : "อย่างน้อย 8 ตัวอักษร"}
               hint={
                 editMode
                   ? user.hasPassword
                     ? "ถ้าตั้งรหัสใหม่ ผู้ใช้จะถูกออกจากระบบทุกอุปกรณ์ทันที"
-                    : "บัญชีนี้ยังไม่มีรหัสผ่าน — ใช้ล็อกอินด้วยบัญชี CMU เท่านั้น"
+                    : "บัญชีนี้ล็อกอินด้วยบัญชี CMU เท่านั้น — ตั้งรหัสผ่านให้จากที่นี่ไม่ได้ เจ้าของบัญชีต้องตั้งเองที่หน้าโปรไฟล์"
                   : "ปกติไม่ต้องตั้ง — ผู้ใช้เข้าระบบด้วยปุ่ม CMU · ตั้งไว้เฉพาะกรณีสำรองตอน CMU ใช้งานไม่ได้"
               }
             />
           </details>
+
+          {(password !== "" || promotes) && <ActorConfirmField reason={confirmReason} />}
 
           {error && (
             <p

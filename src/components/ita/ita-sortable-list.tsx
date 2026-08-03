@@ -30,6 +30,28 @@ import type { ItaWithOits } from "@/lib/ita/queries";
 const OIT_PREVIEW = 3;
 
 /**
+ * dnd-kit ships its screen-reader text in English. It is read aloud to the
+ * person using the page, which makes it user-facing text — Thai, like every
+ * other label in the system (CLAUDE.md). The element holding this is what
+ * `aria-describedby` on each drag handle points to.
+ */
+const A11Y = {
+  screenReaderInstructions: {
+    draggable:
+      "กด Space เพื่อเริ่มลากหัวข้อ · ใช้ปุ่มลูกศรเพื่อย้ายตำแหน่ง · กด Space อีกครั้งเพื่อวาง · กด Escape เพื่อยกเลิก",
+  },
+  announcements: {
+    onDragStart: ({ active }: { active: { id: string | number } }) =>
+      `เริ่มลากหัวข้อลำดับที่ ${active.id}`,
+    onDragOver: ({ over }: { over: { id: string | number } | null }) =>
+      over ? `ย้ายมาอยู่เหนือหัวข้อลำดับที่ ${over.id}` : "ออกนอกพื้นที่วาง",
+    onDragEnd: ({ over }: { over: { id: string | number } | null }) =>
+      over ? `วางหัวข้อที่ตำแหน่งของลำดับที่ ${over.id} แล้ว` : "ยกเลิกการลาก",
+    onDragCancel: () => "ยกเลิกการลาก ลำดับกลับไปเป็นเหมือนเดิม",
+  },
+};
+
+/**
  * Reorderable ITA list. Client Component because DnD needs event handlers; the
  * server `ItaListView` keeps the page header, year picker, and empty state.
  *
@@ -99,7 +121,18 @@ export function ItaSortableList({
   }
 
   return (
-    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+    // `id` is required for SSR: without it dnd-kit numbers its accessibility
+    // description element from a module-level counter, so the server renders
+    // aria-describedby="DndDescribedBy-0" while the browser — which has already
+    // mounted other contexts — produces "-1" and React reports a hydration
+    // mismatch. A fixed id makes both sides agree.
+    <DndContext
+      id="ita-sortable"
+      accessibility={A11Y}
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragEnd={handleDragEnd}
+    >
       <SortableContext
         items={optimisticItas.map((i) => String(i.id))}
         strategy={rectSortingStrategy}

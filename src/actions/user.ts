@@ -5,7 +5,7 @@ import { z } from "zod";
 import { logActivity } from "@/lib/activity/log";
 import { FORBIDDEN_MESSAGE } from "@/lib/auth/errors";
 import { requireUser } from "@/lib/auth/guards";
-import { hashPassword } from "@/lib/auth/password";
+import { hashPassword, verifyPassword } from "@/lib/auth/password";
 import { revokeAllSessions } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import { countActiveSuperadmins } from "@/lib/users/queries";
@@ -85,6 +85,8 @@ const createSchema = z.object({
   role: createRoleField,
   password: passwordField,
   mustReset: z.boolean(),
+  /** See updateSchema — only read when the edit hands out access (D23). */
+  actorPassword: z.string(),
 });
 
 const updateSchema = z.object({
@@ -96,6 +98,11 @@ const updateSchema = z.object({
   // Blank means "leave the current password alone".
   password: passwordField,
   mustReset: z.boolean(),
+  /**
+   * The signed-in SUPERADMIN's OWN password, re-entered. Only read when
+   * `password` is non-empty — see the guard in updateUser().
+   */
+  actorPassword: z.string(),
 });
 
 const idSchema = z.object({ id: z.coerce.number().int().positive() });
@@ -105,6 +112,36 @@ async function requireSuperadmin() {
   return user.role === "SUPERADMIN" ? user : null;
 }
 
+/**
+ * Re-prove who is at the keyboard before an edit that HANDS OUT ACCESS (D23).
+ *
+ * Holding a session is enough for ordinary edits. It is not enough for these,
+ * because an unlocked screen is all it otherwise takes to give yourself a way
+ * back in after the real operator walks away — a password you know, or a
+ * SUPERADMIN account of your own.
+ *
+ * Returns an error message, or null when the caller may proceed.
+ */
+async function confirmActorIdentity(
+  actorId: number,
+  actorPassword: string,
+): Promise<string | null> {
+  const me = await prisma.user.findUnique({
+    where: { id: actorId },
+    select: { password: true },
+  });
+
+  // Nothing to check against. Refusing is the honest outcome: the point of this
+  // step is proof, and a session alone is exactly what it declines to trust.
+  if (!me?.password) {
+    return "บัญชีของคุณไม่มีรหัสผ่านจึงยืนยันตัวตนไม่ได้ — ตั้งรหัสผ่านของคุณเองที่หน้าโปรไฟล์ก่อน";
+  }
+  if (!(await verifyPassword(actorPassword, me.password))) {
+    return "รหัสผ่านของคุณไม่ถูกต้อง";
+  }
+  return null;
+}
+
 function fields(formData: FormData) {
   return {
     prefix: (formData.get("prefix") as string | null)?.trim() || undefined,
@@ -112,6 +149,7 @@ function fields(formData: FormData) {
     lastname: formData.get("lastname"),
     role: formData.get("role"),
     password: (formData.get("password") as string | null) ?? "",
+    actorPassword: (formData.get("actorPassword") as string | null) ?? "",
     // An unchecked checkbox sends nothing at all, so absence is the "false".
     mustReset: formData.get("mustReset") === "on",
   };
@@ -124,7 +162,23 @@ export async function createUser(formData: FormData): Promise<UserActionState> {
   const parsed = createSchema.safeParse({ ...fields(formData), email: formData.get("email") });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "ข้อมูลไม่ถูกต้อง" };
 
-  const { email, password, prefix, firstname, lastname, role, mustReset } = parsed.data;
+  const { email, password, prefix, firstname, lastname, role, mustReset, actorPassword } =
+    parsed.data;
+
+  // Confirm identity for what this hands out, not for the act of creating (D23).
+  //
+  //   • a password    → a way in that does not need the person's CMU account
+  //   • SUPERADMIN    → the ability to do all of this again, tomorrow
+  //
+  // Creating an ordinary ADMIN with no password stays friction-free: that account
+  // can only be entered through CMU OAuth, by the one person who owns that CMU
+  // identity — which is also what makes it traceable. Requiring a password there
+  // would lock out any SUPERADMIN who signs in through CMU only, and adding
+  // colleagues is the core job of the role.
+  if (password || role === "SUPERADMIN") {
+    const denied = await confirmActorIdentity(actor.id, actorPassword);
+    if (denied) return { error: denied };
+  }
 
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) return { error: "มีบัญชีที่ใช้อีเมลนี้อยู่แล้ว" };
@@ -185,10 +239,33 @@ export async function updateUser(formData: FormData): Promise<UserActionState> {
   const parsed = updateSchema.safeParse({ ...fields(formData), id: formData.get("id") });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "ข้อมูลไม่ถูกต้อง" };
 
-  const { id, prefix, firstname, lastname, role, password, mustReset } = parsed.data;
+  const { id, prefix, firstname, lastname, role, password, mustReset, actorPassword } =
+    parsed.data;
 
   const target = await prisma.user.findUnique({ where: { id } });
   if (!target) return { error: "ไม่พบบัญชีที่ต้องการแก้ไข" };
+
+  // An account with no password logs in through CMU only (D7). Giving it one
+  // creates a second way in that its owner never asked for and would not know
+  // about. The owner can set their own at /profile, where holding the session is
+  // the proof — nobody else can do it for them.
+  if (password && !target.password) {
+    return {
+      error:
+        target.id === actor.id
+          ? "บัญชีของคุณยังไม่มีรหัสผ่าน — ตั้งครั้งแรกได้ที่หน้าโปรไฟล์ของคุณเอง"
+          : "บัญชีนี้ใช้ล็อกอินด้วยบัญชี CMU เท่านั้น — ให้เจ้าของบัญชีตั้งรหัสผ่านเองที่หน้าโปรไฟล์",
+    };
+  }
+
+  // Same rule as createUser (D23): confirm for what the edit hands out. Promotion
+  // counts — it is how someone at an unlocked screen keeps their access.
+  // Re-saving a row that is ALREADY SUPERADMIN grants nothing, so it does not ask.
+  const promotes = role === "SUPERADMIN" && target.role !== "SUPERADMIN";
+  if (password || promotes) {
+    const denied = await confirmActorIdentity(actor.id, actorPassword);
+    if (denied) return { error: denied };
+  }
 
   const losingSuperadmin = target.role === "SUPERADMIN" && role !== "SUPERADMIN";
 
@@ -224,7 +301,7 @@ export async function updateUser(formData: FormData): Promise<UserActionState> {
     target: `${firstname} ${lastname}`.trim(),
     detail: [
       target.role !== role ? `บทบาท ${target.role} → ${role}` : null,
-      password ? "ตั้งรหัสผ่านใหม่ (ออกจากระบบทุกอุปกรณ์)" : null,
+      password ? "ตั้งรหัสผ่านใหม่ (ออกจากระบบทุกอุปกรณ์ · ยืนยันรหัสผ่านผู้ดำเนินการแล้ว)" : null,
       password && mustReset ? "บังคับตั้งรหัสผ่านใหม่เมื่อเข้าใช้" : null,
     ]
       .filter(Boolean)
