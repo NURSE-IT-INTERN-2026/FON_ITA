@@ -26,7 +26,7 @@ export default async function EditOitPage({ params }: Props) {
   if (!oit) notFound();
 
   // Seeds the "แนบไฟล์" picker in the editor (F21).
-  const recentFiles = await searchFilesByName("");
+  const recent = await searchFilesByName("");
   // Built from the same env the Server Action validates against, so the
   // picker's inline upload and the rule behind it cannot drift apart.
   const fileAccept = allowedExtensions()
@@ -60,7 +60,8 @@ export default async function EditOitPage({ params }: Props) {
         itaId={oit.ita.id}
         year={oit.ita.year}
         oit={{ id: oit.id, title: oit.title, link: oit.link, content: oit.content }}
-        recentFiles={recentFiles}
+        recentFiles={recent.files}
+        totalFiles={recent.total}
         fileAccept={fileAccept}
         fileMaxSizeMb={fileMaxSizeMb}
       />

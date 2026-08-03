@@ -6,7 +6,7 @@ import { logActivity } from "@/lib/activity/log";
 import { FORBIDDEN_MESSAGE } from "@/lib/auth/errors";
 import { requireUser } from "@/lib/auth/guards";
 import { hasRole } from "@/lib/auth/roles";
-import { type PickerFile, searchFilesByName } from "@/lib/files/queries";
+import { type PickerFile, type PickerResult, searchFilesByName } from "@/lib/files/queries";
 import { checkUpload, deleteUpload, saveUpload } from "@/lib/files/storage";
 import { prisma } from "@/lib/prisma";
 
@@ -87,12 +87,12 @@ export async function uploadFile(formData: FormData): Promise<FileActionState> {
  * data, and only editors can reach the editor it lives in. Returns an empty
  * list rather than an error, so the picker has nothing to leak.
  */
-export async function searchFiles(term: string): Promise<PickerFile[]> {
+export async function searchFiles(term: string): Promise<PickerResult> {
   const user = await requireUser();
-  if (!hasRole(user, "ADMIN", "SUPERADMIN")) return [];
+  if (!hasRole(user, "ADMIN", "SUPERADMIN")) return { files: [], total: 0 };
 
   const parsed = z.string().max(255).safeParse(term);
-  if (!parsed.success) return [];
+  if (!parsed.success) return { files: [], total: 0 };
 
   return searchFilesByName(parsed.data);
 }

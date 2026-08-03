@@ -55,7 +55,13 @@ export async function listFiles(page: number, search?: string): Promise<FilePage
 
   const files = await prisma.itaFile.findMany({
     where,
-    orderBy: { createdAt: "desc" },
+    // `id` breaks ties, and it is not optional here: the migration (F32) dated
+    // each file from the OIT that first referenced it, so 116 rows share only 49
+    // distinct timestamps — one group is 9 rows wide, wider than half a page.
+    // Without a tiebreaker PostgreSQL may return tied rows in any order, and a
+    // group straddling a page boundary would show a file twice or skip it
+    // entirely. Verified: touching one row reorders its group.
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
     skip: (current - 1) * FILES_PER_PAGE,
     take: FILES_PER_PAGE,
     select: {
@@ -74,14 +80,43 @@ export async function listFiles(page: number, search?: string): Promise<FilePage
 /** How many matches the OIT file picker shows before asking for a narrower term. */
 export const PICKER_LIMIT = 8;
 
-/** Name search for the picker in the OIT editor (F21). */
-export async function searchFilesByName(search: string) {
-  return prisma.itaFile.findMany({
-    where: nameFilter(search),
-    orderBy: { createdAt: "desc" },
-    take: PICKER_LIMIT,
-    select: { id: true, name: true, path: true, createdBy: true, createdAt: true },
-  });
+export type PickerResult = {
+  files: PickerFile[];
+  /** Matches in total, not just the ones returned. */
+  total: number;
+};
+
+/**
+ * Name search for the picker in the OIT editor (F21).
+ *
+ * Returns the total alongside the capped list. Without it the picker cannot say
+ * that it is showing a slice: a search for "การ" matches 75 of the 116 migrated
+ * files, and eight results with no further explanation read as "that is all
+ * there is" — which ends with someone uploading a copy of a file already in the
+ * library.
+ */
+export async function searchFilesByName(search: string): Promise<PickerResult> {
+  const where = nameFilter(search);
+
+  const [files, total] = await Promise.all([
+    prisma.itaFile.findMany({
+      where,
+      // Same tie problem as listFiles: without this, *which* 8 of a tied group
+      // the picker shows could change between two identical searches.
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: PICKER_LIMIT,
+      select: { id: true, name: true, path: true, createdBy: true, createdAt: true },
+    }),
+    prisma.itaFile.count({ where }),
+  ]);
+
+  return { files, total };
 }
 
-export type PickerFile = Awaited<ReturnType<typeof searchFilesByName>>[number];
+export type PickerFile = {
+  id: number;
+  name: string;
+  path: string;
+  createdBy: string;
+  createdAt: Date;
+};

@@ -26,9 +26,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { ItaWithOits } from "@/lib/ita/queries";
 
-// How many OIT titles to show on a card before collapsing the rest into a count.
-const OIT_PREVIEW = 3;
-
 /**
  * dnd-kit ships its screen-reader text in English. It is read aloud to the
  * person using the page, which makes it user-facing text — Thai, like every
@@ -191,7 +188,6 @@ function ItaCard({
   canManage: boolean;
   dragHandle?: DragHandleProps;
 }) {
-  const extra = ita.oits.length - OIT_PREVIEW;
 
   return (
     <Card>
@@ -245,21 +241,16 @@ function ItaCard({
               </Button>
             )}
 
+            {/* Every OIT, no cut-off. A topic holds a handful at most (the
+                largest across the migrated years is 8), so the rows this adds
+                are worth more than the even card heights they cost — and it
+                removes the click that "ดูอีก 1 รายการ" was asking for. */}
             {ita.oits.length === 0 ? (
               <span className="px-2 py-1 text-xs italic text-muted-foreground">
                 ยังไม่มี OIT ในหัวข้อนี้
               </span>
             ) : (
-              <>
-                {ita.oits.slice(0, OIT_PREVIEW).map((oit) => (
-                  <OitChip key={oit.id} oit={oit} />
-                ))}
-                {extra > 0 && (
-                  <span className="px-1.5 py-1 text-xs text-muted-foreground">
-                    +{extra} รายการ
-                  </span>
-                )}
-              </>
+              ita.oits.map((oit) => <OitChip key={oit.id} oit={oit} />)
             )}
           </div>
         </div>

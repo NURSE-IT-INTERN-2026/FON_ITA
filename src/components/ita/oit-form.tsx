@@ -29,6 +29,7 @@ export function OitForm({
   year,
   oit,
   recentFiles,
+  totalFiles,
   fileAccept,
   fileMaxSizeMb,
 }: {
@@ -37,6 +38,8 @@ export function OitForm({
   oit?: OitDefaults;
   /** Loaded on the server so the file picker opens with content (F21). */
   recentFiles: PickerFile[];
+  /** Total matches, so the picker can say its list is capped. */
+  totalFiles: number;
   /** `accept` for the picker's inline upload — built from the same env the server validates against. */
   fileAccept: string;
   /** Mirrors MAX_FILE_SIZE_BYTES for the picker's inline upload pre-check. */
@@ -117,6 +120,7 @@ export function OitForm({
               }}
               maxChars={MAX_CHARS}
               recentFiles={recentFiles}
+              totalFiles={totalFiles}
               fileAccept={fileAccept}
               fileMaxSizeMb={fileMaxSizeMb}
             />

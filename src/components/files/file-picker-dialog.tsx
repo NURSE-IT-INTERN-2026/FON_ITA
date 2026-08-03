@@ -43,6 +43,7 @@ export function FilePickerDialog({
   onOpenChange,
   onPick,
   recentFiles,
+  totalFiles,
   accept,
   maxSizeMb,
   defaultLabel,
@@ -60,6 +61,8 @@ export function FilePickerDialog({
    * something the instant it opens.
    */
   recentFiles: PickerFile[];
+  /** Matches behind `recentFiles` — the list is capped at PICKER_LIMIT. */
+  totalFiles: number;
   /** e.g. ".png,.jpg,.pdf" — built from the same env list the server uses. */
   accept: string;
   /** Mirrors MAX_FILE_SIZE_BYTES so the client can pre-check before upload. */
@@ -69,6 +72,8 @@ export function FilePickerDialog({
 }) {
   const [term, setTerm] = useState("");
   const [files, setFiles] = useState<PickerFile[]>(recentFiles);
+  // How many matched in total, not how many are on screen.
+  const [total, setTotal] = useState(totalFiles);
   const [selected, setSelected] = useState<PickerFile | null>(null);
   const [label, setLabel] = useState("");
   const [searchPending, startSearchTransition] = useTransition();
@@ -84,7 +89,9 @@ export function FilePickerDialog({
 
   function runSearch(value: string) {
     startSearchTransition(async () => {
-      setFiles(await searchFiles(value));
+      const result = await searchFiles(value);
+      setFiles(result.files);
+      setTotal(result.total);
     });
   }
 
@@ -93,6 +100,7 @@ export function FilePickerDialog({
     if (timer.current) clearTimeout(timer.current);
     setTerm("");
     setFiles(recentFiles);
+    setTotal(totalFiles);
     setSelected(null);
     setLabel("");
     setUploadError(null);
@@ -137,7 +145,13 @@ export function FilePickerDialog({
     }
   }
 
-  function submitUpload(formData: FormData) {
+  function submitUpload(event: React.FormEvent<HTMLFormElement>) {
+    // onSubmit, not `action=`: React 19 resets an action form as soon as the
+    // handler returns, which would clear the <input type="file"> while the
+    // `uploadFileObj` chip still showed a filename — the next click would then
+    // submit with no file at all.
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
     const file = formData.get("file");
     if (file instanceof File && file.size > maxSizeMb * 1024 * 1024) {
       setUploadError(`ไฟล์ต้องมีขนาดไม่เกิน ${maxSizeMb} MB`);
@@ -237,9 +251,77 @@ export function FilePickerDialog({
         ) : (
           // ── Step 1: upload + list ────────────────────────────────────
           <div className="flex-1 overflow-y-auto px-1">
+            <div className="relative mb-2">
+              <Search
+                className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+                aria-hidden
+              />
+              <Input
+                value={term}
+                onChange={(e) => onChange(e.target.value)}
+                placeholder="ค้นหาชื่อไฟล์"
+                aria-label="ค้นหาชื่อไฟล์ในคลัง"
+                className="pl-8"
+                autoFocus
+              />
+            </div>
+
+            <div className="max-h-64 overflow-y-auto rounded-md border">
+              {searchPending && files.length === 0 ? (
+                <p className="px-3 py-6 text-center text-sm text-muted-foreground">กำลังค้นหา…</p>
+              ) : files.length === 0 ? (
+                <div className="flex flex-col items-center gap-1 py-8 text-center text-sm text-muted-foreground">
+                  {term ? <>ไม่พบไฟล์ที่ตรงกับ “{term}”</> : <>ยังไม่มีไฟล์ — อัปโหลดไฟล์ใหม่ด้านล่าง</>}
+                </div>
+              ) : (
+                <ul className="divide-y">
+                  {files.map((file) => {
+                    const Icon = fileIcon(file.path);
+                    return (
+                      <li key={file.id}>
+                        <button
+                          type="button"
+                          onClick={() => pickFile(file)}
+                          className="flex w-full items-center gap-3 px-3 py-2 text-left transition-colors hover:bg-accent"
+                        >
+                          <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-medium">{file.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {formatBEShort(file.createdAt)}
+                              {file.createdBy ? ` · ${file.createdBy}` : ""}
+                            </p>
+                          </div>
+                          <Link2 className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+
+            {/* The list is capped server-side. Saying so is the difference
+                between "there are only these" and "there are more" — a search
+                for a common word matches most of the library, and without this
+                line the reader concludes the file is missing and uploads it
+                again, which the unique name constraint then refuses. */}
+            {total > files.length && (
+              <p className="mt-1.5 text-center text-xs text-muted-foreground">
+                แสดง {files.length} จาก {total} รายการ — พิมพ์ให้เจาะจงขึ้นเพื่อดูรายการที่เหลือ
+              </p>
+            )}
+
             {/* Inline uploader. Drag-drop + click-to-pick like the standalone
                 panel on the library page, just tighter padding for the dialog. */}
-            <form action={submitUpload} className="mb-3 space-y-3">
+            {/* Uploading is the fallback, so it sits after the list: you only
+                know a file is missing once you have looked for it. It used to be
+                first, which put its "ชื่อไฟล์ที่จะแสดง" box above the search box
+                and made it the one people typed their search into. */}
+            <form onSubmit={submitUpload} className="mt-4 space-y-3 border-t pt-4">
+              <p className="text-xs font-medium text-muted-foreground">
+                ไม่มีไฟล์ที่ต้องการ? อัปโหลดไฟล์ใหม่
+              </p>
               <div
                 onDragOver={(e) => {
                   e.preventDefault();
@@ -308,55 +390,6 @@ export function FilePickerDialog({
                 </p>
               )}
             </form>
-
-            <div className="relative mb-2">
-              <Search
-                className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-                aria-hidden
-              />
-              <Input
-                value={term}
-                onChange={(e) => onChange(e.target.value)}
-                placeholder="ค้นหาชื่อไฟล์"
-                aria-label="ค้นหาชื่อไฟล์ในคลัง"
-                className="pl-8"
-              />
-            </div>
-
-            <div className="max-h-64 overflow-y-auto rounded-md border">
-              {searchPending && files.length === 0 ? (
-                <p className="px-3 py-6 text-center text-sm text-muted-foreground">กำลังค้นหา…</p>
-              ) : files.length === 0 ? (
-                <div className="flex flex-col items-center gap-1 py-8 text-center text-sm text-muted-foreground">
-                  {term ? <>ไม่พบไฟล์ที่ตรงกับ “{term}”</> : <>ยังไม่มีไฟล์ — อัปโหลดไฟล์ใหม่ด้านบน</>}
-                </div>
-              ) : (
-                <ul className="divide-y">
-                  {files.map((file) => {
-                    const Icon = fileIcon(file.path);
-                    return (
-                      <li key={file.id}>
-                        <button
-                          type="button"
-                          onClick={() => pickFile(file)}
-                          className="flex w-full items-center gap-3 px-3 py-2 text-left transition-colors hover:bg-accent"
-                        >
-                          <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-medium">{file.name}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {formatBEShort(file.createdAt)}
-                              {file.createdBy ? ` · ${file.createdBy}` : ""}
-                            </p>
-                          </div>
-                          <Link2 className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </div>
           </div>
         )}
 

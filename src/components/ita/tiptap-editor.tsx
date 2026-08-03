@@ -51,6 +51,7 @@ export function TiptapEditor({
   onChange,
   maxChars,
   recentFiles,
+  totalFiles,
   fileAccept,
   fileMaxSizeMb,
 }: {
@@ -59,6 +60,8 @@ export function TiptapEditor({
   maxChars: number;
   /** Seeds the "แนบไฟล์" picker so it shows something the moment it opens. */
   recentFiles: PickerFile[];
+  /** Total matches, forwarded to the picker. */
+  totalFiles: number;
   /** `accept` for the picker's inline upload — same value the page passes to FileUploadDialog. */
   fileAccept: string;
   /** Mirrors MAX_FILE_SIZE_BYTES for the picker's inline upload pre-check. */
@@ -410,6 +413,7 @@ export function TiptapEditor({
         onOpenChange={setPickerOpen}
         onPick={insertFile}
         recentFiles={recentFiles}
+        totalFiles={totalFiles}
         accept={fileAccept}
         maxSizeMb={fileMaxSizeMb}
         defaultLabel={pickerDefaultLabel}
