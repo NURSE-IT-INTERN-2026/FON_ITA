@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PrefixSelect } from "@/components/users/prefix-select";
 import {
   Select,
   SelectContent,
@@ -222,16 +223,13 @@ function UserFormDialog({
 
           {editMode && <input type="hidden" name="id" value={user.id} />}
 
-          <div className="grid gap-4 sm:grid-cols-[7rem_1fr]">
+          {/* 9rem, not 7: a dropdown trigger has to fit the longest title
+              ("ผศ. ดร.") plus the chevron, where the old text input only had to
+              fit a placeholder. */}
+          <div className="grid gap-4 sm:grid-cols-[9rem_1fr]">
             <div className="space-y-1.5">
               <Label htmlFor="user-prefix">คำนำหน้า</Label>
-              <Input
-                id="user-prefix"
-                name="prefix"
-                defaultValue={user?.prefix ?? ""}
-                placeholder="นาย / นางสาว / นาง"
-                maxLength={50}
-              />
+              <PrefixSelect id="user-prefix" defaultValue={user?.prefix} />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="user-firstname">

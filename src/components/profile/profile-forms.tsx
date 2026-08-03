@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PrefixSelect } from "@/components/users/prefix-select";
 
 // Client leaves of the profile page (F25). Only these two forms need state; the
 // page around them stays a Server Component.
@@ -84,13 +85,7 @@ function ProfileForm({ prefix, firstname, lastname }: Omit<Props, "hasPassword">
 
         <div className="space-y-1.5">
           <Label htmlFor="profile-prefix">คำนำหน้า</Label>
-          <Input
-            id="profile-prefix"
-            name="prefix"
-            defaultValue={prefix ?? ""}
-            placeholder="นาย / นาง / นางสาว"
-            maxLength={50}
-          />
+          <PrefixSelect id="profile-prefix" defaultValue={prefix} />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
