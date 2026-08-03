@@ -91,8 +91,8 @@ export function ItaSortableList({
   if (!canManage) {
     return (
       <div className="grid gap-4 md:grid-cols-2">
-        {optimisticItas.map((ita) => (
-          <ItaCard key={ita.id} ita={ita} canManage={false} />
+        {optimisticItas.map((ita, idx) => (
+          <ItaCard key={ita.id} ita={ita} position={idx + 1} canManage={false} />
         ))}
       </div>
     );
@@ -105,8 +105,8 @@ export function ItaSortableList({
         strategy={rectSortingStrategy}
       >
         <div className="grid gap-4 md:grid-cols-2">
-          {optimisticItas.map((ita) => (
-            <SortableItaCard key={ita.id} ita={ita} />
+          {optimisticItas.map((ita, idx) => (
+            <SortableItaCard key={ita.id} ita={ita} position={idx + 1} />
           ))}
         </div>
       </SortableContext>
@@ -114,7 +114,7 @@ export function ItaSortableList({
   );
 }
 
-function SortableItaCard({ ita }: { ita: ItaWithOits }) {
+function SortableItaCard({ ita, position }: { ita: ItaWithOits; position: number }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: String(ita.id),
   });
@@ -131,7 +131,12 @@ function SortableItaCard({ ita }: { ita: ItaWithOits }) {
       style={style}
       className={isDragging ? "rounded-xl ring-2 ring-primary" : undefined}
     >
-      <ItaCard ita={ita} canManage dragHandle={{ attributes, listeners }} />
+      <ItaCard
+        ita={ita}
+        position={position}
+        canManage
+        dragHandle={{ attributes, listeners }}
+      />
     </div>
   );
 }
@@ -143,10 +148,13 @@ type DragHandleProps = {
 
 function ItaCard({
   ita,
+  position,
   canManage,
   dragHandle,
 }: {
   ita: ItaWithOits;
+  /** ตำแหน่งในรายการ (1, 2, 3…) — ไม่ใช่ `ita.order` ดู badge ด้านล่าง */
+  position: number;
   canManage: boolean;
   dragHandle?: DragHandleProps;
 }) {
@@ -168,8 +176,11 @@ function ItaCard({
                 <GripVertical className="size-4" aria-hidden />
               </button>
             )}
+            {/* ตำแหน่งในปี ไม่ใช่ `ita.order` — `order` เป็นเลขรันต่อเนื่องข้ามปีที่ยกมา
+                จากระบบเดิม (ปี 2569 เริ่มที่ 61 และไม่มีเลข 64) ตัวเลขนั้นไม่มีความหมาย
+                กับคนอ่าน และ requirement ให้ซ่อนลำดับออกจากฟอร์มอยู่แล้ว */}
             <span className="mt-0.5 inline-flex h-7 min-w-7 shrink-0 items-center justify-center rounded-md bg-orange-500/10 px-1.5 font-mono text-xs font-semibold text-orange-500 tabular-nums">
-              {String(ita.order).padStart(2, "0")}
+              {String(position).padStart(2, "0")}
             </span>
             <div className="min-w-0">
               <CardTitle className="text-base leading-snug">{ita.title}</CardTitle>

@@ -165,10 +165,49 @@ async function loadLegacy(): Promise<LegacyIta[]> {
     const rows = await fetchJson<LegacyIta[]>(`${LEGACY_ORIGIN}/api/v1/ita/${year}`);
     const oits = rows.reduce((sum, ita) => sum + ita.oits.length, 0);
     log(`  • ${year}: ${rows.length} ITA · ${oits} OIT${rows.length === 0 ? "  (ว่าง — ข้าม)" : ""}`);
-    all.push(...rows);
+    // ลำดับที่ API เดิมส่งกลับมา = ลำดับที่เว็บคณะแสดงจริง ต้องรักษาไว้ (ดู normalizeOrder)
+    all.push(...normalizeOrder(rows, year));
   }
 
   return all;
+}
+
+/**
+ * ทำให้ `order` เรียงจากน้อยไปมากตามลำดับที่ระบบเดิมส่งกลับมา (R2 → D20)
+ *
+ * ระบบเดิม **ไม่มี `ORDER BY`** ในคิวรีชั้น `itas` → MySQL/InnoDB คืนแถวตาม primary key
+ * คอลัมน์ `order` ถูกเขียนไว้แต่ไม่เคยถูกใช้เรียง ปุ่มจัดลำดับของระบบเดิมจึงไม่มีผลกับ
+ * API สาธารณะเลย — บั๊กที่ไม่มีใครเห็นเพราะปี 2566–2568 `id` กับ `order` บังเอิญเดินคู่กัน
+ *
+ * ปี 2569 ไม่เดินคู่กัน: สองหัวข้อที่สร้างทีหลัง (`id` 62–63) ได้ `order` 41–42 ซึ่งต่ำกว่า
+ * หัวข้อที่มาก่อน ถ้าเราเรียงตาม `order` ตรง ๆ หน้าเว็บคณะจะสลับลำดับทันทีที่ตัดระบบ
+ *
+ * แก้ที่ **ข้อมูล** ไม่ใช่ที่การเรียง: ระบบใหม่เรียงตาม `order` (ปุ่มลากจัดลำดับจึงใช้ได้จริง
+ * ตามที่ผู้ใช้ขอมา — F14) และตัวเลขถูกไล่ใหม่ให้ผลลัพธ์ออกมาเป็นลำดับเดิมเป๊ะ
+ *
+ * เปลี่ยนเท่าที่จำเป็น: ค่าไหนมากกว่าตัวก่อนหน้าอยู่แล้วก็ปล่อยไว้ ค่าไหนย้อนหลังจึงดันขึ้น
+ * เป็น "ตัวก่อนหน้า + 1" — ปีที่เรียงถูกอยู่แล้วจะไม่ถูกแตะเลยสักแถว
+ */
+function normalizeOrder(rows: LegacyIta[], year: number): LegacyIta[] {
+  const changes: string[] = [];
+  let previous = -Infinity;
+
+  const fixed = rows.map((ita) => {
+    const original = Number(ita.order);
+    const next = original > previous ? original : previous + 1;
+    previous = next;
+
+    if (next === original) return ita;
+    changes.push(`${original}→${next} ${ita.title}`);
+    return { ...ita, order: String(next) };
+  });
+
+  if (changes.length > 0) {
+    log(`    ↳ ${year}: ไล่ลำดับใหม่ ${changes.length} แถว เพื่อคงลำดับที่เว็บคณะแสดงอยู่ (D20)`);
+    for (const change of changes) log(`      · ${change}`);
+  }
+
+  return fixed;
 }
 
 /**

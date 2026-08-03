@@ -93,8 +93,11 @@ export function ItaAccordion({
           >
             <AccordionTrigger className="px-4 hover:no-underline">
               <div className="flex min-w-0 items-center gap-3 pr-2">
+                {/* ลำดับที่แสดง = ตำแหน่งในปีนี้ ไม่ใช่ค่า `order` ดิบ — `order` เป็นเลข
+                    รันต่อเนื่องข้ามปีที่ยกมาจากระบบเดิม ปี 2569 จึงเริ่มที่ 61 และมีเลข
+                    ขาดหาย (ไม่มี 64) ซึ่งผู้อ่านทั่วไปตีความไม่ได้และดูเหมือนข้อมูลพัง */}
                 <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-orange-500/10 font-mono text-sm font-bold tabular-nums text-orange-500">
-                  {String(entry.order).padStart(2, "0")}
+                  {String(idx + 1).padStart(2, "0")}
                 </span>
                 <div className="min-w-0 text-left">
                   <p className="truncate font-semibold text-orange-500">{entry.title}</p>

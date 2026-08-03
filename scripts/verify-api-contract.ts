@@ -133,12 +133,20 @@ function checkShape(source: string, rows: unknown) {
   const leaked = [...itas, ...allOits].some((row) => "user_id" in row);
   check(`${source} — ไม่มี user_id หลุดออกมา`, !leaked);
 
-  // §6.1 — ลำดับสำคัญ: itas เรียงตาม order asc, oits เรียงตาม id asc
+  // §6.1 + D20 — ลำดับต้องคงที่และคาดเดาได้ แต่ "คงที่ด้วยอะไร" ต่างกันสองฝั่ง:
+  //
+  //   ระบบเดิม เรียงตาม `id` (ไม่มี ORDER BY → InnoDB คืนตาม primary key)
+  //   ระบบเรา  เรียงตาม `order` และสคริปต์ย้ายข้อมูลไล่เลขให้ผลลัพธ์ออกมาลำดับเดียวกัน
+  //
+  // จึงตรวจคนละคีย์ — ตัวที่พิสูจน์ว่า "ลำดับตรงกันจริง" คือการเทียบชื่อหัวข้อด้านล่าง
+  const ids = itas.map((i) => Number(i.id));
   const orders = itas.map((i) => Number(i.order));
+  const key = source === "ระบบเดิม" ? ids : orders;
+  const keyName = source === "ระบบเดิม" ? "id" : "order";
   check(
-    `${source} — ITA เรียงตาม order น้อย→มาก`,
-    orders.every((v, idx) => idx === 0 || orders[idx - 1] <= v),
-    `ได้ [${orders}]`,
+    `${source} — ITA เรียงตาม ${keyName} น้อย→มาก (ลำดับคาดเดาได้)`,
+    key.every((v, idx) => idx === 0 || key[idx - 1] <= v),
+    `ได้ [${key}]`,
   );
 
   const oitOutOfOrder = itas.find((ita) => {
@@ -194,10 +202,21 @@ async function main() {
       JSON.stringify(a.flatMap((i) => (i.oits ?? []).map((o) => o.title))) ===
         JSON.stringify(b.flatMap((i) => (i.oits ?? []).map((o) => o.title))),
     );
+    // D20 — ค่า `order` ของเราต่างจากเดิมได้ **เฉพาะเท่าที่จำเป็น** เพื่อให้เรียงขึ้นได้
+    // โดยลำดับไม่เปลี่ยน · ตรวจด้วยการเล่นอัลกอริทึมเดียวกับ normalizeOrder() ซ้ำบน
+    // ลำดับของระบบเดิม แล้วผลต้องออกมาเท่ากับที่ API ของเราส่งจริงทุกตัว —
+    // ถ้าสคริปต์ย้ายข้อมูลไล่เลขผิดแม้แถวเดียว ข้อนี้จะจับได้
+    let previous = -Infinity;
+    const expected = b.map((ita) => {
+      const original = Number(ita.order);
+      previous = original > previous ? original : previous + 1;
+      return String(previous);
+    });
+    const changed = expected.filter((v, idx) => v !== b[idx].order).length;
     check(
-      `ค่า order ตรงกันทุกตัว`,
-      JSON.stringify(a.map((i) => i.order)) === JSON.stringify(b.map((i) => i.order)),
-      `เรา [${a.map((i) => i.order)}] · เดิม [${b.map((i) => i.order)}]`,
+      `ค่า order ถูกไล่ใหม่เท่าที่จำเป็นเท่านั้น (ต่างจากเดิม ${changed} แถว)`,
+      JSON.stringify(a.map((i) => i.order)) === JSON.stringify(expected),
+      `เรา      [${a.map((i) => i.order)}]\n      ควรได้   [${expected}]\n      เดิม     [${b.map((i) => i.order)}]`,
     );
   }
 
