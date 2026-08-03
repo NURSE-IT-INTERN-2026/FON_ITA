@@ -11,8 +11,10 @@ import { Label } from "@/components/ui/label";
 function SubmitButton() {
   // Must be a child of <form> — useFormStatus reads the enclosing form's state.
   const { pending } = useFormStatus();
+  // Outline, not the default: the CMU button above is the primary action now,
+  // and two solid buttons would give equal weight to the fallback.
   return (
-    <Button type="submit" className="w-full gap-1.5" disabled={pending}>
+    <Button type="submit" variant="outline" className="w-full gap-1.5" disabled={pending}>
       <LogIn className="h-4 w-4" aria-hidden />
       {pending ? "กำลังเข้าสู่ระบบ…" : "เข้าสู่ระบบ"}
     </Button>

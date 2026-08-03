@@ -127,6 +127,12 @@ export function FileUploader({
           onChange={(e) => pickFile(e.target.files?.[0] ?? null)}
         />
       </div>
+      {/* items-end aligns to the bottom of the taller grid cell. The helper
+          text used to live inside the left column, under the Input — that made
+          the left cell taller than the button's, so "bottom" landed below the
+          Input instead of level with it and the button sank out of line. Moving
+          the helper text outside the grid keeps both cells the same height
+          (label + input, and nothing else) so the alignment means what it says. */}
       <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
         <div>
           <Label htmlFor="file-name" className="mb-1.5 block text-sm">
@@ -139,12 +145,12 @@ export function FileUploader({
             placeholder="ระบุชื่อไฟล์"
             maxLength={255}
           />
-          <p className="mt-1 text-xs text-muted-foreground">ต้องไม่ซ้ำกับไฟล์ที่มีอยู่ในคลัง</p>
         </div>
         <Button onClick={submit} disabled={pending}>
           {pending ? "กำลังอัปโหลด…" : "อัปโหลด"}
         </Button>
       </div>
+      <p className="mt-1 text-xs text-muted-foreground">ต้องไม่ซ้ำกับไฟล์ที่มีอยู่ในคลัง</p>
       {error && (
         <p
           role="alert"

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import { redirect } from "next/navigation";
+import cmuLogo from "@/../public/cmu_logo.png";
 import nurseLogo from "@/../public/nurse-th.png";
 import { LoginForm } from "@/app/(auth)/login/login-form";
 import { Card, CardContent } from "@/components/ui/card";
@@ -56,7 +57,32 @@ export default async function LoginPage({
 
         <Card>
           <CardContent className="space-y-5 pt-6">
-            <LoginForm next={next} />
+            {/* CMU first, and styled as the primary action: every account here
+                belongs to faculty staff who already have one, and a SUPERADMIN
+                normally creates their row without any password at all (D18).
+                Leading with the email form asked people for a credential nobody
+                had ever given them. The form stays below as the fallback the
+                PRD describes — "สำรองเมื่อ OAuth ขัดข้อง".
+
+                Route handler, not a page — a plain <a> keeps <Link> from
+                prefetching and starting the OAuth redirect on hover. Built in F8. */}
+            <a
+              href={withBasePath("/api/auth/cmu")}
+              className="inline-flex h-11 w-full items-center justify-center gap-2.5 rounded-md bg-cmu px-4 text-sm font-medium text-cmu-foreground shadow-sm transition-colors hover:bg-cmu/90"
+            >
+              {/* On a white disc, not straight on the purple: the seal's inner
+                  field is itself purple and would sink into the button. */}
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-white">
+                <Image
+                  src={cmuLogo}
+                  alt=""
+                  width={32}
+                  height={32}
+                  className="size-7 object-contain"
+                />
+              </span>
+              เข้าสู่ระบบด้วยบัญชี CMU
+            </a>
 
             <div className="flex items-center gap-3">
               <span className="h-px flex-1 bg-border" />
@@ -64,14 +90,12 @@ export default async function LoginPage({
               <span className="h-px flex-1 bg-border" />
             </div>
 
-            {/* Route handler, not a page — a plain <a> keeps <Link> from
-                prefetching and starting the OAuth redirect on hover. Built in F8. */}
-            <a
-              href={withBasePath("/api/auth/cmu")}
-              className="inline-flex h-9 w-full items-center justify-center rounded-md border border-input bg-background px-4 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground"
-            >
-              เข้าสู่ระบบด้วยบัญชี CMU
-            </a>
+            <div className="space-y-3">
+              <p className="text-center text-xs text-muted-foreground">
+                เข้าสู่ระบบด้วยอีเมลและรหัสผ่าน — สำหรับกรณีบัญชี CMU ใช้งานไม่ได้
+              </p>
+              <LoginForm next={next} />
+            </div>
           </CardContent>
         </Card>
 

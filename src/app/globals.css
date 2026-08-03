@@ -56,6 +56,13 @@
   --sidebar-accent-foreground: oklch(0.25 0.05 260);
   --sidebar-border: oklch(0.92 0.01 250);
   --sidebar-ring: oklch(0.55 0.19 260);
+
+  /* สีม่วง มช. — a brand colour, not a theme colour. It belongs to the CMU
+     sign-in button and nothing else: --primary stays indigo so the rest of the
+     app keeps the palette the prototype set. Kept as a token rather than an
+     inline hex so the dark-mode variant lives next to it. */
+  --cmu: oklch(0.45 0.17 315);
+  --cmu-foreground: oklch(0.99 0 0);
 }
 
 .dark {
@@ -95,6 +102,11 @@
   --sidebar-accent-foreground: oklch(0.97 0.005 250);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.7 0.17 260);
+
+  /* Lifted on dark: the light-mode purple is nearly as dark as the page here,
+     which would turn a solid button into an outline of itself. */
+  --cmu: oklch(0.56 0.16 315);
+  --cmu-foreground: oklch(0.99 0 0);
 }
 
 /* Expose the tokens to Tailwind so `bg-primary`, `text-muted-foreground`,
@@ -111,6 +123,9 @@
 
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+
+  --color-cmu: var(--cmu);
+  --color-cmu-foreground: var(--cmu-foreground);
 
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
