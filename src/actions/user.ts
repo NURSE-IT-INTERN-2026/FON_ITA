@@ -28,6 +28,36 @@ export type UserActionState = { error?: string };
 /** Minimum for an account created here. The bootstrap admin uses a longer one. */
 const MIN_PASSWORD_LENGTH = 8;
 
+/**
+ * Only CMU addresses may be registered.
+ *
+ * Every account here belongs to faculty staff who sign in through CMU OAuth
+ * (D7 · the password form is the fallback), and `cmu_account` — the value the
+ * OAuth callback matches on — is derived from the part before the @. Accepting
+ * an outside address would create a row that can never sign in through the main
+ * channel, while still occupying a `cmu_account` that a real CMU login could
+ * collide with.
+ *
+ * Subdomains are deliberately NOT accepted: `@nurse.cmu.ac.th` does not end with
+ * `@cmu.ac.th`. Add entries here if the faculty turns out to use others.
+ */
+const ALLOWED_EMAIL_DOMAINS = ["cmu.ac.th"];
+
+const emailField = z
+  .string()
+  // Trim and lowercase BEFORE validating, not after. `z.email().trim()` checks
+  // the format first, so a pasted address with a trailing space is rejected as
+  // "รูปแบบอีเมลไม่ถูกต้อง" — an error about something the person cannot see.
+  // Lowercased because PostgreSQL compares text case-sensitively and login
+  // normalises the same way (F7).
+  .trim()
+  .toLowerCase()
+  .pipe(z.email({ message: "รูปแบบอีเมลไม่ถูกต้อง" }))
+  .refine(
+    (value) => ALLOWED_EMAIL_DOMAINS.some((domain) => value.endsWith(`@${domain}`)),
+    { message: `ต้องเป็นอีเมล @${ALLOWED_EMAIL_DOMAINS.join(" หรือ @")} เท่านั้น` },
+  );
+
 const nameField = (label: string) =>
   z
     .string()
@@ -51,9 +81,7 @@ const createSchema = z.object({
   prefix: z.string().trim().max(50).optional(),
   firstname: nameField("ชื่อ"),
   lastname: nameField("นามสกุล"),
-  // Lowercased because PostgreSQL compares text case-sensitively and login
-  // normalises the same way (F7).
-  email: z.email({ message: "รูปแบบอีเมลไม่ถูกต้อง" }).trim().toLowerCase(),
+  email: emailField,
   role: createRoleField,
   password: passwordField,
   mustReset: z.boolean(),
@@ -101,12 +129,26 @@ export async function createUser(formData: FormData): Promise<UserActionState> {
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) return { error: "มีบัญชีที่ใช้อีเมลนี้อยู่แล้ว" };
 
+  // The local part of the CMU email, matching the legacy column and what the
+  // OAuth callback compares against (F8).
+  const cmuAccount = email.split("@")[0];
+
+  // Checked separately from the email: two different emails can share a local
+  // part, and this is the value CMU login actually matches on. Without this the
+  // second row would be created and the OAuth lookup would pick between them
+  // arbitrarily. The database rejects it too (`cmuAccount @unique`) — this exists
+  // so the person sees a sentence instead of a constraint violation.
+  const clash = await prisma.user.findUnique({ where: { cmuAccount } });
+  if (clash) {
+    return {
+      error: `บัญชี CMU "${cmuAccount}" ถูกใช้กับ ${clash.email} อยู่แล้ว — ใช้อีเมลอื่นหรือแก้ไขบัญชีเดิมแทน`,
+    };
+  }
+
   const created = await prisma.user.create({
     data: {
       email,
-      // The local part of the CMU email, matching the legacy column and what
-      // the OAuth callback compares against (F8).
-      cmuAccount: email.split("@")[0],
+      cmuAccount,
       prefix: prefix ?? null,
       firstname,
       lastname,

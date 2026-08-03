@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Copy, Pencil, Shuffle, UserPlus } from "lucide-react";
+import { Check, Copy, KeyRound, Pencil, Shuffle, UserPlus } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { createUser, updateUser } from "@/actions/user";
@@ -69,11 +69,14 @@ export function UserEditButton({ user }: { user: EditableUser }) {
 }
 
 /**
- * The password input, plus an opt-in "สุ่ม" button.
+ * The password input, plus an opt-in "สุ่ม" button — folded away behind a
+ * disclosure by the caller.
  *
- * Deliberately empty by default. Every account here also logs in through CMU
- * OAuth, so a password nobody asked for is a second way in that nobody watches
- * — `createUser` stores null when this is blank, and that is the common case.
+ * Adding someone to this system means giving them an address that CMU OAuth can
+ * match (D6/D7). A password is the *fallback* the PRD describes for when OAuth
+ * is unavailable, so it does not belong in the line of sight of the ordinary
+ * task. Empty is both the default and the common case: `createUser` stores null
+ * when this is blank.
  */
 function PasswordField({
   label,
@@ -270,7 +273,16 @@ function UserFormDialog({
               placeholder="someone@cmu.ac.th"
               required={!editMode}
               disabled={editMode}
+              aria-describedby={editMode ? undefined : "user-email-hint"}
             />
+            {/* Only when creating — on edit the field is disabled and the rule
+                would read as a demand the person cannot act on. */}
+            {!editMode && (
+              <p id="user-email-hint" className="text-xs text-muted-foreground">
+                ต้องเป็น <span className="font-medium">@cmu.ac.th</span> เท่านั้น ·
+                ส่วนหน้า @ จะถูกใช้จับคู่ตอนล็อกอินด้วยบัญชี CMU และ<span className="font-medium">ห้ามซ้ำกับบัญชีอื่น</span>
+              </p>
+            )}
           </div>
 
           <div className="space-y-1.5">
@@ -301,17 +313,34 @@ function UserFormDialog({
             </p>
           </div>
 
-          <PasswordField
-            label={editMode ? "ตั้งรหัสผ่านใหม่" : "รหัสผ่าน"}
-            placeholder={editMode ? "เว้นว่างไว้หากไม่ต้องการเปลี่ยน" : "อย่างน้อย 8 ตัวอักษร"}
-            hint={
-              editMode
-                ? user.hasPassword
-                  ? "ถ้าตั้งรหัสใหม่ ผู้ใช้จะถูกออกจากระบบทุกอุปกรณ์ทันที"
-                  : "บัญชีนี้ยังไม่มีรหัสผ่าน — ใช้ล็อกอินด้วยบัญชี CMU เท่านั้น"
-                : "เว้นว่างได้ถ้าให้ล็อกอินด้วยบัญชี CMU เท่านั้น"
-            }
-          />
+          {/* Folded away: the ordinary task is ชื่อ + อีเมล + บทบาท, and the
+              person then signs in with the CMU button. A password is only for
+              the fallback the PRD describes (OAuth unavailable), so it is one
+              click away rather than in the way.
+
+              Native <details>, not React state: it survives a failed submit
+              without extra wiring, and the form-level error sits outside this
+              block so a validation message can never end up hidden. */}
+          <details className="rounded-md border border-dashed px-3 py-2 [&[open]>summary]:mb-3">
+            <summary className="cursor-pointer list-none text-sm text-muted-foreground marker:content-none">
+              <span className="inline-flex items-center gap-1.5">
+                <KeyRound className="size-3.5" aria-hidden />
+                {editMode ? "ตั้งรหัสผ่านใหม่" : "ตั้งรหัสผ่านสำรอง"}
+                <span className="text-xs">(ไม่จำเป็น)</span>
+              </span>
+            </summary>
+            <PasswordField
+              label={editMode ? "รหัสผ่านใหม่" : "รหัสผ่าน"}
+              placeholder={editMode ? "เว้นว่างไว้หากไม่ต้องการเปลี่ยน" : "อย่างน้อย 8 ตัวอักษร"}
+              hint={
+                editMode
+                  ? user.hasPassword
+                    ? "ถ้าตั้งรหัสใหม่ ผู้ใช้จะถูกออกจากระบบทุกอุปกรณ์ทันที"
+                    : "บัญชีนี้ยังไม่มีรหัสผ่าน — ใช้ล็อกอินด้วยบัญชี CMU เท่านั้น"
+                  : "ปกติไม่ต้องตั้ง — ผู้ใช้เข้าระบบด้วยปุ่ม CMU · ตั้งไว้เฉพาะกรณีสำรองตอน CMU ใช้งานไม่ได้"
+              }
+            />
+          </details>
 
           {error && (
             <p

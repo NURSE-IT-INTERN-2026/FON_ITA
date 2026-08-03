@@ -42,7 +42,14 @@ model User {
   /// scrypt hash as `saltHex:hashHex`; null when the account is CMU-OAuth only
   password   String?
   /// local part of the CMU email — used to match the OAuth `cmuitaccount` claim
-  cmuAccount String  @map("cmu_account")
+  ///
+  /// Unique, and it must be: the OAuth callback looks a user up by this column
+  /// alone. Two rows sharing a value would make "which account do I become"
+  /// depend on whichever row PostgreSQL returned first — including rows with
+  /// different roles. `email @unique` does NOT prevent that, because
+  /// `somchai@cmu.ac.th` and `somchai@gmail.com` are different emails with the
+  /// same local part. The constraint has to sit here as well.
+  cmuAccount String  @unique @map("cmu_account")
   role       AppRole @default(USER)
   /// false = ปิดใช้งาน; blocks login on both channels even with a live session
   status     Boolean @default(true)
@@ -56,7 +63,7 @@ model User {
   sessions Session[]
   activityLogs ActivityLog[]
 
-  @@index([cmuAccount])
+  // ไม่ต้องมี @@index([cmuAccount]) — @unique สร้าง index ให้อยู่แล้ว
   @@map("users")
 }
 

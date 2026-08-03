@@ -14,9 +14,11 @@ import { prisma } from "@/lib/prisma";
 const INVALID_CREDENTIALS = "อีเมลหรือรหัสผ่านไม่ถูกต้อง";
 
 const loginSchema = z.object({
-  // Lowercased because Postgres compares text case-sensitively — see prisma/seed.ts.
-  // User creation (F24) must normalise the same way.
-  email: z.email({ message: "รูปแบบอีเมลไม่ถูกต้อง" }).trim().toLowerCase(),
+  // Trim/lowercase BEFORE validating — `z.email().trim()` checks the format
+  // first, so an address pasted with a trailing space is rejected as a malformed
+  // email. Lowercased because Postgres compares text case-sensitively (see
+  // prisma/seed.ts); user creation (F24) normalises the same way.
+  email: z.string().trim().toLowerCase().pipe(z.email({ message: "รูปแบบอีเมลไม่ถูกต้อง" })),
   password: z.string().min(1, { message: "กรุณากรอกรหัสผ่าน" }),
   // Hidden field carrying the page the proxy interrupted. Never trusted as-is —
   // getSafeRedirectPath() decides whether it is usable for this role.
