@@ -13,7 +13,8 @@
     "db:studio": "prisma studio",
     "db:reset": "prisma migrate reset",
     "db:seed": "tsx prisma/seed.ts",
-    "db:migrate-legacy": "tsx prisma/migrate-legacy.ts"
+    "db:migrate-legacy": "tsx prisma/migrate-legacy.ts",
+    "api:verify": "tsx scripts/verify-api-contract.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
