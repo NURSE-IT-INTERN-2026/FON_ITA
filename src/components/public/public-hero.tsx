@@ -54,7 +54,7 @@ export function PublicHero() {
 
       <Dialog open={zoomed} onOpenChange={setZoomed}>
         <DialogContent
-          className="max-h-[92vh] max-w-[95vw] gap-0 overflow-auto border-none bg-black/95 p-0 sm:rounded-xl"
+          className="max-h-[92vh] max-w-[95vw] cursor-zoom-out gap-0 overflow-auto border-none bg-black/95 p-0 sm:rounded-xl"
           onClick={() => setZoomed(false)}
         >
           <DialogTitle className="sr-only">

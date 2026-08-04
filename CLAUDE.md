@@ -130,7 +130,7 @@ Tell the user what files you will change and why. Wait for confirmation before i
 
 ### Public API Compatibility (CRITICAL)
 
-- **`GET /api/v1/ita/{year}`** — must return `snake_case` JSON matching the old Laravel response exactly. Eager-load `oits`. Rate limit 300/min.
+- **`GET /api/v1/ita/{year}`** — must return `snake_case` JSON matching the old Laravel response exactly. Eager-load `oits`. Rate limit **60/min** (matches the old Laravel `throttle:60,1` and the `X-RateLimit-Limit: 60` header it sends).
 - **`GET /api/nurse/youtube-feed`** — proxy YouTube RSS + CORS headers.
 - **DO NOT change field names, case, or response shape** — the faculty website consumes these. See `docs/chapters/05-public-api.md`.
 - Path: `/fonita/api/...` (consumer calls with basePath — no `rewrites`).

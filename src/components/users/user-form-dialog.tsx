@@ -164,12 +164,12 @@ function PasswordField({
           A native checkbox: shadcn has no Checkbox here, and adding a Radix
           dependency for one box is not worth it. */}
       {value !== "" && (
-        <label className="flex items-start gap-2 pt-1 text-xs text-muted-foreground">
+        <label className="flex cursor-pointer items-start gap-2 pt-1 text-xs text-muted-foreground">
           <input
             type="checkbox"
             name="mustReset"
             defaultChecked
-            className="mt-0.5 size-3.5 accent-primary"
+            className="mt-0.5 size-3.5 cursor-pointer accent-primary"
           />
           <span>
             บังคับให้ตั้งรหัสผ่านใหม่เมื่อเข้าใช้ครั้งแรก

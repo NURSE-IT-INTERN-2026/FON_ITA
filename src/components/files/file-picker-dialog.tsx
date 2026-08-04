@@ -208,7 +208,7 @@ export function FilePickerDialog({
                 setSelected(null);
                 setLabel("");
               }}
-              className="mb-3 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+              className="mb-3 inline-flex cursor-pointer items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
             >
               <ArrowLeft className="size-3.5" aria-hidden />
               กลับไปเลือกไฟล์อื่น
@@ -282,7 +282,7 @@ export function FilePickerDialog({
                         <button
                           type="button"
                           onClick={() => pickFile(file)}
-                          className="flex w-full items-center gap-3 px-3 py-2 text-left transition-colors hover:bg-accent"
+                          className="flex w-full cursor-pointer items-center gap-3 px-3 py-2 text-left transition-colors hover:bg-accent"
                         >
                           <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
                           <div className="min-w-0 flex-1">
