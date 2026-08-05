@@ -20,7 +20,10 @@
 
 const args = process.argv.slice(2);
 const offline = args.includes("--offline");
-const yearArg = args[args.indexOf("--year") + 1];
+// `indexOf` returns -1 when the flag is absent, and `args[0]` would then be read
+// as the year — `--offline` on its own became a request for /api/v1/ita/--offline.
+const yearIdx = args.indexOf("--year");
+const yearArg = yearIdx === -1 ? undefined : args[yearIdx + 1];
 
 const OURS = process.env.VERIFY_ORIGIN ?? "http://localhost:3000/fonita";
 const LEGACY = process.env.LEGACY_ORIGIN ?? "https://dev.nurse.cmu.ac.th/fonita";
