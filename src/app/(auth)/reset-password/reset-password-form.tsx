@@ -4,8 +4,8 @@ import { KeyRound } from "lucide-react";
 import { startTransition, useActionState } from "react";
 import { resetPassword, type ResetPasswordState } from "@/actions/reset-password";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PasswordInput } from "@/components/ui/password-input";
 
 function SubmitButton({ pending }: { pending: boolean }) {
   return (
@@ -37,10 +37,9 @@ export function ResetPasswordForm() {
           form, and this page is only reachable with the session it produced. */}
       <div className="space-y-1.5">
         <Label htmlFor="next">รหัสผ่านใหม่</Label>
-        <Input
+        <PasswordInput
           id="next"
           name="next"
-          type="password"
           autoComplete="new-password"
           required
           minLength={8}
@@ -54,10 +53,9 @@ export function ResetPasswordForm() {
 
       <div className="space-y-1.5">
         <Label htmlFor="confirm">ยืนยันรหัสผ่านใหม่</Label>
-        <Input
+        <PasswordInput
           id="confirm"
           name="confirm"
-          type="password"
           autoComplete="new-password"
           required
           minLength={8}

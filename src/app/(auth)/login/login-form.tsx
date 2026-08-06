@@ -6,6 +6,7 @@ import { authenticate, type LoginState } from "@/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PasswordInput } from "@/components/ui/password-input";
 
 // Outline, not the default: the CMU button above is the primary action now,
 // and two solid buttons would give equal weight to the fallback.
@@ -57,10 +58,9 @@ export function LoginForm({ next }: { next?: string }) {
 
       <div className="space-y-1.5">
         <Label htmlFor="password">รหัสผ่าน</Label>
-        <Input
+        <PasswordInput
           id="password"
           name="password"
-          type="password"
           autoComplete="current-password"
           required
           aria-describedby={state.error ? "login-error" : undefined}

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PrefixSelect } from "@/components/users/prefix-select";
 
@@ -176,10 +177,9 @@ function PasswordForm({ hasPassword }: { hasPassword: boolean }) {
             <Label htmlFor="password-current">
               รหัสผ่านปัจจุบัน <span className="text-destructive">*</span>
             </Label>
-            <Input
+            <PasswordInput
               id="password-current"
               name="current"
-              type="password"
               autoComplete="current-password"
               required
             />
@@ -190,10 +190,9 @@ function PasswordForm({ hasPassword }: { hasPassword: boolean }) {
           <Label htmlFor="password-next">
             รหัสผ่านใหม่ <span className="text-destructive">*</span>
           </Label>
-          <Input
+          <PasswordInput
             id="password-next"
             name="next"
-            type="password"
             autoComplete="new-password"
             placeholder="อย่างน้อย 8 ตัวอักษร"
             required
@@ -204,10 +203,9 @@ function PasswordForm({ hasPassword }: { hasPassword: boolean }) {
           <Label htmlFor="password-confirm">
             ยืนยันรหัสผ่านใหม่ <span className="text-destructive">*</span>
           </Label>
-          <Input
+          <PasswordInput
             id="password-confirm"
             name="confirm"
-            type="password"
             autoComplete="new-password"
             required
           />

@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PasswordInput } from "@/components/ui/password-input";
 import { PrefixSelect } from "@/components/users/prefix-select";
 import {
   Select,
@@ -197,10 +198,9 @@ function ActorConfirmField({ reason }: { reason: string }) {
       <Label htmlFor="actor-password" className="text-xs">
         ยืนยันด้วยรหัสผ่านของคุณ <span className="text-destructive">*</span>
       </Label>
-      <Input
+      <PasswordInput
         id="actor-password"
         name="actorPassword"
-        type="password"
         autoComplete="current-password"
         placeholder="รหัสผ่านของบัญชีที่คุณกำลังใช้อยู่"
       />
