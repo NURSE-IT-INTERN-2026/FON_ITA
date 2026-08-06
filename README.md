@@ -123,26 +123,6 @@ npm run api:verify -- --offline          # ไม่ต่อระบบเด�
 
 > ⚠️ **ห้าม commit `.env.local`** — เก็บ secrets ทั้งหมดไว้ที่นั่น
 
-## การ Deploy
-
-- ติดตั้งใต้ `/fonita` ของโดเมนคณะ ผ่าน reverse proxy ของทีม ops
-- PostgreSQL สำหรับ production แยกจาก Docker container ของ dev
-- รายละเอียศ deploy อยู่ในเอกสารภายใน (ถามทีม ops)
-
-## การพัฒนาต่อ
-
-เอกสาร spec เต็ม ๆ (PRD, technical spec, chapter details, decision log) อยู่ใน `docs/` แต่ไม่ได้ commit ขึ้น repo
-เพราะมีรายละเอียดภายใน — ทีมพัฒนาสามารถอ่านได้จากเครื่องที่ clone มาครบถ้วน
-
-กฎสำคัญที่ต้องรู้ตอนเขียนโค้ด:
-
-- **Server Components เป็น default** — เปลี่ยนเป็น Client Component เฉพาะตอนต้องใช้ hook/event handler
-- **ใช้ `proxy.ts`** สำหรับ route protection / RBAC — ไม่ใช่ `middleware.ts` (Next.js 16 เปลี่ยนชื่อ)
-- **API เดิมทุก async** — `cookies()`, `headers()`, `params`, `searchParams` ต้อง `await`
-- **basePath `/fonita`** — การ `redirect()`, `<Link>`, `router.push()` ไม่ต้องใส่ basePath (เติมให้อัตโนมัติ)
-  แต่ `fetch()` ภายในแอป และ path ของ cookie **ต้องใส่** `/fonita` เอง
-- **ตรวจ RBAC สองชั้น** — ที่ proxy (gate แรก) และที่ Server Action (decision จริง) ไม่ตามใจ UI
-- **ภาษาไทย** สำหรับทุก user-facing text · enum value ใน DB/code เป็น English · ปีใช้พุทธศักราช (พ.ศ.)
 
 ## License
 
