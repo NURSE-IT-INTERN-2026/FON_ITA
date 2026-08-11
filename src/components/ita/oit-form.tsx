@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { createOit, updateOit } from "@/actions/oit";
+import { OitDeleteButton } from "@/components/ita/oit-delete-button";
 import { TiptapEditor } from "@/components/ita/tiptap-editor";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -155,6 +156,15 @@ export function OitForm({
       </Card>
 
       <div className="flex justify-end gap-2">
+        {editMode && oit && (
+          <OitDeleteButton
+            oitId={oit.id}
+            title={oit.title}
+            redirectTo={`/ita/by-year/${year}`}
+            variant="outline"
+            className="mr-auto"
+          />
+        )}
         <Button type="button" variant="ghost" onClick={() => router.back()}>
           ยกเลิก
         </Button>

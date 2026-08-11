@@ -89,18 +89,18 @@ export function ItaAccordion({
           <AccordionItem
             key={entry.id}
             value={String(entry.id)}
-            className={cn(idx === 0 && "border-t-0", "transition-colors hover:border-primary/40")}
+            className={cn(idx === 0 && "border-t-0", "transition-colors hover:border-warm/30")}
           >
             <AccordionTrigger className="px-4 hover:no-underline">
               <div className="flex min-w-0 items-center gap-3 pr-2">
                 {/* ลำดับที่แสดง = ตำแหน่งในปีนี้ ไม่ใช่ค่า `order` ดิบ — `order` เป็นเลข
                     รันต่อเนื่องข้ามปีที่ยกมาจากระบบเดิม ปี 2569 จึงเริ่มที่ 61 และมีเลข
                     ขาดหาย (ไม่มี 64) ซึ่งผู้อ่านทั่วไปตีความไม่ได้และดูเหมือนข้อมูลพัง */}
-                <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-orange-500/10 font-mono text-sm font-bold tabular-nums text-orange-500">
+                <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-warm-soft/80 font-mono text-sm font-bold tabular-nums text-warm dark:bg-warm/16 dark:text-warm-strong">
                   {String(idx + 1).padStart(2, "0")}
                 </span>
                 <div className="min-w-0 text-left">
-                  <p className="truncate font-semibold text-orange-500">{entry.title}</p>
+                  <p className="truncate font-semibold text-warm dark:text-warm-strong">{entry.title}</p>
                   <p className="flex items-center gap-1 text-xs font-normal text-muted-foreground">
                     <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 font-medium text-secondary-foreground">
                       {entry.oits.length} รายการย่อย
@@ -177,14 +177,14 @@ function OitRow({
       aria-label={disabled ? undefined : `ดู ${oit.title}`}
       className={cn(
         "group flex flex-col gap-2 rounded-md border border-transparent px-3 py-2.5 transition-colors sm:flex-row sm:items-center sm:justify-between sm:gap-3",
-        !disabled && "cursor-pointer hover:border-primary/40 hover:bg-accent/50",
+        !disabled && "cursor-pointer hover:border-warm/25 hover:bg-warm-soft/35 dark:hover:bg-warm/10",
       )}
     >
       <div className="flex min-w-0 flex-1 items-start gap-2.5">
         <span
           className={cn(
             "mt-0.5 grid size-7 shrink-0 place-items-center rounded-md",
-            isEmpty ? "bg-muted text-muted-foreground" : "bg-primary/10 text-primary",
+            isEmpty ? "bg-muted text-muted-foreground" : "bg-warm-soft/80 text-warm dark:bg-warm/16 dark:text-warm-strong",
           )}
         >
           <FileText className="size-3.5" aria-hidden />

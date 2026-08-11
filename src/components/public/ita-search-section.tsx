@@ -118,7 +118,7 @@ export function ItaSearchSection({ canManage }: { canManage: boolean }) {
     <FeaturedSurface className="space-y-4 px-4 py-5 sm:px-6 sm:py-6">
       <div className="min-w-0 border-b border-stone-200 pb-4 dark:border-border/70">
         <WarmSectionHeading title="ข้อมูล ITA / OIT" />
-        <h2 className="mt-1 text-xl font-bold tracking-tight text-warm-strong dark:text-warm sm:text-2xl">
+        <h2 className="mt-1 text-xl font-bold tracking-tight text-warm dark:text-warm-strong sm:text-2xl">
           ITA ปี {year ?? "…"}
         </h2>
         <p className="mt-1 text-sm text-muted-foreground sm:text-base">

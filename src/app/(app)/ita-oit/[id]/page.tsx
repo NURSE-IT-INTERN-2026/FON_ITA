@@ -65,7 +65,11 @@ export default async function OitDetailPage({ params }: Props) {
                   <Pencil className="mr-1 size-4" aria-hidden /> แก้ไข
                 </Link>
               </Button>
-              <OitDeleteButton oitId={oit.id} title={oit.title} year={oit.ita.year} />
+              <OitDeleteButton
+                oitId={oit.id}
+                title={oit.title}
+                redirectTo={`/ita/by-year/${oit.ita.year}`}
+              />
             </>
           ) : undefined
         }

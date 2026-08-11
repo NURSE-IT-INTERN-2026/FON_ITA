@@ -14,17 +14,26 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
+import { Button, type ButtonProps } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 /** Delete an OIT from its detail page, then return to the year it belonged to. */
 export function OitDeleteButton({
   oitId,
   title,
-  year,
+  redirectTo,
+  variant = "outline",
+  size = "default",
+  className,
+  iconOnly = false,
 }: {
   oitId: number;
   title: string;
-  year: string;
+  redirectTo?: string;
+  variant?: ButtonProps["variant"];
+  size?: ButtonProps["size"];
+  className?: string;
+  iconOnly?: boolean;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -41,15 +50,27 @@ export function OitDeleteButton({
       }
       setOpen(false);
       toast.success("ลบ OIT แล้ว");
-      // This page is about to 404 — leave before that happens.
-      router.push(`/ita/by-year/${year}`);
+      if (redirectTo) {
+        // The detail page is about to 404 after deleting its row.
+        router.push(redirectTo);
+        return;
+      }
+      router.refresh();
     });
   }
 
   return (
     <>
-      <Button variant="outline" onClick={() => setOpen(true)}>
-        <Trash2 className="mr-1 size-4 text-destructive" aria-hidden /> ลบ
+      <Button
+        type="button"
+        variant={variant}
+        size={size}
+        className={className}
+        aria-label={iconOnly ? `ลบ ${title}` : undefined}
+        onClick={() => setOpen(true)}
+      >
+        <Trash2 className={cn("size-4 text-destructive", !iconOnly && "mr-1")} aria-hidden />
+        {!iconOnly && "ลบ"}
       </Button>
 
       <AlertDialog open={open} onOpenChange={setOpen}>
@@ -64,7 +85,7 @@ export function OitDeleteButton({
             <AlertDialogCancel disabled={pending}>ยกเลิก</AlertDialogCancel>
             {/* Plain Button: AlertDialogAction closes on click, which would hide
                 a failure before the toast could explain it. */}
-            <Button variant="destructive" onClick={confirm} disabled={pending}>
+            <Button type="button" variant="destructive" onClick={confirm} disabled={pending}>
               {pending ? "กำลังลบ…" : "ลบ"}
             </Button>
           </AlertDialogFooter>

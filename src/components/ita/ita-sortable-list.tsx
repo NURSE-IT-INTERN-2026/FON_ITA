@@ -208,11 +208,13 @@ function ItaCard({
             {/* ตำแหน่งในปี ไม่ใช่ `ita.order` — `order` เป็นเลขรันต่อเนื่องข้ามปีที่ยกมา
                 จากระบบเดิม (ปี 2569 เริ่มที่ 61 และไม่มีเลข 64) ตัวเลขนั้นไม่มีความหมาย
                 กับคนอ่าน และ requirement ให้ซ่อนลำดับออกจากฟอร์มอยู่แล้ว */}
-            <span className="mt-0.5 inline-flex h-7 min-w-7 shrink-0 items-center justify-center rounded-md bg-orange-500/10 px-1.5 font-mono text-xs font-semibold text-orange-500 tabular-nums">
+            <span className="mt-0.5 inline-flex h-7 min-w-7 shrink-0 items-center justify-center rounded-md bg-warm-soft/80 px-1.5 font-mono text-xs font-semibold text-warm tabular-nums dark:bg-warm/16 dark:text-warm-strong">
               {String(position).padStart(2, "0")}
             </span>
             <div className="min-w-0">
-              <CardTitle className="text-base leading-snug">{ita.title}</CardTitle>
+              <CardTitle className="text-base leading-snug text-warm dark:text-warm-strong">
+                {ita.title}
+              </CardTitle>
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <YearBadge year={ita.year} />
                 <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
@@ -274,9 +276,13 @@ function ItaCard({
  * Padding is larger below `sm` — the icon button is the smallest touch target
  * on the page, and a mis-tap there means leaving the site.
  */
-function OitChip({ oit }: { oit: ItaWithOits["oits"][number] }) {
+function OitChip({
+  oit,
+}: {
+  oit: ItaWithOits["oits"][number];
+}) {
   return (
-    <span className="inline-flex max-w-[260px] overflow-hidden rounded-md border bg-card transition-colors focus-within:border-primary/40 hover:border-primary/40">
+    <span className="inline-flex max-w-65 overflow-hidden rounded-md border bg-card transition-colors focus-within:border-primary/40 hover:border-primary/40">
       <Link
         href={`/ita-oit/edit/${oit.id}`}
         title={`แก้ไข ${oit.title}`}
