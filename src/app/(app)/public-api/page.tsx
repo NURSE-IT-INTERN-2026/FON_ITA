@@ -20,7 +20,7 @@ export default async function PublicApiPage() {
       <PageHeader
         title="API ขาออก"
         breadcrumb={[{ label: "หน้าแรก", href: "/" }, { label: "API ขาออก" }]}
-        description="ข้อมูลอ้างอิงสำหรับ endpoint สาธารณะที่เว็บหลักใช้ดึงข้อมูลไปแสดง โดยคง contract เดิมทุกฟิลด์"
+        description="ข้อมูลอ้างอิงสำหรับ endpoint สาธารณะที่เว็บหลักใช้ดึงข้อมูลไปแสดง"
         variant="featured"
       />
 
