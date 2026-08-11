@@ -51,7 +51,7 @@ export default async function ActivityLogPage({ searchParams }: Props) {
       <PageHeader
         title="บันทึกกิจกรรม"
         breadcrumb={[{ label: "หน้าแรก", href: "/" }, { label: "บันทึกกิจกรรม" }]}
-        description="ประวัติการเข้าสู่ระบบและการแก้ไขข้อมูลทั้งหมด · เห็นได้เฉพาะผู้ดูแลสูงสุด"
+        description=""
       />
 
       {grandTotal > 0 && (

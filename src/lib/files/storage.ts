@@ -17,8 +17,6 @@ export const MAX_FILE_SIZE_BYTES = Number(process.env.MAX_FILE_SIZE_BYTES ?? 10 
  *
  * The MIME lists live in code, not in env: `ALLOWED_FILE_TYPES` can only name
  * extensions, and an extension alone is just the end of a string the user chose.
- * CSV is the messy one — browsers report it as text/csv, as Excel's own type, or
- * as plain text depending on what is installed.
  */
 const MIME_BY_EXTENSION: Record<string, string[]> = {
   png: ["image/png"],
@@ -26,7 +24,6 @@ const MIME_BY_EXTENSION: Record<string, string[]> = {
   jpeg: ["image/jpeg"],
   webp: ["image/webp"],
   pdf: ["application/pdf"],
-  csv: ["text/csv", "application/csv", "application/vnd.ms-excel", "text/plain"],
   xlsx: ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"],
   docx: ["application/vnd.openxmlformats-officedocument.wordprocessingml.document"],
 };
@@ -51,7 +48,7 @@ export function isInlineType(storedName: string): boolean {
 
 /** Extensions actually enabled for this deployment. */
 export function allowedExtensions(): string[] {
-  const configured = (process.env.ALLOWED_FILE_TYPES ?? "png,jpg,jpeg,webp,pdf,csv,xlsx,docx")
+  const configured = (process.env.ALLOWED_FILE_TYPES ?? "png,jpg,jpeg,webp,pdf,xlsx,docx")
     .split(",")
     .map((e) => e.trim().toLowerCase())
     .filter(Boolean);
@@ -97,7 +94,7 @@ export function checkUpload(file: File): FileCheck {
 
   // The browser-supplied type is not trustworthy, but a mismatch is still a
   // clear signal. An empty type is accepted: some browsers send nothing at all
-  // for csv and xlsx, and rejecting that would block legitimate uploads.
+  // for xlsx, and rejecting that would block legitimate uploads.
   const mimes = MIME_BY_EXTENSION[ext];
   if (file.type && !mimes.includes(file.type)) {
     return { error: `ชนิดไฟล์ไม่ตรงกับนามสกุล .${ext}` };

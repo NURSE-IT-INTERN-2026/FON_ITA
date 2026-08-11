@@ -20,8 +20,8 @@ export function PublicHero() {
 
   return (
     <>
-      <section className="flex h-full flex-col overflow-hidden rounded-xl border bg-muted">
-        <div className="relative w-full aspect-video max-h-[230px] overflow-hidden rounded-xl bg-[#1e1b4b] lg:aspect-auto lg:h-full">
+      <section className="flex h-full flex-col overflow-hidden">
+        <div className="relative w-full min-h-[220px] overflow-hidden bg-[#f3f1ef] sm:min-h-[300px] lg:min-h-[420px] xl:min-h-[500px]">
           {!errored ? (
             <button
               type="button"
@@ -37,14 +37,15 @@ export function PublicHero() {
                 loading="eager"
                 onError={() => setErrored(true)}
               />
-              <span className="pointer-events-none absolute right-2 top-2 inline-flex items-center gap-1 rounded-md bg-black/60 px-2 py-1 text-xs font-medium text-white opacity-0 backdrop-blur transition-opacity group-hover:opacity-100">
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-[#f4f1ef] via-[#f4f1ef]/65 to-transparent sm:h-16" />
+              <span className="pointer-events-none absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-black/55 px-3 py-1.5 text-xs font-medium text-white opacity-0 backdrop-blur transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
                 <ZoomIn className="size-3.5" aria-hidden />
                 ขยาย
               </span>
             </button>
           ) : (
-            <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/30 to-primary/5">
-              <span className="px-4 text-center text-sm text-muted-foreground">
+            <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-[#d8c8bc] via-[#f3f1ef] to-white">
+              <span className="px-4 text-center text-sm text-muted-foreground sm:text-base">
                 คณะพยาบาลศาสตร์ มหาวิทยาลัยเชียงใหม่
               </span>
             </div>

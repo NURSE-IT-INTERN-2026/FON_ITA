@@ -28,7 +28,6 @@ export function fileIcon(storedPath: string): LucideIcon {
     case "webp":
       return FileImage;
     case "xlsx":
-    case "csv":
       return FileSpreadsheet;
     case "docx":
       return FileText;

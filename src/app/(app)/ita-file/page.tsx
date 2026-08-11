@@ -56,7 +56,7 @@ export default async function ItaFilePage({ searchParams }: Props) {
       <PageHeader
         title="คลังไฟล์"
         breadcrumb={[{ label: "หน้าแรก", href: "/" }, { label: "คลังไฟล์" }]}
-        description="จัดการไฟล์เอกสารประกอบสำหรับการประเมิน ITA"
+        description=""
       />
 
       <div className="mb-6">

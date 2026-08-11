@@ -114,12 +114,13 @@ export function ItaSearchSection({ canManage }: { canManage: boolean }) {
   const totalOits = filtered.reduce((n, e) => n + e.oits.length, 0);
 
   return (
-    <section className="space-y-3">
-      <div className="min-w-0 border-b pb-3">
-        <h2 className="text-xl font-bold tracking-tight sm:text-2xl">
+    <section className="space-y-4 rounded-[28px] border border-stone-200/80 bg-white px-4 py-5 shadow-[0_24px_60px_-52px_rgba(67,36,19,0.4)] sm:px-6 sm:py-6">
+      <div className="min-w-0 border-b border-stone-200 pb-4">
+        <p className="text-sm font-semibold tracking-tight text-[#4d1646]">ข้อมูล ITA / OIT</p>
+        <h2 className="mt-1 text-xl font-bold tracking-tight text-[#4d1646] sm:text-2xl">
           ITA ปี {year ?? "…"}
         </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p className="mt-1 text-sm text-muted-foreground sm:text-base">
           ข้อมูลสาธารณะประจำปี {year ?? "…"}
         </p>
       </div>
@@ -158,7 +159,7 @@ export function ItaSearchSection({ canManage }: { canManage: boolean }) {
             router.push(`/?year=${next}`);
           }}
         >
-          <SelectTrigger className="h-9 w-full shrink-0 sm:w-[160px]" aria-label="เลือกปี พ.ศ.">
+          <SelectTrigger className="h-9 w-full shrink-0 sm:w-40" aria-label="เลือกปี พ.ศ.">
             <SelectValue placeholder="เลือกปี" />
           </SelectTrigger>
           <SelectContent>
@@ -183,7 +184,7 @@ export function ItaSearchSection({ canManage }: { canManage: boolean }) {
           {/* Placeholder rows rather than a spinner: the list settles into the
               same shape, so the page does not jump when the data lands. */}
           {[0, 1, 2].map((i) => (
-            <li key={i} className="h-[74px] animate-pulse rounded-lg border bg-card" />
+            <li key={i} className="h-18.5 animate-pulse rounded-lg border bg-card" />
           ))}
         </ul>
       ) : status === "error" ? (

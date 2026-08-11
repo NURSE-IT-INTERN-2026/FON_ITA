@@ -19,17 +19,20 @@ const FEATURED_VIDEO_ID = "NTdqTESI8Lk";
 
 export function VideoSection() {
   return (
-    <section className="flex h-full flex-col overflow-hidden rounded-xl border bg-card">
-      <div className="mt-auto w-full aspect-video max-h-[230px] overflow-hidden rounded-xl bg-black lg:aspect-auto lg:h-full">
+    <section className="mx-auto w-full max-w-4xl rounded-[28px] border border-stone-200/80 bg-white p-3 shadow-[0_30px_70px_-46px_rgba(67,36,19,0.42)] sm:p-4">
+      <div className="overflow-hidden rounded-[22px] bg-black">
         <iframe
           src={`https://www.youtube-nocookie.com/embed/${FEATURED_VIDEO_ID}`}
           title="วิดีโอแนะนำระบบ"
           loading="lazy"
           allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
-          className="h-full w-full border-0"
+          className="aspect-video w-full border-0"
         />
       </div>
+      <p className="px-1 pt-3 text-center text-xs leading-5 text-muted-foreground sm:text-sm">
+        วิดีโอแนะนำการดำเนินงานด้านคุณธรรมและความโปร่งใสของคณะพยาบาลศาสตร์
+      </p>
     </section>
   );
 }

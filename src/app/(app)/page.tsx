@@ -28,23 +28,32 @@ export default async function HomePage() {
   const canManage = hasRole(user, "ADMIN", "SUPERADMIN");
 
   return (
-    <div className="space-y-4">
-      <header className="flex flex-col items-center gap-1.5 py-2 text-center sm:py-3">
-        <h1 className="text-2xl font-bold tracking-tight text-orange-500 sm:text-3xl">
-          ระบบข้อมูลสาธารณะ
-        </h1>
-      </header>
+    <div className="space-y-6 pb-8 sm:space-y-8 lg:space-y-10 lg:pb-12">
+      <section className="relative left-1/2 right-1/2 mx-[-50vw] w-screen border-b border-stone-200 bg-linear-to-b from-[#f6f4f2] via-white to-[#f4f1ef] shadow-[0_18px_45px_-38px_rgba(84,52,28,0.45)]">
+        <div className="mx-auto max-w-[1800px]">
+          <PublicHero />
+        </div>
+      </section>
 
-      <div className="grid gap-4 lg:grid-cols-2 lg:gap-6">
-        <PublicHero />
+      <section className="mx-auto w-full max-w-5xl space-y-4 px-1 sm:px-0">
+        <header className="border-b border-stone-200 pb-4">
+        
+          <h1 className="mt-2 text-2xl font-bold tracking-tight text-[#b8774c] sm:text-3xl">
+            ระบบข้อมูลสาธารณะ
+          </h1>
+         
+        </header>
+
         <VideoSection />
-      </div>
+      </section>
 
-      {/* useSearchParams() needs a Suspense boundary above it, or the whole
-          route opts out of static rendering. */}
-      <Suspense>
-        <ItaSearchSection canManage={canManage} />
-      </Suspense>
+      <section className="mx-auto w-full max-w-5xl scroll-mt-24 px-1 sm:px-0">
+        {/* useSearchParams() needs a Suspense boundary above it, or the whole
+            route opts out of static rendering. */}
+        <Suspense>
+          <ItaSearchSection canManage={canManage} />
+        </Suspense>
+      </section>
     </div>
   );
 }
