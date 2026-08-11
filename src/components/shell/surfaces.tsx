@@ -7,6 +7,7 @@ import {
   warmMetricValueClass,
   warmSectionCardClass,
   warmSectionHeaderClass,
+  warmTableSurfaceClass,
   warmSectionTitleClass,
 } from "@/components/shell/surface-styles";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,6 +15,10 @@ import { cn } from "@/lib/utils";
 
 export function FeaturedSurface({ className, ...props }: HTMLAttributes<HTMLElement>) {
   return <section className={cn(featuredSurfaceClass, className)} {...props} />;
+}
+
+export function FeaturedPanel({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
+  return <div className={cn(featuredSurfaceClass, className)} {...props} />;
 }
 
 export function WarmMetricCard({
@@ -82,4 +87,8 @@ export function WarmSectionCard({
       <CardContent className={contentClassName}>{children}</CardContent>
     </Card>
   );
+}
+
+export function WarmTableSurface({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
+  return <div className={cn(warmTableSurfaceClass, className)} {...props} />;
 }

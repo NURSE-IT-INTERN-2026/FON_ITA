@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { EmptyState } from "@/components/misc/empty-state";
 import { RoleBadge } from "@/components/misc/role-badge";
 import { PageHeader } from "@/components/shell/page-header";
+import { WarmTableSurface } from "@/components/shell/surfaces";
 import { UserCreateButton, UserEditButton } from "@/components/users/user-form-dialog";
 import { UserStatusSwitch } from "@/components/users/user-status-switch";
 import {
@@ -52,7 +53,7 @@ export default async function UserManagementPage() {
           action={<UserCreateButton />}
         />
       ) : (
-        <div className="overflow-x-auto rounded-[28px] border border-warm/18 bg-white shadow-[0_24px_60px_-52px_rgba(67,36,19,0.4)] dark:border-warm/22 dark:bg-card/95 dark:shadow-[0_26px_70px_-48px_rgba(0,0,0,0.72)]">
+        <WarmTableSurface>
           <Table>
             <TableHeader>
               <TableRow>
@@ -103,7 +104,7 @@ export default async function UserManagementPage() {
               ))}
             </TableBody>
           </Table>
-        </div>
+        </WarmTableSurface>
       )}
     </div>
   );

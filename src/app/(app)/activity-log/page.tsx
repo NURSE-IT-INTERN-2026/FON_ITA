@@ -5,7 +5,7 @@ import { EmptyState } from "@/components/misc/empty-state";
 import { PaginationNav } from "@/components/misc/pagination-nav";
 import { RoleBadge } from "@/components/misc/role-badge";
 import { PageHeader } from "@/components/shell/page-header";
-import { featuredSurfaceClass } from "@/components/shell/surface-styles";
+import { WarmTableSurface } from "@/components/shell/surfaces";
 import {
   Table,
   TableBody,
@@ -76,7 +76,7 @@ export default async function ActivityLogPage({ searchParams }: Props) {
           }
         />
       ) : (
-        <div className={`${featuredSurfaceClass} overflow-x-auto`}>
+        <WarmTableSurface className="border-border/80 dark:border-border/80">
           <Table>
             <TableHeader>
               <TableRow>
@@ -109,7 +109,7 @@ export default async function ActivityLogPage({ searchParams }: Props) {
               ))}
             </TableBody>
           </Table>
-        </div>
+        </WarmTableSurface>
       )}
 
       <PaginationNav

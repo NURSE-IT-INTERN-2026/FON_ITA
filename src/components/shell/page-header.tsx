@@ -1,7 +1,7 @@
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { featuredSurfaceClass } from "@/components/shell/surface-styles";
+import { FeaturedPanel } from "@/components/shell/surfaces";
 import { cn } from "@/lib/utils";
 
 export type Crumb = {
@@ -23,13 +23,13 @@ export function PageHeader({
   description?: string;
   variant?: "default" | "featured";
 }) {
+  const Container = variant === "featured" ? FeaturedPanel : "div";
+
   return (
-    <div
+    <Container
       className={cn(
         "mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between",
-        variant === "featured"
-          ? `${featuredSurfaceClass} px-5 py-5 sm:px-6`
-          : "border-b pb-4",
+        variant === "featured" ? "px-5 py-5 sm:px-6" : "border-b pb-4",
       )}
     >
       <div className="min-w-0">
@@ -81,6 +81,6 @@ export function PageHeader({
         )}
       </div>
       {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
-    </div>
+    </Container>
   );
 }
