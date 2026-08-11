@@ -4,8 +4,8 @@ import { KeyRound, Save, User as UserIcon } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { changePassword, updateProfile } from "@/actions/profile";
+import { WarmSectionCard } from "@/components/shell/surfaces";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PasswordInput } from "@/components/ui/password-input";
@@ -80,15 +80,13 @@ function ProfileForm({ prefix, firstname, lastname }: Omit<Props, "hasPassword">
   }
 
   return (
-    <Card className="mt-4 rounded-3xl border-warm/20 p-6 shadow-[0_24px_60px_-52px_rgba(67,36,19,0.24)] dark:border-warm/25 dark:shadow-[0_24px_60px_-48px_rgba(0,0,0,0.6)]">
+    <WarmSectionCard
+      title="ข้อมูลส่วนตัว"
+      description="ชื่อที่ใช้แสดงในระบบและใช้สำหรับการเข้าสู่ระบบ"
+      className="mt-4"
+      contentClassName="space-y-4"
+    >
       <form onSubmit={submit} className="space-y-4">
-        <div className="space-y-1">
-          <h2 className="text-base font-semibold text-warm-strong dark:text-warm">ข้อมูลส่วนตัว</h2>
-          <p className="text-sm text-muted-foreground">
-            ชื่อที่ใช้แสดงในระบบและใช้สำหรับการเข้าสู่ระบบ
-          </p>
-        </div>
-
         <div className="space-y-1.5">
           <Label htmlFor="profile-prefix">คำนำหน้า</Label>
           <PrefixSelect id="profile-prefix" defaultValue={prefix} />
@@ -130,7 +128,7 @@ function ProfileForm({ prefix, firstname, lastname }: Omit<Props, "hasPassword">
           </Button>
         </div>
       </form>
-    </Card>
+    </WarmSectionCard>
   );
 }
 
@@ -159,19 +157,17 @@ function PasswordForm({ hasPassword }: { hasPassword: boolean }) {
   }
 
   return (
-    <Card className="mt-4 rounded-3xl border-warm/20 p-6 shadow-[0_24px_60px_-52px_rgba(67,36,19,0.24)] dark:border-warm/25 dark:shadow-[0_24px_60px_-48px_rgba(0,0,0,0.6)]">
+    <WarmSectionCard
+      title={hasPassword ? "เปลี่ยนรหัสผ่าน" : "ตั้งรหัสผ่าน"}
+      description={
+        hasPassword
+          ? "เมื่อเปลี่ยนแล้ว อุปกรณ์อื่นที่ยังค้างอยู่จะถูกออกจากระบบทั้งหมด แต่เครื่องนี้ยังใช้งานต่อได้"
+          : "บัญชีนี้เข้าระบบด้วยบัญชี CMU อยู่แล้ว การตั้งรหัสผ่านจะเพิ่มช่องทางเข้าด้วยอีเมลอีกทาง"
+      }
+      className="mt-4"
+      contentClassName="space-y-4"
+    >
       <form key={formKey} onSubmit={submit} className="space-y-4">
-        <div className="space-y-1">
-          <h2 className="text-base font-semibold text-warm-strong dark:text-warm">
-            {hasPassword ? "เปลี่ยนรหัสผ่าน" : "ตั้งรหัสผ่าน"}
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            {hasPassword
-              ? "เมื่อเปลี่ยนแล้ว อุปกรณ์อื่นที่ยังค้างอยู่จะถูกออกจากระบบทั้งหมด แต่เครื่องนี้ยังใช้งานต่อได้"
-              : "บัญชีนี้เข้าระบบด้วยบัญชี CMU อยู่แล้ว การตั้งรหัสผ่านจะเพิ่มช่องทางเข้าด้วยอีเมลอีกทาง"}
-          </p>
-        </div>
-
         {hasPassword && (
           <div className="space-y-1.5">
             <Label htmlFor="password-current">
@@ -220,6 +216,6 @@ function PasswordForm({ hasPassword }: { hasPassword: boolean }) {
           </Button>
         </div>
       </form>
-    </Card>
+    </WarmSectionCard>
   );
 }

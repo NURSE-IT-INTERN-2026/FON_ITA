@@ -3,15 +3,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PageHeader } from "@/components/shell/page-header";
 import {
-  warmIconChipClass,
-  warmMetricCardClass,
-  warmMetricEyebrowClass,
-  warmMetricValueClass,
-  warmSectionCardClass,
-  warmSectionHeaderClass,
-  warmSectionTitleClass,
-} from "@/components/shell/surface-styles";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+  WarmMetricCard,
+  WarmSectionCard,
+} from "@/components/shell/surfaces";
 import { requireRole } from "@/lib/auth/guards";
 
 export const metadata: Metadata = { title: "API ขาออก — FON-ITA" };
@@ -34,52 +28,28 @@ export default async function PublicApiPage() {
       />
 
       <section className="grid gap-4 lg:grid-cols-3">
-        <div className={warmMetricCardClass}>
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className={warmMetricEyebrowClass}>Endpoint หลัก</p>
-              <p className={warmMetricValueClass}>2</p>
-              <p className="mt-2 text-sm text-muted-foreground">ITA รายปี และ YouTube feed สำหรับหน้าเว็บหลัก</p>
-            </div>
-            <span className={warmIconChipClass}>
-              <Webhook className="size-5" aria-hidden />
-            </span>
-          </div>
-        </div>
-
-        <div className={warmMetricCardClass}>
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className={warmMetricEyebrowClass}>Rate Limit</p>
-              <p className={warmMetricValueClass}>60/min</p>
-              <p className="mt-2 text-sm text-muted-foreground">นับรวมกันทั้งสอง endpoint ตามพฤติกรรมของระบบเดิม</p>
-            </div>
-            <span className={warmIconChipClass}>
-              <ShieldCheck className="size-5" aria-hidden />
-            </span>
-          </div>
-        </div>
-
-        <div className={warmMetricCardClass}>
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className={warmMetricEyebrowClass}>การเข้าถึง</p>
-              <p className={warmMetricValueClass}>Public</p>
-              <p className="mt-2 text-sm text-muted-foreground">เว็บภายนอกเรียกใช้งานได้โดยไม่ต้องล็อกอินหรือใช้ token</p>
-            </div>
-            <span className={warmIconChipClass}>
-              <Globe2 className="size-5" aria-hidden />
-            </span>
-          </div>
-        </div>
+        <WarmMetricCard
+          label="Endpoint หลัก"
+          value="2"
+          description="ITA รายปี และ YouTube feed สำหรับหน้าเว็บหลัก"
+          icon={<Webhook className="size-5" aria-hidden />}
+        />
+        <WarmMetricCard
+          label="Rate Limit"
+          value="60/min"
+          description="นับรวมกันทั้งสอง endpoint ตามพฤติกรรมของระบบเดิม"
+          icon={<ShieldCheck className="size-5" aria-hidden />}
+        />
+        <WarmMetricCard
+          label="การเข้าถึง"
+          value="Public"
+          description="เว็บภายนอกเรียกใช้งานได้โดยไม่ต้องล็อกอินหรือใช้ token"
+          icon={<Globe2 className="size-5" aria-hidden />}
+        />
       </section>
 
       <div className="grid max-w-5xl gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
-        <Card className={warmSectionCardClass}>
-          <CardHeader className={warmSectionHeaderClass}>
-            <CardTitle className={warmSectionTitleClass}>Endpoint สำหรับหน้าเว็บหลัก</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm">
+        <WarmSectionCard title="Endpoint สำหรับหน้าเว็บหลัก" contentClassName="space-y-3 text-sm">
             <p>
               เว็บหลักของคณะดึงข้อมูล ITA และคลิป YouTube ล่าสุดผ่าน endpoint เหล่านี้ โดยเรียกภายใต้ basePath <code className="rounded bg-muted px-1 py-0.5">/fonita</code>
             </p>
@@ -99,15 +69,10 @@ export default async function PublicApiPage() {
                 https://service.nurse.cmu.ac.th/fonita/api/v1/ita/2569
               </code>
             </p>
-          </CardContent>
-        </Card>
+        </WarmSectionCard>
 
         <div className="space-y-4">
-          <Card className={warmSectionCardClass}>
-            <CardHeader className={warmSectionHeaderClass}>
-              <CardTitle className={warmSectionTitleClass}>การเข้าถึงและ Rate Limit</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm">
+          <WarmSectionCard title="การเข้าถึงและ Rate Limit" contentClassName="space-y-2 text-sm">
               <ul className="ml-4 list-disc space-y-1.5">
                 <li>
                   <span className="font-medium">Public — ไม่ต้องล็อกอินหรือใช้ token</span>
@@ -123,14 +88,9 @@ export default async function PublicApiPage() {
                   <span className="text-muted-foreground"> พร้อม <code className="rounded bg-muted px-1">Retry-After</code></span>
                 </li>
               </ul>
-            </CardContent>
-          </Card>
+          </WarmSectionCard>
 
-          <Card className={warmSectionCardClass}>
-            <CardHeader className={warmSectionHeaderClass}>
-              <CardTitle className={warmSectionTitleClass}>เอกสารอ้างอิง</CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm">
+          <WarmSectionCard title="เอกสารอ้างอิง" contentClassName="text-sm">
               <ul className="ml-4 list-disc space-y-1">
                 <li>
                   <Link
@@ -163,15 +123,14 @@ export default async function PublicApiPage() {
                   <span className="text-muted-foreground"> — คำอธิบายเชิงระบบ สำหรับเจ้าหน้าที่</span>
                 </li>
               </ul>
-            </CardContent>
-          </Card>
+          </WarmSectionCard>
         </div>
 
-        <Card className={`${warmSectionCardClass} lg:col-span-2`}>
-          <CardHeader className={warmSectionHeaderClass}>
-            <CardTitle className={warmSectionTitleClass}>รูปแบบข้อมูลตามสเปก</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm">
+        <WarmSectionCard
+          title="รูปแบบข้อมูลตามสเปก"
+          className="lg:col-span-2"
+          contentClassName="space-y-3 text-sm"
+        >
             <p>
               ข้อมูลต้องคง <span className="font-medium">format ตาม spec.md และ Public API spec</span> โดยคืน <span className="font-medium">JSON array ที่ระดับบนสุด</span> ไม่ห่อใน object และแต่ละ ITA มี <code className="rounded bg-muted px-1 py-0.5">id, title, year, order, created_at, updated_at</code> และ <code className="rounded bg-muted px-1 py-0.5">oits</code>
             </p>
@@ -199,8 +158,7 @@ export default async function PublicApiPage() {
             <p className="text-xs text-muted-foreground">
               ชื่อฟิลด์ทั้งหมดเป็น snake_case และชนิดข้อมูลบางฟิลด์เป็น string ที่ดูเหมือนจะเป็น number (<code className="rounded bg-muted px-1">order</code>, <code className="rounded bg-muted px-1">ita_id</code>) — คงตามระบบเดิมทุกประการ ห้ามเปลี่ยนแปลง
             </p>
-          </CardContent>
-        </Card>
+        </WarmSectionCard>
       </div>
     </div>
   );

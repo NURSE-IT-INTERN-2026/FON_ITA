@@ -5,8 +5,11 @@ import {
   warmMetricCardClass,
   warmMetricEyebrowClass,
   warmMetricValueClass,
+  warmSectionCardClass,
+  warmSectionHeaderClass,
   warmSectionTitleClass,
 } from "@/components/shell/surface-styles";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 export function FeaturedSurface({ className, ...props }: HTMLAttributes<HTMLElement>) {
@@ -54,5 +57,29 @@ export function WarmSectionHeading({
       <p className={cn("text-sm font-semibold tracking-tight", warmSectionTitleClass)}>{title}</p>
       {description ? <p className="mt-1 text-sm text-muted-foreground">{description}</p> : null}
     </div>
+  );
+}
+
+export function WarmSectionCard({
+  title,
+  description,
+  children,
+  className,
+  contentClassName,
+}: {
+  title: string;
+  description?: string;
+  children: ReactNode;
+  className?: string;
+  contentClassName?: string;
+}) {
+  return (
+    <Card className={cn(warmSectionCardClass, className)}>
+      <CardHeader className={warmSectionHeaderClass}>
+        <CardTitle className={warmSectionTitleClass}>{title}</CardTitle>
+        {description ? <p className="text-sm text-muted-foreground">{description}</p> : null}
+      </CardHeader>
+      <CardContent className={contentClassName}>{children}</CardContent>
+    </Card>
   );
 }
