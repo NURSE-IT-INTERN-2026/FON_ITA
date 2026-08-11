@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 
 // Create / edit / delete controls for ITA topics (F14). Client Components
 // because dialogs need open state — the list itself stays on the server.
@@ -37,15 +38,17 @@ type EditableIta = { id: number; title: string; year: string; order: number };
 export function ItaCreateButton({
   year,
   variant = "default",
+  className,
 }: {
   year: string;
   variant?: "default" | "secondary";
+  className?: string;
 }) {
   const [open, setOpen] = useState(false);
 
   return (
     <>
-      <Button variant={variant} onClick={() => setOpen(true)}>
+      <Button variant={variant} className={cn("w-full sm:w-auto", className)} onClick={() => setOpen(true)}>
         <Plus className="mr-1 size-4" aria-hidden /> เพิ่มหัวข้อ
       </Button>
       <ItaFormDialog open={open} onOpenChange={setOpen} defaultYear={year} />

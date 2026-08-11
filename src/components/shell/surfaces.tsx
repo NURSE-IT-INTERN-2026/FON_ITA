@@ -1,15 +1,24 @@
 import type { HTMLAttributes, ReactNode } from "react";
-import {
-  featuredSurfaceClass,
-  warmMetricCardClass,
-  warmSectionCardClass,
-  warmSectionHeaderClass,
-  warmTableSurfaceClass,
-  warmSectionTitleClass,
-} from "@/components/shell/surface-styles";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TableHead } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+
+const featuredSurfaceClass =
+  "rounded-[28px] border border-stone-200/80 bg-white shadow-[0_24px_60px_-52px_rgba(67,36,19,0.4)] dark:border-border/80 dark:bg-card/95 dark:shadow-[0_26px_70px_-48px_rgba(0,0,0,0.72)]";
+
+const warmMetricCardClass =
+  "rounded-3xl border border-stone-200/80 bg-white p-4 shadow-[0_24px_60px_-52px_rgba(67,36,19,0.4)] dark:border-border/80 dark:bg-card/95 dark:shadow-[0_26px_70px_-48px_rgba(0,0,0,0.72)]";
+
+const warmSectionCardClass =
+  "overflow-hidden rounded-3xl border-warm/20 shadow-[0_24px_60px_-52px_rgba(67,36,19,0.24)] dark:border-warm/25 dark:shadow-[0_24px_60px_-48px_rgba(0,0,0,0.6)]";
+
+const warmSectionHeaderClass =
+  "border-b border-warm/12 bg-linear-to-r from-warm-soft/80 via-background to-background dark:border-warm/15 dark:from-warm/12 dark:via-card dark:to-card";
+
+const warmSectionTitleClass = "text-warm-strong dark:text-warm";
+
+const warmTableSurfaceClass =
+  "overflow-x-auto rounded-[28px] border border-warm/18 bg-white shadow-[0_24px_60px_-52px_rgba(67,36,19,0.4)] dark:border-warm/22 dark:bg-card/95 dark:shadow-[0_26px_70px_-48px_rgba(0,0,0,0.72)]";
 
 export function FeaturedSurface({ className, ...props }: HTMLAttributes<HTMLElement>) {
   return <section className={cn(featuredSurfaceClass, className)} {...props} />;

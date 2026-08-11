@@ -28,7 +28,7 @@ export function YearSelect({ years, value }: { years: string[]; value: string })
         router.push(`/ita/by-year/${year}`);
       }}
     >
-      <SelectTrigger className="w-36" aria-label="เลือกปี พ.ศ.">
+      <SelectTrigger className="w-full sm:w-36" aria-label="เลือกปี พ.ศ.">
         <SelectValue />
       </SelectTrigger>
       <SelectContent>

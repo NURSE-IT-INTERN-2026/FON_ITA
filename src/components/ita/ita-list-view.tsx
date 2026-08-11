@@ -37,11 +37,12 @@ export function ItaListView({
         title="รายการ ITA"
         breadcrumb={breadcrumb}
         description={`หัวข้อการประเมิน ITA ประจำปี พ.ศ. ${year}`}
+        variant="featured"
         actions={
-          <>
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:justify-end">
             <YearSelect years={years} value={year} />
             {canManage && <ItaCreateButton year={year} />}
-          </>
+          </div>
         }
       />
 
