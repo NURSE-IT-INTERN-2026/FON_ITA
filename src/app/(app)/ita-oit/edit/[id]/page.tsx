@@ -3,8 +3,7 @@ import { notFound } from "next/navigation";
 import { OitForm } from "@/components/ita/oit-form";
 import { YearBadge } from "@/components/ita/year-badge";
 import { PageHeader } from "@/components/shell/page-header";
-import { warmSectionCardClass, warmSectionTitleClass } from "@/components/shell/surface-styles";
-import { Card, CardContent } from "@/components/ui/card";
+import { WarmSurfaceCard, WarmTitleText } from "@/components/shell/surfaces";
 import { requireRole } from "@/lib/auth/guards";
 import { formatBELong } from "@/lib/date";
 import { getOit } from "@/lib/ita/queries";
@@ -50,13 +49,11 @@ export default async function EditOitPage({ params }: Props) {
         variant="featured"
       />
 
-      <Card className={`${warmSectionCardClass} mb-6 bg-warm-soft/45 dark:bg-warm/10`}>
-        <CardContent className="flex flex-wrap items-center gap-3 py-4">
+      <WarmSurfaceCard className="mb-6 flex flex-wrap items-center gap-3 bg-warm-soft/45 px-6 py-4 dark:bg-warm/10">
           <span className="text-sm text-muted-foreground">หัวข้อ ITA</span>
-          <span className={`font-medium ${warmSectionTitleClass}`}>{oit.ita.title}</span>
+          <WarmTitleText className="font-medium">{oit.ita.title}</WarmTitleText>
           <YearBadge year={oit.ita.year} />
-        </CardContent>
-      </Card>
+      </WarmSurfaceCard>
 
       <OitForm
         itaId={oit.ita.id}

@@ -5,12 +5,11 @@ import { EmptyState } from "@/components/misc/empty-state";
 import { PaginationNav } from "@/components/misc/pagination-nav";
 import { RoleBadge } from "@/components/misc/role-badge";
 import { PageHeader } from "@/components/shell/page-header";
-import { WarmTableSurface } from "@/components/shell/surfaces";
+import { WarmTableHead, WarmTableSurface } from "@/components/shell/surfaces";
 import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
@@ -80,11 +79,11 @@ export default async function ActivityLogPage({ searchParams }: Props) {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-44">เวลา</TableHead>
-                <TableHead className="w-44">ผู้กระทำ</TableHead>
-                <TableHead className="w-48">กิจกรรม</TableHead>
-                <TableHead>เป้าหมาย</TableHead>
-                <TableHead>รายละเอียด</TableHead>
+                <WarmTableHead className="w-44">เวลา</WarmTableHead>
+                <WarmTableHead className="w-44">ผู้กระทำ</WarmTableHead>
+                <WarmTableHead className="w-48">กิจกรรม</WarmTableHead>
+                <WarmTableHead>เป้าหมาย</WarmTableHead>
+                <WarmTableHead>รายละเอียด</WarmTableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

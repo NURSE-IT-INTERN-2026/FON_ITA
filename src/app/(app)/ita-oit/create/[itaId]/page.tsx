@@ -3,8 +3,7 @@ import { notFound } from "next/navigation";
 import { OitForm } from "@/components/ita/oit-form";
 import { YearBadge } from "@/components/ita/year-badge";
 import { PageHeader } from "@/components/shell/page-header";
-import { warmSectionCardClass, warmSectionTitleClass } from "@/components/shell/surface-styles";
-import { Card, CardContent } from "@/components/ui/card";
+import { WarmSurfaceCard, WarmTitleText } from "@/components/shell/surfaces";
 import { requireRole } from "@/lib/auth/guards";
 import { getIta } from "@/lib/ita/queries";
 import { searchFilesByName } from "@/lib/files/queries";
@@ -51,13 +50,11 @@ export default async function CreateOitPage({ params }: Props) {
 
       {/* The parent is shown read-only so the editor can see what they are
           filing under without being able to reassign it here. */}
-      <Card className={`${warmSectionCardClass} mb-6 bg-warm-soft/45 dark:bg-warm/10`}>
-        <CardContent className="flex flex-wrap items-center gap-3 py-4">
+      <WarmSurfaceCard className="mb-6 flex flex-wrap items-center gap-3 bg-warm-soft/45 px-6 py-4 dark:bg-warm/10">
           <span className="text-sm text-muted-foreground">หัวข้อ ITA</span>
-          <span className={`font-medium ${warmSectionTitleClass}`}>{ita.title}</span>
+          <WarmTitleText className="font-medium">{ita.title}</WarmTitleText>
           <YearBadge year={ita.year} />
-        </CardContent>
-      </Card>
+      </WarmSurfaceCard>
 
       <OitForm
         itaId={ita.id}

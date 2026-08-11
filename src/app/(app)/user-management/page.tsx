@@ -3,14 +3,13 @@ import type { Metadata } from "next";
 import { EmptyState } from "@/components/misc/empty-state";
 import { RoleBadge } from "@/components/misc/role-badge";
 import { PageHeader } from "@/components/shell/page-header";
-import { WarmTableSurface } from "@/components/shell/surfaces";
+import { WarmTableHead, WarmTableSurface } from "@/components/shell/surfaces";
 import { UserCreateButton, UserEditButton } from "@/components/users/user-form-dialog";
 import { UserStatusSwitch } from "@/components/users/user-status-switch";
 import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
@@ -57,12 +56,12 @@ export default async function UserManagementPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-24 text-warm">คำนำหน้า</TableHead>
-                <TableHead className="text-warm">ชื่อ - นามสกุล</TableHead>
-                <TableHead className="text-warm">อีเมล</TableHead>
-                <TableHead className="w-32 text-warm">บทบาท</TableHead>
-                <TableHead className="w-28 text-warm">สถานะ</TableHead>
-                <TableHead className="w-32 text-right text-warm">การกระทำ</TableHead>
+                <WarmTableHead className="w-24">คำนำหน้า</WarmTableHead>
+                <WarmTableHead>ชื่อ - นามสกุล</WarmTableHead>
+                <WarmTableHead>อีเมล</WarmTableHead>
+                <WarmTableHead className="w-32">บทบาท</WarmTableHead>
+                <WarmTableHead className="w-28">สถานะ</WarmTableHead>
+                <WarmTableHead className="w-32 text-right">การกระทำ</WarmTableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

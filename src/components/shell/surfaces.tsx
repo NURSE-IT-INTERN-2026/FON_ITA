@@ -1,16 +1,14 @@
 import type { HTMLAttributes, ReactNode } from "react";
 import {
   featuredSurfaceClass,
-  warmIconChipClass,
   warmMetricCardClass,
-  warmMetricEyebrowClass,
-  warmMetricValueClass,
   warmSectionCardClass,
   warmSectionHeaderClass,
   warmTableSurfaceClass,
   warmSectionTitleClass,
 } from "@/components/shell/surface-styles";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { TableHead } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 
 export function FeaturedSurface({ className, ...props }: HTMLAttributes<HTMLElement>) {
@@ -19,6 +17,37 @@ export function FeaturedSurface({ className, ...props }: HTMLAttributes<HTMLElem
 
 export function FeaturedPanel({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
   return <div className={cn(featuredSurfaceClass, className)} {...props} />;
+}
+
+export function WarmIconChip({ className, ...props }: HTMLAttributes<HTMLSpanElement>) {
+  return (
+    <span
+      className={cn("rounded-full bg-warm-soft p-2 text-warm dark:bg-warm/18 dark:text-warm", className)}
+      {...props}
+    />
+  );
+}
+
+export function WarmMetricLabel({ className, ...props }: HTMLAttributes<HTMLParagraphElement>) {
+  return (
+    <p
+      className={cn("text-xs font-semibold uppercase tracking-[0.2em] text-warm", className)}
+      {...props}
+    />
+  );
+}
+
+export function WarmMetricValue({ className, ...props }: HTMLAttributes<HTMLParagraphElement>) {
+  return (
+    <p
+      className={cn("mt-2 text-3xl font-bold tracking-tight text-warm-strong dark:text-warm", className)}
+      {...props}
+    />
+  );
+}
+
+export function WarmTitleText({ className, ...props }: HTMLAttributes<HTMLElement>) {
+  return <span className={cn(warmSectionTitleClass, className)} {...props} />;
 }
 
 export function WarmMetricCard({
@@ -38,11 +67,11 @@ export function WarmMetricCard({
     <div className={cn(warmMetricCardClass, className)}>
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className={warmMetricEyebrowClass}>{label}</p>
-          <p className={warmMetricValueClass}>{value}</p>
+          <WarmMetricLabel>{label}</WarmMetricLabel>
+          <WarmMetricValue>{value}</WarmMetricValue>
           <p className="mt-2 text-sm text-muted-foreground">{description}</p>
         </div>
-        <span className={warmIconChipClass}>{icon}</span>
+        <WarmIconChip>{icon}</WarmIconChip>
       </div>
     </div>
   );
@@ -89,6 +118,14 @@ export function WarmSectionCard({
   );
 }
 
+export function WarmSurfaceCard({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
+  return <div className={cn(warmSectionCardClass, className)} {...props} />;
+}
+
 export function WarmTableSurface({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
   return <div className={cn(warmTableSurfaceClass, className)} {...props} />;
+}
+
+export function WarmTableHead({ className, ...props }: React.ComponentProps<typeof TableHead>) {
+  return <TableHead className={cn("text-warm", className)} {...props} />;
 }
