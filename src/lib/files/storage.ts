@@ -65,8 +65,8 @@ export function allowedExtensions(): string[] {
  * into a publicly served file and undo the reason for this module.
  */
 export function uploadRoot(): string {
-  const root = path.resolve(process.cwd(), UPLOAD_DIR);
-  const publicDir = path.resolve(process.cwd(), "public");
+  const root = path.resolve(/*turbopackIgnore: true*/ process.cwd(), UPLOAD_DIR);
+  const publicDir = path.resolve(/*turbopackIgnore: true*/ process.cwd(), "public");
 
   if (root === publicDir || root.startsWith(`${publicDir}${path.sep}`)) {
     throw new Error(`UPLOAD_DIR must not be inside public/ — got "${root}"`);
@@ -128,7 +128,7 @@ export async function deleteUpload(storedName: string): Promise<void> {
   // `storedName` comes from our own column, but resolve and re-check anyway —
   // this function must never be able to reach outside the upload directory.
   const root = uploadRoot();
-  const target = path.resolve(root, path.basename(storedName));
+  const target = path.resolve(/*turbopackIgnore: true*/ root, path.basename(storedName));
   if (!target.startsWith(`${root}${path.sep}`)) return;
 
   await unlink(target).catch(() => {

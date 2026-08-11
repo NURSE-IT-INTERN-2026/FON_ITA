@@ -88,8 +88,17 @@ export function FileUploader({
   }
 
   return (
-    <div className="rounded-lg border bg-card p-5">
-      <h2 className="mb-3 text-lg font-semibold">อัปโหลดไฟล์ใหม่</h2>
+    <div className="rounded-[28px] border border-stone-200/80 bg-white p-5 shadow-[0_24px_60px_-52px_rgba(67,36,19,0.4)] dark:border-border/80 dark:bg-card/95 dark:shadow-[0_26px_70px_-48px_rgba(0,0,0,0.72)] sm:p-6">
+      <div className="mb-4 border-b border-stone-200 pb-4 dark:border-border/70">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#9b6a46] dark:text-primary/80">
+          Upload Center
+        </p>
+        <h2 className="mt-2 text-xl font-bold tracking-tight text-[#4d1646] dark:text-foreground">อัปโหลดไฟล์ใหม่</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          ลากไฟล์มาวางหรือเลือกจากเครื่อง เพื่อเก็บไว้ใช้ประกอบเนื้อหา ITA/OIT ในคลังกลาง
+        </p>
+      </div>
+
       <div
         onDragOver={(e) => {
           e.preventDefault();
@@ -103,19 +112,21 @@ export function FileUploader({
         }}
         onClick={() => inputRef.current?.click()}
         className={cn(
-          "flex cursor-pointer flex-col items-center justify-center rounded-md border-2 border-dashed p-8 text-center transition-colors",
+          "flex cursor-pointer flex-col items-center justify-center rounded-3xl border-2 border-dashed p-8 text-center transition-colors sm:p-10",
           dragOver
-            ? "border-primary bg-primary/5"
-            : "border-muted-foreground/25 hover:bg-muted/40",
+            ? "border-[#9b6a46] bg-[#f7efe7] dark:border-primary/60 dark:bg-primary/15"
+            : "border-stone-300 bg-[#fcfaf8] hover:bg-[#f7f1eb] dark:border-border dark:bg-accent/30 dark:hover:bg-accent/50",
         )}
       >
-        <Upload className="mb-2 size-8 text-muted-foreground" aria-hidden />
-        <p className="text-sm font-medium">ลากไฟล์มาวาง หรือคลิกเพื่อเลือกไฟล์</p>
-        <p className="mt-1 text-xs text-muted-foreground">
+        <span className="mb-3 rounded-full bg-[#f7efe7] p-3 text-[#9b6a46] dark:bg-primary/15 dark:text-primary">
+          <Upload className="size-7" aria-hidden />
+        </span>
+        <p className="text-base font-semibold text-[#4d1646] dark:text-foreground">ลากไฟล์มาวาง หรือคลิกเพื่อเลือกไฟล์</p>
+        <p className="mt-2 text-xs text-muted-foreground sm:text-sm">
           รองรับ {accept.replaceAll(".", "").replaceAll(",", ", ")} · สูงสุด {maxSizeMb} MB
         </p>
         {file && (
-          <p className="mt-3 flex items-center gap-2 rounded-md bg-muted px-3 py-1.5 text-xs">
+          <p className="mt-4 flex items-center gap-2 rounded-full bg-white px-3 py-2 text-xs text-[#4d1646] shadow-sm ring-1 ring-stone-200 dark:bg-background/60 dark:text-foreground dark:ring-border">
             <FileIcon className="size-3.5" aria-hidden /> {file.name}
           </p>
         )}
@@ -133,7 +144,7 @@ export function FileUploader({
           Input instead of level with it and the button sank out of line. Moving
           the helper text outside the grid keeps both cells the same height
           (label + input, and nothing else) so the alignment means what it says. */}
-      <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+      <div className="mt-5 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
         <div>
           <Label htmlFor="file-name" className="mb-1.5 block text-sm">
             ชื่อไฟล์ (ไม่ซ้ำกัน) <span className="text-destructive">*</span>
@@ -146,11 +157,11 @@ export function FileUploader({
             maxLength={255}
           />
         </div>
-        <Button onClick={submit} disabled={pending}>
+        <Button onClick={submit} disabled={pending} className="sm:min-w-32">
           {pending ? "กำลังอัปโหลด…" : "อัปโหลด"}
         </Button>
       </div>
-      <p className="mt-1 text-xs text-muted-foreground">ต้องไม่ซ้ำกับไฟล์ที่มีอยู่ในคลัง</p>
+      <p className="mt-2 text-xs text-muted-foreground">ต้องไม่ซ้ำกับไฟล์ที่มีอยู่ในคลัง</p>
       {error && (
         <p
           role="alert"

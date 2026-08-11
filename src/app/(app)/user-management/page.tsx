@@ -39,7 +39,9 @@ export default async function UserManagementPage() {
       <PageHeader
         title="จัดการผู้ใช้"
         breadcrumb={[{ label: "หน้าแรก", href: "/" }, { label: "จัดการผู้ใช้" }]}
+        description="เพิ่ม แก้ไข และควบคุมสถานะการใช้งานของบัญชีผู้ใช้ภายในระบบ"
         actions={<UserCreateButton />}
+        variant="featured"
       />
 
       {users.length === 0 ? (
@@ -50,7 +52,7 @@ export default async function UserManagementPage() {
           action={<UserCreateButton />}
         />
       ) : (
-        <div className="overflow-x-auto rounded-lg border bg-card">
+        <div className="overflow-x-auto rounded-[28px] border border-stone-200/80 bg-white shadow-[0_24px_60px_-52px_rgba(67,36,19,0.4)] dark:border-border/80 dark:bg-card/95 dark:shadow-[0_26px_70px_-48px_rgba(0,0,0,0.72)]">
           <Table>
             <TableHeader>
               <TableRow>

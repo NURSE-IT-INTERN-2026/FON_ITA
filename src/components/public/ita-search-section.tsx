@@ -114,10 +114,10 @@ export function ItaSearchSection({ canManage }: { canManage: boolean }) {
   const totalOits = filtered.reduce((n, e) => n + e.oits.length, 0);
 
   return (
-    <section className="space-y-4 rounded-[28px] border border-stone-200/80 bg-white px-4 py-5 shadow-[0_24px_60px_-52px_rgba(67,36,19,0.4)] sm:px-6 sm:py-6">
-      <div className="min-w-0 border-b border-stone-200 pb-4">
-        <p className="text-sm font-semibold tracking-tight text-[#4d1646]">ข้อมูล ITA / OIT</p>
-        <h2 className="mt-1 text-xl font-bold tracking-tight text-[#4d1646] sm:text-2xl">
+    <section className="space-y-4 rounded-[28px] border border-stone-200/80 bg-white px-4 py-5 shadow-[0_24px_60px_-52px_rgba(67,36,19,0.4)] dark:border-border/80 dark:bg-card/95 dark:shadow-[0_26px_70px_-48px_rgba(0,0,0,0.72)] sm:px-6 sm:py-6">
+      <div className="min-w-0 border-b border-stone-200 pb-4 dark:border-border/70">
+        <p className="text-sm font-semibold tracking-tight text-[#4d1646] dark:text-foreground">ข้อมูล ITA / OIT</p>
+        <h2 className="mt-1 text-xl font-bold tracking-tight text-[#4d1646] dark:text-foreground sm:text-2xl">
           ITA ปี {year ?? "…"}
         </h2>
         <p className="mt-1 text-sm text-muted-foreground sm:text-base">

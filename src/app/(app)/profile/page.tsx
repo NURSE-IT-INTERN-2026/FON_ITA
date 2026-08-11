@@ -29,6 +29,8 @@ export default async function ProfilePage() {
       <PageHeader
         title="บัญชีของฉัน"
         breadcrumb={[{ label: "หน้าแรก", href: "/" }, { label: "บัญชีของฉัน" }]}
+        description="ตรวจสอบข้อมูลส่วนตัวและจัดการรหัสผ่านของบัญชีที่ใช้เข้าสู่ระบบ"
+        variant="featured"
       />
 
       <ProfileForms
