@@ -1,6 +1,7 @@
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { featuredSurfaceClass } from "@/components/shell/surface-styles";
 import { cn } from "@/lib/utils";
 
 export type Crumb = {
@@ -27,7 +28,7 @@ export function PageHeader({
       className={cn(
         "mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between",
         variant === "featured"
-          ? "rounded-[28px] border border-stone-200/80 bg-white px-5 py-5 shadow-[0_24px_60px_-52px_rgba(67,36,19,0.4)] dark:border-border/80 dark:bg-card/95 dark:shadow-[0_26px_70px_-48px_rgba(0,0,0,0.72)] sm:px-6"
+          ? `${featuredSurfaceClass} px-5 py-5 sm:px-6`
           : "border-b pb-4",
       )}
     >
@@ -37,7 +38,7 @@ export function PageHeader({
             aria-label="เส้นทางนำทาง"
             className={cn(
               "mb-1 flex items-center gap-1 text-xs",
-              variant === "featured" ? "text-[#9b6a46] dark:text-primary/80" : "text-muted-foreground",
+              variant === "featured" ? "text-warm" : "text-muted-foreground",
             )}
           >
             {breadcrumb.map((c, i) => (
@@ -47,7 +48,7 @@ export function PageHeader({
                     href={c.href}
                     className={cn(
                       "transition-colors hover:text-foreground",
-                      variant === "featured" && "hover:text-[#4d1646] dark:hover:text-primary",
+                      variant === "featured" && "hover:text-warm-strong dark:hover:text-warm",
                     )}
                   >
                     {c.label}
@@ -63,7 +64,7 @@ export function PageHeader({
         <h1
           className={cn(
             "truncate text-2xl font-bold tracking-tight",
-            variant === "featured" && "text-[#4d1646] dark:text-foreground",
+            variant === "featured" && "text-warm-strong dark:text-warm",
           )}
         >
           {title}

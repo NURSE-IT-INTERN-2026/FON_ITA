@@ -5,6 +5,7 @@ import { EmptyState } from "@/components/misc/empty-state";
 import { PaginationNav } from "@/components/misc/pagination-nav";
 import { RoleBadge } from "@/components/misc/role-badge";
 import { PageHeader } from "@/components/shell/page-header";
+import { featuredSurfaceClass } from "@/components/shell/surface-styles";
 import {
   Table,
   TableBody,
@@ -51,7 +52,8 @@ export default async function ActivityLogPage({ searchParams }: Props) {
       <PageHeader
         title="บันทึกกิจกรรม"
         breadcrumb={[{ label: "หน้าแรก", href: "/" }, { label: "บันทึกกิจกรรม" }]}
-        description=""
+        description="ติดตามการกระทำสำคัญของผู้ใช้ในระบบเพื่อใช้ตรวจสอบย้อนหลัง"
+        variant="featured"
       />
 
       {grandTotal > 0 && (
@@ -74,7 +76,7 @@ export default async function ActivityLogPage({ searchParams }: Props) {
           }
         />
       ) : (
-        <div className="overflow-x-auto rounded-md border">
+        <div className={`${featuredSurfaceClass} overflow-x-auto`}>
           <Table>
             <TableHeader>
               <TableRow>

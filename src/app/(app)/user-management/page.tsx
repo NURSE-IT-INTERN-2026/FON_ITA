@@ -52,16 +52,16 @@ export default async function UserManagementPage() {
           action={<UserCreateButton />}
         />
       ) : (
-        <div className="overflow-x-auto rounded-[28px] border border-stone-200/80 bg-white shadow-[0_24px_60px_-52px_rgba(67,36,19,0.4)] dark:border-border/80 dark:bg-card/95 dark:shadow-[0_26px_70px_-48px_rgba(0,0,0,0.72)]">
+        <div className="overflow-x-auto rounded-[28px] border border-warm/18 bg-white shadow-[0_24px_60px_-52px_rgba(67,36,19,0.4)] dark:border-warm/22 dark:bg-card/95 dark:shadow-[0_26px_70px_-48px_rgba(0,0,0,0.72)]">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-24">คำนำหน้า</TableHead>
-                <TableHead>ชื่อ - นามสกุล</TableHead>
-                <TableHead>อีเมล</TableHead>
-                <TableHead className="w-32">บทบาท</TableHead>
-                <TableHead className="w-28">สถานะ</TableHead>
-                <TableHead className="w-32 text-right">การกระทำ</TableHead>
+                <TableHead className="w-24 text-warm">คำนำหน้า</TableHead>
+                <TableHead className="text-warm">ชื่อ - นามสกุล</TableHead>
+                <TableHead className="text-warm">อีเมล</TableHead>
+                <TableHead className="w-32 text-warm">บทบาท</TableHead>
+                <TableHead className="w-28 text-warm">สถานะ</TableHead>
+                <TableHead className="w-32 text-right text-warm">การกระทำ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

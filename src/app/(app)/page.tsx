@@ -29,7 +29,7 @@ export default async function HomePage() {
 
   return (
     <div className="space-y-6 pb-8 sm:space-y-8 lg:space-y-10 lg:pb-12">
-      <section className="relative left-1/2 right-1/2 mx-[-50vw] w-screen border-b border-stone-200 bg-linear-to-b from-[#f6f4f2] via-white to-[#f4f1ef] shadow-[0_18px_45px_-38px_rgba(84,52,28,0.45)] dark:border-border/70 dark:from-background dark:via-background dark:to-accent/30 dark:shadow-[0_20px_48px_-38px_rgba(0,0,0,0.72)]">
+      <section className="relative left-1/2 right-1/2 mx-[-50vw] w-screen border-b border-stone-200 bg-linear-to-b from-warm-surface via-background to-warm-soft/70 shadow-[0_18px_45px_-38px_rgba(84,52,28,0.45)] dark:border-border/70 dark:from-background dark:via-background dark:to-accent/30 dark:shadow-[0_20px_48px_-38px_rgba(0,0,0,0.72)]">
         <div className="mx-auto max-w-[1800px]">
           <PublicHero />
         </div>
@@ -37,16 +37,13 @@ export default async function HomePage() {
 
       <section className="mx-auto w-full max-w-5xl space-y-5 px-1 sm:px-0">
         <header className="space-y-3 border-b border-stone-200 pb-5 dark:border-border/70">
-          <p className="text-xs font-semibold uppercase tracking-[0.26em] text-[#9b6a46] dark:text-primary/80 sm:text-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.26em] text-warm sm:text-sm">
             Faculty of Nursing CMU
           </p>
-          <h1 className="text-2xl font-bold tracking-tight text-[#b8774c] dark:text-foreground sm:text-3xl lg:text-[2rem]">
+          <h1 className="text-2xl font-bold tracking-tight text-warm-strong dark:text-warm sm:text-3xl lg:text-[2rem]">
             ระบบข้อมูลสาธารณะ
           </h1>
-          <p className="max-w-3xl text-sm leading-6 text-muted-foreground sm:text-base">
-            ศูนย์รวมข้อมูลเผยแพร่ด้านคุณธรรมและความโปร่งใสของคณะพยาบาลศาสตร์ มหาวิทยาลัยเชียงใหม่
-            พร้อมวิดีโอประกอบและรายการ ITA/OIT รายปีที่เปิดให้อ่านได้จากหน้าเดียว
-          </p>
+          
         </header>
 
         <VideoSection />

@@ -1,3 +1,5 @@
+import { FeaturedSurface } from "@/components/shell/surfaces";
+
 /**
  * Featured video on the home page.
  *
@@ -19,7 +21,7 @@ const FEATURED_VIDEO_ID = "NTdqTESI8Lk";
 
 export function VideoSection() {
   return (
-    <section className="mx-auto w-full max-w-4xl rounded-[28px] border border-stone-200/80 bg-white p-3 shadow-[0_30px_70px_-46px_rgba(67,36,19,0.42)] dark:border-border/80 dark:bg-card/95 dark:shadow-[0_30px_72px_-46px_rgba(0,0,0,0.76)] sm:p-4">
+    <FeaturedSurface className="mx-auto w-full max-w-4xl p-3 shadow-[0_30px_70px_-46px_rgba(67,36,19,0.42)] dark:shadow-[0_30px_72px_-46px_rgba(0,0,0,0.76)] sm:p-4">
       <div className="overflow-hidden rounded-[22px] bg-black">
         <iframe
           src={`https://www.youtube-nocookie.com/embed/${FEATURED_VIDEO_ID}`}
@@ -33,6 +35,6 @@ export function VideoSection() {
       <p className="px-1 pt-3 text-center text-xs leading-5 text-muted-foreground sm:text-sm">
         วิดีโอแนะนำการดำเนินงานด้านคุณธรรมและความโปร่งใสของคณะพยาบาลศาสตร์
       </p>
-    </section>
+    </FeaturedSurface>
   );
 }

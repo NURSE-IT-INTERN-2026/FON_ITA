@@ -4,6 +4,7 @@ import { FileIcon, Upload } from "lucide-react";
 import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { uploadFile } from "@/actions/file";
+import { FeaturedSurface, WarmSectionHeading } from "@/components/shell/surfaces";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -88,15 +89,16 @@ export function FileUploader({
   }
 
   return (
-    <div className="rounded-[28px] border border-stone-200/80 bg-white p-5 shadow-[0_24px_60px_-52px_rgba(67,36,19,0.4)] dark:border-border/80 dark:bg-card/95 dark:shadow-[0_26px_70px_-48px_rgba(0,0,0,0.72)] sm:p-6">
+    <FeaturedSurface className="p-5 sm:p-6">
       <div className="mb-4 border-b border-stone-200 pb-4 dark:border-border/70">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#9b6a46] dark:text-primary/80">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-warm">
           Upload Center
         </p>
-        <h2 className="mt-2 text-xl font-bold tracking-tight text-[#4d1646] dark:text-foreground">อัปโหลดไฟล์ใหม่</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          ลากไฟล์มาวางหรือเลือกจากเครื่อง เพื่อเก็บไว้ใช้ประกอบเนื้อหา ITA/OIT ในคลังกลาง
-        </p>
+        <WarmSectionHeading
+          className="mt-2"
+          title="อัปโหลดไฟล์ใหม่"
+          description="ลากไฟล์มาวางหรือเลือกจากเครื่อง เพื่อเก็บไว้ใช้ประกอบเนื้อหา ITA/OIT ในคลังกลาง"
+        />
       </div>
 
       <div
@@ -114,19 +116,19 @@ export function FileUploader({
         className={cn(
           "flex cursor-pointer flex-col items-center justify-center rounded-3xl border-2 border-dashed p-8 text-center transition-colors sm:p-10",
           dragOver
-            ? "border-[#9b6a46] bg-[#f7efe7] dark:border-primary/60 dark:bg-primary/15"
-            : "border-stone-300 bg-[#fcfaf8] hover:bg-[#f7f1eb] dark:border-border dark:bg-accent/30 dark:hover:bg-accent/50",
+            ? "border-warm bg-warm-soft dark:border-warm dark:bg-warm/18"
+            : "border-border bg-warm-surface hover:bg-warm-surface-hover dark:bg-accent/30 dark:hover:bg-accent/50",
         )}
       >
-        <span className="mb-3 rounded-full bg-[#f7efe7] p-3 text-[#9b6a46] dark:bg-primary/15 dark:text-primary">
+        <span className="mb-3 rounded-full bg-warm-soft p-3 text-warm dark:bg-warm/18 dark:text-warm">
           <Upload className="size-7" aria-hidden />
         </span>
-        <p className="text-base font-semibold text-[#4d1646] dark:text-foreground">ลากไฟล์มาวาง หรือคลิกเพื่อเลือกไฟล์</p>
+        <p className="text-base font-semibold text-warm-strong dark:text-warm">ลากไฟล์มาวาง หรือคลิกเพื่อเลือกไฟล์</p>
         <p className="mt-2 text-xs text-muted-foreground sm:text-sm">
           รองรับ {accept.replaceAll(".", "").replaceAll(",", ", ")} · สูงสุด {maxSizeMb} MB
         </p>
         {file && (
-          <p className="mt-4 flex items-center gap-2 rounded-full bg-white px-3 py-2 text-xs text-[#4d1646] shadow-sm ring-1 ring-stone-200 dark:bg-background/60 dark:text-foreground dark:ring-border">
+          <p className="mt-4 flex items-center gap-2 rounded-full bg-card px-3 py-2 text-xs text-warm-strong shadow-sm ring-1 ring-border dark:bg-background/60 dark:text-foreground dark:ring-border">
             <FileIcon className="size-3.5" aria-hidden /> {file.name}
           </p>
         )}
@@ -170,6 +172,6 @@ export function FileUploader({
           {error}
         </p>
       )}
-    </div>
+    </FeaturedSurface>
   );
 }

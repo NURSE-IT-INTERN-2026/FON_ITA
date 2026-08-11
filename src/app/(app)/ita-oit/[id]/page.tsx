@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { OitDeleteButton } from "@/components/ita/oit-delete-button";
 import { YearBadge } from "@/components/ita/year-badge";
 import { PageHeader } from "@/components/shell/page-header";
+import { warmSectionCardClass, warmSectionTitleClass } from "@/components/shell/surface-styles";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { hasRole } from "@/lib/auth/roles";
@@ -69,6 +70,7 @@ export default async function OitDetailPage({ params }: Props) {
             </>
           ) : undefined
         }
+        variant="featured"
       />
 
       <div className="mb-4 flex flex-wrap items-center gap-3">
@@ -85,12 +87,12 @@ export default async function OitDetailPage({ params }: Props) {
         )}
       </div>
 
-      <Card>
+      <Card className={warmSectionCardClass}>
         <CardContent className="py-6">
           {content ? (
             <div className="prose-oit" dangerouslySetInnerHTML={{ __html: content }} />
           ) : (
-            <p className="text-sm italic text-muted-foreground">
+            <p className={`text-sm italic text-muted-foreground ${warmSectionTitleClass}`}>
               {canManage
                 ? "ยังไม่มีเนื้อหา — กด “แก้ไข” เพื่อเพิ่มเนื้อหาของ OIT นี้"
                 : "ยังไม่มีเนื้อหาสำหรับ OIT นี้"}

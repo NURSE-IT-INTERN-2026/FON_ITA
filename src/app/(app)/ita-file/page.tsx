@@ -6,6 +6,7 @@ import { FileSearchInput } from "@/components/files/file-search-input";
 import { FileUploader } from "@/components/files/file-uploader";
 import { PaginationNav } from "@/components/misc/pagination-nav";
 import { PageHeader } from "@/components/shell/page-header";
+import { FeaturedSurface, WarmMetricCard, WarmSectionHeading } from "@/components/shell/surfaces";
 import {
   Table,
   TableBody,
@@ -64,63 +65,33 @@ export default async function ItaFilePage({ searchParams }: Props) {
         <FileUploader accept={accept} maxSizeMb={maxSizeMb} />
 
         <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-1">
-          <div className="rounded-3xl border border-stone-200/80 bg-white p-4 shadow-[0_24px_60px_-52px_rgba(67,36,19,0.4)] dark:border-border/80 dark:bg-card/95 dark:shadow-[0_26px_70px_-48px_rgba(0,0,0,0.72)]">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#9b6a46] dark:text-primary/80">
-                  ไฟล์ทั้งหมด
-                </p>
-                <p className="mt-2 text-3xl font-bold tracking-tight text-[#4d1646] dark:text-foreground">{total}</p>
-                <p className="mt-2 text-sm text-muted-foreground">รวมไฟล์ที่พร้อมนำไปแนบในเนื้อหา OIT</p>
-              </div>
-              <span className="rounded-full bg-[#f7efe7] p-2 text-[#9b6a46] dark:bg-primary/15 dark:text-primary">
-                <Files className="size-5" aria-hidden />
-              </span>
-            </div>
-          </div>
-
-          <div className="rounded-3xl border border-stone-200/80 bg-white p-4 shadow-[0_24px_60px_-52px_rgba(67,36,19,0.4)] dark:border-border/80 dark:bg-card/95 dark:shadow-[0_26px_70px_-48px_rgba(0,0,0,0.72)]">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#9b6a46] dark:text-primary/80">
-                  ขนาดสูงสุด
-                </p>
-                <p className="mt-2 text-3xl font-bold tracking-tight text-[#4d1646] dark:text-foreground">{maxSizeMb} MB</p>
-                <p className="mt-2 text-sm text-muted-foreground">ตรวจทั้งฝั่งเบราว์เซอร์และฝั่งเซิร์ฟเวอร์ก่อนบันทึกไฟล์</p>
-              </div>
-              <span className="rounded-full bg-[#f7efe7] p-2 text-[#9b6a46] dark:bg-primary/15 dark:text-primary">
-                <HardDriveUpload className="size-5" aria-hidden />
-              </span>
-            </div>
-          </div>
-
-          <div className="rounded-3xl border border-stone-200/80 bg-white p-4 shadow-[0_24px_60px_-52px_rgba(67,36,19,0.4)] dark:border-border/80 dark:bg-card/95 dark:shadow-[0_26px_70px_-48px_rgba(0,0,0,0.72)]">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#9b6a46] dark:text-primary/80">
-                  ชนิดที่รองรับ
-                </p>
-                <p className="mt-2 text-lg font-bold tracking-tight text-[#4d1646] dark:text-foreground">
-                  {allowedExtensions().join(", ")}
-                </p>
-                <p className="mt-2 text-sm text-muted-foreground">คงกฎเดียวกับตัวเลือกอัปโหลดทุกหน้าของระบบ</p>
-              </div>
-              <span className="rounded-full bg-[#f7efe7] p-2 text-[#9b6a46] dark:bg-primary/15 dark:text-primary">
-                <ShieldCheck className="size-5" aria-hidden />
-              </span>
-            </div>
-          </div>
+          <WarmMetricCard
+            label="ไฟล์ทั้งหมด"
+            value={total}
+            description="รวมไฟล์ที่พร้อมนำไปแนบในเนื้อหา OIT"
+            icon={<Files className="size-5" aria-hidden />}
+          />
+          <WarmMetricCard
+            label="ขนาดสูงสุด"
+            value={`${maxSizeMb} MB`}
+            description="ตรวจทั้งฝั่งเบราว์เซอร์และฝั่งเซิร์ฟเวอร์ก่อนบันทึกไฟล์"
+            icon={<HardDriveUpload className="size-5" aria-hidden />}
+          />
+          <WarmMetricCard
+            label="ชนิดที่รองรับ"
+            value={<span className="text-lg">{allowedExtensions().join(", ")}</span>}
+            description="คงกฎเดียวกับตัวเลือกอัปโหลดทุกหน้าของระบบ"
+            icon={<ShieldCheck className="size-5" aria-hidden />}
+          />
         </div>
       </section>
 
-      <section className="rounded-[28px] border border-stone-200/80 bg-white p-4 shadow-[0_24px_60px_-52px_rgba(67,36,19,0.4)] dark:border-border/80 dark:bg-card/95 dark:shadow-[0_26px_70px_-48px_rgba(0,0,0,0.72)] sm:p-5">
+      <FeaturedSurface className="p-4 sm:p-5">
         <div className="mb-4 flex flex-col gap-3 border-b border-stone-200 pb-4 dark:border-border/70 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm font-semibold tracking-tight text-[#4d1646] dark:text-foreground">ค้นหาและจัดการไฟล์</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              เปิดดูไฟล์ คัดลอกลิงก์ หรือจัดการไฟล์ที่อัปโหลดไว้ในคลังกลาง
-            </p>
-          </div>
+          <WarmSectionHeading
+            title="ค้นหาและจัดการไฟล์"
+            description="เปิดดูไฟล์ คัดลอกลิงก์ หรือจัดการไฟล์ที่อัปโหลดไว้ในคลังกลาง"
+          />
           <div className="flex flex-col gap-3 sm:items-end">
             <FileSearchInput defaultValue={search} />
             <span className="text-xs text-muted-foreground">ทั้งหมด {total} รายการ</span>
@@ -128,7 +99,7 @@ export default async function ItaFilePage({ searchParams }: Props) {
         </div>
 
         {files.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-stone-300 bg-[#fcfaf8] px-4 py-10 text-center text-muted-foreground dark:border-border dark:bg-accent/30">
+          <div className="rounded-2xl border border-dashed border-border bg-warm-surface px-4 py-10 text-center text-muted-foreground dark:bg-accent/30">
             {search ? `ไม่พบไฟล์ที่ตรงกับ “${search}”` : "ยังไม่มีไฟล์ในคลัง"}
           </div>
         ) : (
@@ -140,7 +111,7 @@ export default async function ItaFilePage({ searchParams }: Props) {
                 return (
                   <article
                     key={file.id}
-                    className="rounded-3xl border border-stone-200/80 bg-[#fcfaf8] p-4 shadow-[0_18px_40px_-36px_rgba(67,36,19,0.45)] dark:border-border/80 dark:bg-accent/25 dark:shadow-[0_22px_52px_-40px_rgba(0,0,0,0.72)]"
+                    className="rounded-3xl border border-stone-200/80 bg-warm-surface p-4 shadow-[0_18px_40px_-36px_rgba(67,36,19,0.45)] dark:border-border/80 dark:bg-accent/25 dark:shadow-[0_22px_52px_-40px_rgba(0,0,0,0.72)]"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <a
@@ -149,13 +120,13 @@ export default async function ItaFilePage({ searchParams }: Props) {
                         rel="noopener noreferrer"
                         className="min-w-0 flex-1 text-left"
                       >
-                        <span className="inline-flex items-center gap-2 text-sm font-semibold text-[#4d1646] hover:underline dark:text-foreground">
-                          <Icon className="size-4 shrink-0 text-[#9b6a46] dark:text-primary" aria-hidden />
+                        <span className="inline-flex items-center gap-2 text-sm font-semibold text-warm-strong hover:underline dark:text-warm">
+                          <Icon className="size-4 shrink-0 text-warm" aria-hidden />
                           <span className="truncate">{file.name}</span>
                           <ExternalLink className="size-3 shrink-0 opacity-60" aria-hidden />
                         </span>
                       </a>
-                      <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#9b6a46] ring-1 ring-stone-200 dark:bg-background/60 dark:text-primary dark:ring-border">
+                      <span className="rounded-full bg-card px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-warm ring-1 ring-border dark:bg-background/60 dark:text-warm dark:ring-border">
                         {fileTypeLabel(file.path)}
                       </span>
                     </div>
@@ -252,7 +223,7 @@ export default async function ItaFilePage({ searchParams }: Props) {
             return query ? `/ita-file?${query}` : "/ita-file";
           }}
         />
-      </section>
+      </FeaturedSurface>
     </div>
   );
 }

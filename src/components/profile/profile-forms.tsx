@@ -26,7 +26,7 @@ type Props = {
 export function ProfileForms({ prefix, firstname, lastname, hasPassword }: Props) {
   return (
     <Tabs defaultValue="profile" className="max-w-2xl">
-      <TabsList>
+      <TabsList className="border border-warm/15 bg-warm-soft/70 dark:border-warm/20 dark:bg-warm/10">
         <TabsTrigger value="profile" className="gap-1.5">
           <UserIcon className="size-4" aria-hidden />
           โปรไฟล์
@@ -80,10 +80,10 @@ function ProfileForm({ prefix, firstname, lastname }: Omit<Props, "hasPassword">
   }
 
   return (
-    <Card className="mt-4 p-6">
+    <Card className="mt-4 rounded-3xl border-warm/20 p-6 shadow-[0_24px_60px_-52px_rgba(67,36,19,0.24)] dark:border-warm/25 dark:shadow-[0_24px_60px_-48px_rgba(0,0,0,0.6)]">
       <form onSubmit={submit} className="space-y-4">
         <div className="space-y-1">
-          <h2 className="text-base font-semibold">ข้อมูลส่วนตัว</h2>
+          <h2 className="text-base font-semibold text-warm-strong dark:text-warm">ข้อมูลส่วนตัว</h2>
           <p className="text-sm text-muted-foreground">
             ชื่อที่ใช้แสดงในระบบและใช้สำหรับการเข้าสู่ระบบ
           </p>
@@ -159,10 +159,10 @@ function PasswordForm({ hasPassword }: { hasPassword: boolean }) {
   }
 
   return (
-    <Card className="mt-4 p-6">
+    <Card className="mt-4 rounded-3xl border-warm/20 p-6 shadow-[0_24px_60px_-52px_rgba(67,36,19,0.24)] dark:border-warm/25 dark:shadow-[0_24px_60px_-48px_rgba(0,0,0,0.6)]">
       <form key={formKey} onSubmit={submit} className="space-y-4">
         <div className="space-y-1">
-          <h2 className="text-base font-semibold">
+          <h2 className="text-base font-semibold text-warm-strong dark:text-warm">
             {hasPassword ? "เปลี่ยนรหัสผ่าน" : "ตั้งรหัสผ่าน"}
           </h2>
           <p className="text-sm text-muted-foreground">

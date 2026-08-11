@@ -2,6 +2,15 @@ import { Globe2, ShieldCheck, Webhook } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PageHeader } from "@/components/shell/page-header";
+import {
+  warmIconChipClass,
+  warmMetricCardClass,
+  warmMetricEyebrowClass,
+  warmMetricValueClass,
+  warmSectionCardClass,
+  warmSectionHeaderClass,
+  warmSectionTitleClass,
+} from "@/components/shell/surface-styles";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireRole } from "@/lib/auth/guards";
 
@@ -25,40 +34,40 @@ export default async function PublicApiPage() {
       />
 
       <section className="grid gap-4 lg:grid-cols-3">
-        <div className="rounded-3xl border border-stone-200/80 bg-white p-4 shadow-[0_24px_60px_-52px_rgba(67,36,19,0.4)] dark:border-border/80 dark:bg-card/95 dark:shadow-[0_26px_70px_-48px_rgba(0,0,0,0.72)]">
+        <div className={warmMetricCardClass}>
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#9b6a46] dark:text-primary/80">Endpoint หลัก</p>
-              <p className="mt-2 text-3xl font-bold tracking-tight text-[#4d1646] dark:text-foreground">2</p>
+              <p className={warmMetricEyebrowClass}>Endpoint หลัก</p>
+              <p className={warmMetricValueClass}>2</p>
               <p className="mt-2 text-sm text-muted-foreground">ITA รายปี และ YouTube feed สำหรับหน้าเว็บหลัก</p>
             </div>
-            <span className="rounded-full bg-[#f7efe7] p-2 text-[#9b6a46] dark:bg-primary/15 dark:text-primary">
+            <span className={warmIconChipClass}>
               <Webhook className="size-5" aria-hidden />
             </span>
           </div>
         </div>
 
-        <div className="rounded-3xl border border-stone-200/80 bg-white p-4 shadow-[0_24px_60px_-52px_rgba(67,36,19,0.4)] dark:border-border/80 dark:bg-card/95 dark:shadow-[0_26px_70px_-48px_rgba(0,0,0,0.72)]">
+        <div className={warmMetricCardClass}>
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#9b6a46] dark:text-primary/80">Rate Limit</p>
-              <p className="mt-2 text-3xl font-bold tracking-tight text-[#4d1646] dark:text-foreground">60/min</p>
+              <p className={warmMetricEyebrowClass}>Rate Limit</p>
+              <p className={warmMetricValueClass}>60/min</p>
               <p className="mt-2 text-sm text-muted-foreground">นับรวมกันทั้งสอง endpoint ตามพฤติกรรมของระบบเดิม</p>
             </div>
-            <span className="rounded-full bg-[#f7efe7] p-2 text-[#9b6a46] dark:bg-primary/15 dark:text-primary">
+            <span className={warmIconChipClass}>
               <ShieldCheck className="size-5" aria-hidden />
             </span>
           </div>
         </div>
 
-        <div className="rounded-3xl border border-stone-200/80 bg-white p-4 shadow-[0_24px_60px_-52px_rgba(67,36,19,0.4)] dark:border-border/80 dark:bg-card/95 dark:shadow-[0_26px_70px_-48px_rgba(0,0,0,0.72)]">
+        <div className={warmMetricCardClass}>
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#9b6a46] dark:text-primary/80">การเข้าถึง</p>
-              <p className="mt-2 text-3xl font-bold tracking-tight text-[#4d1646] dark:text-foreground">Public</p>
+              <p className={warmMetricEyebrowClass}>การเข้าถึง</p>
+              <p className={warmMetricValueClass}>Public</p>
               <p className="mt-2 text-sm text-muted-foreground">เว็บภายนอกเรียกใช้งานได้โดยไม่ต้องล็อกอินหรือใช้ token</p>
             </div>
-            <span className="rounded-full bg-[#f7efe7] p-2 text-[#9b6a46] dark:bg-primary/15 dark:text-primary">
+            <span className={warmIconChipClass}>
               <Globe2 className="size-5" aria-hidden />
             </span>
           </div>
@@ -66,9 +75,9 @@ export default async function PublicApiPage() {
       </section>
 
       <div className="grid max-w-5xl gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
-        <Card>
-          <CardHeader>
-            <CardTitle>Endpoint สำหรับหน้าเว็บหลัก</CardTitle>
+        <Card className={warmSectionCardClass}>
+          <CardHeader className={warmSectionHeaderClass}>
+            <CardTitle className={warmSectionTitleClass}>Endpoint สำหรับหน้าเว็บหลัก</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             <p>
@@ -94,9 +103,9 @@ export default async function PublicApiPage() {
         </Card>
 
         <div className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>การเข้าถึงและ Rate Limit</CardTitle>
+          <Card className={warmSectionCardClass}>
+            <CardHeader className={warmSectionHeaderClass}>
+              <CardTitle className={warmSectionTitleClass}>การเข้าถึงและ Rate Limit</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
               <ul className="ml-4 list-disc space-y-1.5">
@@ -117,9 +126,9 @@ export default async function PublicApiPage() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>เอกสารอ้างอิง</CardTitle>
+          <Card className={warmSectionCardClass}>
+            <CardHeader className={warmSectionHeaderClass}>
+              <CardTitle className={warmSectionTitleClass}>เอกสารอ้างอิง</CardTitle>
             </CardHeader>
             <CardContent className="text-sm">
               <ul className="ml-4 list-disc space-y-1">
@@ -158,9 +167,9 @@ export default async function PublicApiPage() {
           </Card>
         </div>
 
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>รูปแบบข้อมูลตามสเปก</CardTitle>
+        <Card className={`${warmSectionCardClass} lg:col-span-2`}>
+          <CardHeader className={warmSectionHeaderClass}>
+            <CardTitle className={warmSectionTitleClass}>รูปแบบข้อมูลตามสเปก</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             <p>
