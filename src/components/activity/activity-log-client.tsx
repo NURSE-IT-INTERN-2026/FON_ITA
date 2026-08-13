@@ -1,0 +1,588 @@
+"use client";
+
+import { Search, UserRoundSearch, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { RoleBadge } from "@/components/misc/role-badge";
+import { PaginationNav } from "@/components/misc/pagination-nav";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import type { AppRole } from "@/generated/prisma/enums";
+import type { ActivityCategory } from "@/lib/activity/meta";
+import { formatBEDate } from "@/lib/date";
+import { ACTIVITY_CATEGORIES, categoryLabel, getActivityMeta } from "@/lib/activity/meta";
+import { cn } from "@/lib/utils";
+
+const ALL = "ALL";
+const DEBOUNCE_MS = 350;
+
+type ActivityListItem = {
+  id: number;
+  actorName: string;
+  actorRole: AppRole;
+  action: string;
+  target: string | null;
+  detail: string | null;
+  createdAtLabel: string;
+};
+
+export function ActivityLogClient({
+  activities,
+  counts,
+  actors,
+  page,
+  totalPages,
+  total,
+  action,
+  actorId,
+  category,
+  query,
+  from,
+  to,
+}: {
+  activities: ActivityListItem[];
+  counts: { action: string; count: number }[];
+  actors: { actorId: number; actorName: string; actorRole: AppRole }[];
+  page: number;
+  totalPages: number;
+  total: number;
+  action?: string;
+  actorId?: number;
+  category?: ActivityCategory;
+  query?: string;
+  from?: string;
+  to?: string;
+}) {
+  const router = useRouter();
+  const grandTotal = counts.reduce((sum, item) => sum + item.count, 0);
+  const filtered = Boolean(action || actorId || category || query || from || to);
+  const [searchText, setSearchText] = useState(query ?? "");
+  const [actorPickerOpen, setActorPickerOpen] = useState(false);
+  const [actorSearch, setActorSearch] = useState("");
+  const actorPickerRef = useRef<HTMLDivElement | null>(null);
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const selectedActor = actors.find((item) => item.actorId === actorId);
+  const filteredActors = actors.filter((item) => {
+    const term = actorSearch.trim().toLocaleLowerCase("th");
+    if (!term) return true;
+    return item.actorName.toLocaleLowerCase("th").includes(term);
+  });
+
+  useEffect(() => {
+    setSearchText(query ?? "");
+  }, [query]);
+
+  useEffect(() => {
+    function onPointerDown(event: MouseEvent) {
+      if (!actorPickerRef.current?.contains(event.target as Node)) {
+        setActorPickerOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", onPointerDown);
+    return () => document.removeEventListener("mousedown", onPointerDown);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (searchTimer.current) clearTimeout(searchTimer.current);
+    };
+  }, []);
+
+  function buildHref({
+    page: nextPage = page,
+    action: nextAction = action,
+    actorId: nextActorId = actorId,
+    category: nextCategory = category,
+    query: nextQuery = query,
+    from: nextFrom = from,
+    to: nextTo = to,
+  }: {
+    page?: number;
+    action?: string;
+    actorId?: number;
+    category?: ActivityCategory;
+    query?: string;
+    from?: string;
+    to?: string;
+  }) {
+    const params = new URLSearchParams();
+
+    if (nextAction) params.set("action", nextAction);
+    if (nextActorId) params.set("actor", String(nextActorId));
+    if (nextCategory) params.set("category", nextCategory);
+    if (nextQuery) params.set("q", nextQuery);
+    if (nextFrom) params.set("from", nextFrom);
+    if (nextTo) params.set("to", nextTo);
+    if (nextPage > 1) params.set("page", String(nextPage));
+
+    const query = params.toString();
+    return query ? `/activity-log?${query}` : "/activity-log";
+  }
+
+  function pushFilters(next: {
+    action?: string;
+    actorId?: number;
+    category?: ActivityCategory;
+    query?: string;
+    from?: string;
+    to?: string;
+    page?: number;
+  }) {
+    router.push(
+      buildHref({
+        page: next.page ?? 1,
+        action: next.action,
+        actorId: next.actorId,
+        category: next.category,
+        query: next.query,
+        from: next.from,
+        to: next.to,
+      }),
+    );
+  }
+
+  function commitSearch(term: string) {
+    const nextQuery = term.trim() || undefined;
+    if ((query ?? "") === (nextQuery ?? "")) return;
+
+    pushFilters({
+      action,
+      actorId,
+      category,
+      query: nextQuery,
+      from,
+      to,
+    });
+  }
+
+  function onSearchChange(next: string) {
+    setSearchText(next);
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    searchTimer.current = setTimeout(() => commitSearch(next), DEBOUNCE_MS);
+  }
+
+  const activeFilters = [
+    query
+      ? {
+          key: "query",
+          label: `คำค้น: ${query}`,
+          onClear: () => {
+            setSearchText("");
+            pushFilters({ action, actorId, category, query: undefined, from, to });
+          },
+        }
+      : null,
+    action
+      ? {
+          key: "action",
+          label: `กิจกรรม: ${getActivityMeta(action).label}`,
+          onClear: () => pushFilters({ action: undefined, actorId, category, query, from, to }),
+        }
+      : null,
+    category
+      ? {
+          key: "category",
+          label: `หมวด: ${categoryLabel(category)}`,
+          onClear: () => pushFilters({ action, actorId, category: undefined, query, from, to }),
+        }
+      : null,
+    selectedActor
+      ? {
+          key: "actor",
+          label: `ผู้ใช้: ${selectedActor.actorName}`,
+          onClear: () => pushFilters({ action, actorId: undefined, category, query, from, to }),
+        }
+      : null,
+    from
+      ? {
+          key: "from",
+          label: `จาก: ${formatBEDate(from)}`,
+          onClear: () => pushFilters({ action, actorId, category, query, from: undefined, to }),
+        }
+      : null,
+    to
+      ? {
+          key: "to",
+          label: `ถึง: ${formatBEDate(to)}`,
+          onClear: () => pushFilters({ action, actorId, category, query, from, to: undefined }),
+        }
+      : null,
+  ].filter(Boolean) as Array<{ key: string; label: string; onClear: () => void }>;
+
+  return (
+    <div className="space-y-6">
+      <section className="rounded-2xl border border-stone-200/80 bg-card p-4 space-y-4 dark:border-border/80">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-foreground">เหตุการณ์ล่าสุดในระบบ</p>
+            <p className="text-xs text-muted-foreground">
+              {filtered
+                ? `แสดง ${total} จาก ${grandTotal} รายการตามตัวกรองปัจจุบัน`
+                : `ทั้งหมด ${grandTotal} รายการ เรียงจากใหม่ไปเก่า`}
+            </p>
+          </div>
+        </div>
+
+        <form
+          className="space-y-2"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (searchTimer.current) clearTimeout(searchTimer.current);
+            commitSearch(searchText);
+          }}
+        >
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            ค้นหาในบันทึก
+          </p>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="relative flex-1 min-w-72">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+              <Input
+                value={searchText}
+                onChange={(event) => onSearchChange(event.currentTarget.value)}
+                onKeyDown={(event) => {
+                  if (event.key !== "Enter") return;
+                  event.preventDefault();
+                  if (searchTimer.current) clearTimeout(searchTimer.current);
+                  commitSearch(searchText);
+                }}
+                placeholder="ค้นหาจากผู้กระทำ เป้าหมาย หรือรายละเอียดกิจกรรม"
+                className="pl-9"
+                aria-label="ค้นหาในบันทึกกิจกรรม"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Button type="submit" size="sm" className="h-9 px-3">
+                ค้นหา
+              </Button>
+              {query ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-9 px-3"
+                  onClick={() => {
+                    if (searchTimer.current) clearTimeout(searchTimer.current);
+                    setSearchText("");
+                    commitSearch("");
+                  }}
+                >
+                  ล้างคำค้น
+                </Button>
+              ) : null}
+            </div>
+          </div>
+        </form>
+
+        <div className="flex flex-wrap items-start gap-4">
+          <div className="min-w-64 space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              ประเภทกิจกรรม
+            </p>
+            <Select
+              value={action ?? ALL}
+              onValueChange={(next) =>
+                pushFilters({
+                  action: next === ALL ? undefined : next,
+                  actorId,
+                  category,
+                  query,
+                  from,
+                  to,
+                })
+              }
+            >
+              <SelectTrigger className="w-64" aria-label="กรองตามประเภทกิจกรรม">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL}>ทุกกิจกรรม ({grandTotal})</SelectItem>
+                {counts.map(({ action: itemAction, count }) => (
+                  <SelectItem key={itemAction} value={itemAction}>
+                    {getActivityMeta(itemAction).label} ({count})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="min-w-52 space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              หมวดข้อมูล
+            </p>
+            <Select
+              value={category ?? ALL}
+              onValueChange={(next) =>
+                pushFilters({
+                  action,
+                  actorId,
+                  category: next === ALL ? undefined : (next as ActivityCategory),
+                  query,
+                  from,
+                  to,
+                })
+              }
+            >
+              <SelectTrigger className="w-56" aria-label="กรองตามหมวดข้อมูล">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL}>ทุกหมวด</SelectItem>
+                {ACTIVITY_CATEGORIES.map((item) => (
+                  <SelectItem key={item.value} value={item.value}>
+                    {categoryLabel(item.value)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="min-w-64 space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              ผู้ใช้
+            </p>
+            <div className="relative w-64" ref={actorPickerRef}>
+              <Button
+                type="button"
+                variant="outline"
+                className="h-9 w-full justify-between px-3 text-left font-normal"
+                onClick={() => {
+                  setActorPickerOpen((open) => !open);
+                  setActorSearch("");
+                }}
+                aria-expanded={actorPickerOpen}
+                aria-label="เลือกผู้ใช้"
+              >
+                <span className="truncate">
+                  {selectedActor ? selectedActor.actorName : "ทุกผู้ใช้"}
+                </span>
+                <UserRoundSearch className="size-4 text-muted-foreground" aria-hidden />
+              </Button>
+
+              {actorPickerOpen ? (
+                <div className="absolute z-20 mt-2 w-full rounded-md border bg-popover p-2 shadow-md">
+                  <div className="relative mb-2">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+                    <Input
+                      value={actorSearch}
+                      onChange={(event) => setActorSearch(event.currentTarget.value)}
+                      placeholder="พิมพ์ชื่อผู้ใช้"
+                      className="pl-9 pr-9"
+                      aria-label="ค้นหาผู้ใช้ในตัวกรอง"
+                    />
+                    {actorSearch ? (
+                      <button
+                        type="button"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        onClick={() => setActorSearch("")}
+                        aria-label="ล้างคำค้นผู้ใช้"
+                      >
+                        <X className="size-4" aria-hidden />
+                      </button>
+                    ) : null}
+                  </div>
+
+                  <div className="max-h-60 overflow-y-auto rounded-sm border">
+                    <button
+                      type="button"
+                      className={cn(
+                        "flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground",
+                        !actorId && "bg-accent/60",
+                      )}
+                      onClick={() => {
+                        pushFilters({ action, actorId: undefined, category, query, from, to });
+                        setActorPickerOpen(false);
+                        setActorSearch("");
+                      }}
+                    >
+                      <span>ทุกผู้ใช้</span>
+                    </button>
+
+                    {filteredActors.length > 0 ? (
+                      filteredActors.map((item) => (
+                        <button
+                          key={item.actorId}
+                          type="button"
+                          className={cn(
+                            "flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground",
+                            actorId === item.actorId && "bg-accent/60",
+                          )}
+                          onClick={() => {
+                            pushFilters({ action, actorId: item.actorId, category, query, from, to });
+                            setActorPickerOpen(false);
+                            setActorSearch("");
+                          }}
+                        >
+                          <span className="truncate">{item.actorName}</span>
+                          <RoleBadge role={item.actorRole} className="shrink-0" />
+                        </button>
+                      ))
+                    ) : (
+                      <p className="px-3 py-3 text-sm text-muted-foreground">ไม่พบผู้ใช้ที่ตรงคำค้น</p>
+                    )}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              วันที่เริ่มต้น
+            </p>
+            <Input
+              type="date"
+              className="w-44"
+              value={from ?? ""}
+              onChange={(event) =>
+                pushFilters({
+                  action,
+                  actorId,
+                  category,
+                  query,
+                  from: event.currentTarget.value || undefined,
+                  to,
+                })
+              }
+            />
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              วันที่สิ้นสุด
+            </p>
+            <Input
+              type="date"
+              className="w-44"
+              value={to ?? ""}
+              onChange={(event) =>
+                pushFilters({
+                  action,
+                  actorId,
+                  category,
+                  query,
+                  from,
+                  to: event.currentTarget.value || undefined,
+                })
+              }
+            />
+          </div>
+
+          {from || to ? (
+            <div className="space-y-2 self-end">
+              <p className="text-xs font-semibold uppercase tracking-wider text-transparent">ล้างวันที่</p>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-9 px-3"
+                onClick={() =>
+                  pushFilters({ action, actorId, category, query, from: undefined, to: undefined })
+                }
+              >
+                ล้างวันที่
+              </Button>
+            </div>
+          ) : null}
+        </div>
+
+        {category ? (
+          <p className="text-xs text-muted-foreground">
+            แสดงหมวด <span className="font-medium text-foreground">{categoryLabel(category)}</span>
+          </p>
+        ) : null}
+
+        {activeFilters.length > 0 ? (
+          <div className="flex flex-wrap gap-2 border-t pt-4">
+            {activeFilters.map((item) => (
+              <button
+                key={item.key}
+                type="button"
+                onClick={item.onClear}
+                className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/40 px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
+              >
+                <span>{item.label}</span>
+                <X className="size-3.5 text-muted-foreground" aria-hidden />
+              </button>
+            ))}
+          </div>
+        ) : null}
+
+        {filtered ? (
+          <div className="flex border-t border-stone-200/80 pt-4 dark:border-border/70">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 border-orange-200 bg-orange-50 px-4 text-orange-700 hover:bg-orange-100 hover:text-orange-800 dark:border-orange-900/60 dark:bg-orange-950/30 dark:text-orange-300 dark:hover:bg-orange-950/50 dark:hover:text-orange-200"
+              onClick={() => router.push("/activity-log")}
+            >
+              ล้างตัวกรองทั้งหมด
+            </Button>
+          </div>
+        ) : null}
+      </section>
+
+      {activities.length === 0 ? (
+        <section className="rounded-lg border border-dashed bg-card px-6 py-10 text-center text-sm text-muted-foreground">
+          {filtered
+            ? "ไม่พบกิจกรรมที่ตรงตัวกรอง ลองเปลี่ยนคำค้นหรือเงื่อนไขแล้วค้นอีกครั้ง"
+            : "ยังไม่มีกิจกรรมในระบบ กิจกรรมสำคัญจะถูกบันทึกและแสดงที่หน้านี้"}
+        </section>
+      ) : (
+        <section className="overflow-hidden rounded-lg border bg-card">
+          <div className="divide-y">
+            {activities.map((entry) => {
+              const meta = getActivityMeta(entry.action);
+              const Icon = meta.icon;
+
+              return (
+                <article
+                  key={entry.id}
+                  className="flex flex-col gap-3 px-4 py-3 transition-colors hover:bg-muted/30 sm:flex-row sm:items-start"
+                >
+                  <div
+                    className={cn(
+                      "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border",
+                      meta.chipClassName,
+                    )}
+                  >
+                    <Icon className="size-4" aria-hidden />
+                  </div>
+
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+                      <span className="font-semibold text-foreground">{entry.actorName}</span>
+                      <span className="text-foreground">{meta.label}</span>
+                      <RoleBadge role={entry.actorRole} />
+                    </div>
+
+                    {entry.target ? (
+                      <p className="text-sm text-muted-foreground">เป้าหมาย: {entry.target}</p>
+                    ) : null}
+
+                    {entry.detail ? (
+                      <p className="text-xs text-muted-foreground">{entry.detail}</p>
+                    ) : null}
+                  </div>
+
+                  <div className="shrink-0 text-xs font-mono text-muted-foreground sm:pt-0.5 sm:text-right">
+                    {entry.createdAtLabel}
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      <PaginationNav page={page} totalPages={totalPages} hrefFor={(nextPage) => buildHref({ page: nextPage })} />
+    </div>
+  );
+}

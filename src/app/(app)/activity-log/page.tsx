@@ -1,26 +1,50 @@
-import { History } from "lucide-react";
 import type { Metadata } from "next";
-import { ActivityFilter } from "@/components/activity/activity-filter";
-import { EmptyState } from "@/components/misc/empty-state";
-import { PaginationNav } from "@/components/misc/pagination-nav";
-import { RoleBadge } from "@/components/misc/role-badge";
+import { ActivityLogClient } from "@/components/activity/activity-log-client";
 import { PageHeader } from "@/components/shell/page-header";
-import { WarmTableHead, WarmTableSurface } from "@/components/shell/surfaces";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { actionLabel } from "@/lib/activity/actions";
-import { countByAction, listActivities, normalizeActionFilter } from "@/lib/activity/queries";
+  countByAction,
+  listActivities,
+  listActivityActors,
+  normalizeActionFilter,
+  normalizeCategoryFilter,
+} from "@/lib/activity/queries";
 import { requireRole } from "@/lib/auth/guards";
 import { formatBEDateTime } from "@/lib/date";
 
 export const metadata: Metadata = { title: "บันทึกกิจกรรม — FON-ITA" };
 
-type Props = { searchParams: Promise<{ page?: string; action?: string }> };
+type Props = {
+  searchParams: Promise<{
+    page?: string;
+    action?: string;
+    actor?: string;
+    category?: string;
+    q?: string;
+    from?: string;
+    to?: string;
+  }>;
+};
+
+function parsePositiveInt(value?: string): number | undefined {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : undefined;
+}
+
+function normalizeDate(value?: string): string | undefined {
+  return value && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : undefined;
+}
+
+function dateAtStart(value?: string): Date | undefined {
+  return value ? new Date(`${value}T00:00:00+07:00`) : undefined;
+}
+
+function dateAfterEnd(value?: string): Date | undefined {
+  if (!value) return undefined;
+
+  const date = new Date(`${value}T00:00:00+07:00`);
+  date.setDate(date.getDate() + 1);
+  return date;
+}
 
 /**
  * Audit trail (F26) — SUPERADMIN only (role matrix in docs/specs/_features.md).
@@ -33,21 +57,38 @@ export default async function ActivityLogPage({ searchParams }: Props) {
   // link from an old bookmark should be told why, not bounced to login.
   await requireRole("SUPERADMIN");
 
-  const { page: rawPage, action: rawAction } = await searchParams;
+  const {
+    page: rawPage,
+    action: rawAction,
+    actor: rawActor,
+    category: rawCategory,
+    q: rawQuery,
+    from: rawFrom,
+    to: rawTo,
+  } = await searchParams;
   const requested = Number(rawPage);
-  // An unknown action becomes "no filter" rather than an empty table.
   const action = normalizeActionFilter(rawAction);
+  const actorId = parsePositiveInt(rawActor);
+  const category = normalizeCategoryFilter(rawCategory);
+  const query = rawQuery?.trim() ? rawQuery.trim() : undefined;
+  const from = normalizeDate(rawFrom);
+  const to = normalizeDate(rawTo);
 
-  const [{ activities, page, totalPages, total }, counts] = await Promise.all([
-    listActivities(Number.isInteger(requested) && requested > 0 ? requested : 1, action),
+  const [{ activities, page, totalPages, total }, counts, actors] = await Promise.all([
+    listActivities(Number.isInteger(requested) && requested > 0 ? requested : 1, {
+      action,
+      actorId,
+      category,
+      search: query,
+      from: dateAtStart(from),
+      to: dateAfterEnd(to),
+    }),
     countByAction(),
+    listActivityActors(),
   ]);
 
-  const grandTotal = counts.reduce((sum, c) => sum + c.count, 0);
-  const filtered = action !== undefined;
-
   return (
-    <div>
+    <div className="space-y-6">
       <PageHeader
         title="บันทึกกิจกรรม"
         breadcrumb={[{ label: "หน้าแรก", href: "/" }, { label: "บันทึกกิจกรรม" }]}
@@ -55,68 +96,22 @@ export default async function ActivityLogPage({ searchParams }: Props) {
         variant="featured"
       />
 
-      {grandTotal > 0 && (
-        <div className="mb-4 flex flex-wrap items-center gap-3">
-          <ActivityFilter value={action} counts={counts} total={grandTotal} />
-          <span className="text-xs text-muted-foreground">
-            {filtered ? `แสดง ${total} จาก ${grandTotal} รายการ` : `ทั้งหมด ${grandTotal} รายการ`}
-          </span>
-        </div>
-      )}
-
-      {activities.length === 0 ? (
-        <EmptyState
-          icon={History}
-          title={filtered ? "ไม่พบกิจกรรมที่ตรงตัวกรอง" : "ยังไม่มีกิจกรรมในระบบ"}
-          description={
-            filtered
-              ? "ลองเปลี่ยนตัวกรองด้านบน"
-              : "การกระทำต่างๆ ในระบบจะถูกบันทึกที่นี่"
-          }
-        />
-      ) : (
-        <WarmTableSurface className="border-border/80 dark:border-border/80">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <WarmTableHead className="w-44">เวลา</WarmTableHead>
-                <WarmTableHead className="w-44">ผู้กระทำ</WarmTableHead>
-                <WarmTableHead className="w-48">กิจกรรม</WarmTableHead>
-                <WarmTableHead>เป้าหมาย</WarmTableHead>
-                <WarmTableHead>รายละเอียด</WarmTableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {activities.map((entry) => (
-                <TableRow key={entry.id}>
-                  {/* พ.ศ. via lib/date.ts — never inline +543 */}
-                  <TableCell className="whitespace-nowrap text-xs text-muted-foreground tabular-nums">
-                    {formatBEDateTime(entry.createdAt)}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-col items-start gap-1">
-                      <span className="text-sm font-medium">{entry.actorName}</span>
-                      <RoleBadge role={entry.actorRole} />
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-sm">{actionLabel(entry.action)}</TableCell>
-                  <TableCell className="text-sm">{entry.target ?? "—"}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {entry.detail ?? "—"}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </WarmTableSurface>
-      )}
-
-      <PaginationNav
+      <ActivityLogClient
+        action={action}
+        actorId={actorId}
+        category={category}
+        counts={counts}
+        actors={actors}
+        query={query}
+        from={from}
+        to={to}
         page={page}
         totalPages={totalPages}
-        hrefFor={(n) =>
-          action ? `/activity-log?action=${action}&page=${n}` : `/activity-log?page=${n}`
-        }
+        total={total}
+        activities={activities.map((entry) => ({
+          ...entry,
+          createdAtLabel: formatBEDateTime(entry.createdAt),
+        }))}
       />
     </div>
   );
