@@ -1,5 +1,6 @@
 import { Globe2, ShieldCheck, Webhook } from "lucide-react";
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import Link from "next/link";
 import { PageHeader } from "@/components/shell/page-header";
 import {
@@ -7,6 +8,8 @@ import {
   WarmSectionCard,
 } from "@/components/shell/surfaces";
 import { requireRole } from "@/lib/auth/guards";
+import { BASE_PATH } from "@/lib/base-path";
+import { currentBEYear } from "@/lib/date";
 
 export const metadata: Metadata = { title: "API ขาออก — FON-ITA" };
 
@@ -17,6 +20,14 @@ export const metadata: Metadata = { title: "API ขาออก — FON-ITA" };
  */
 export default async function PublicApiPage() {
   await requireRole("ADMIN", "SUPERADMIN");
+
+  // Built from the actual request so the example is correct wherever the page is
+  // viewed — localhost in dev, the faculty host in production — with no host
+  // hardcode to remember to update on deploy.
+  const headerStore = await headers();
+  const host = headerStore.get("x-forwarded-host") ?? headerStore.get("host") ?? "localhost:3000";
+  const proto = headerStore.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
+  const exampleUrl = `${proto}://${host}${BASE_PATH}/api/v1/ita/${currentBEYear()}`;
 
   return (
     <div className="space-y-6">
@@ -64,9 +75,9 @@ export default async function PublicApiPage() {
               </li>
             </ul>
             <p className="text-xs text-muted-foreground">
-              ตัวอย่าง URL เต็มที่ consumer เรียก:{" "}
+              ตัวอย่าง URL เต็มที่ consumer เรียก (ตาม host ที่เปิดหน้านี้อยู่):{" "}
               <code className="rounded bg-muted px-1 py-0.5">
-                https://service.nurse.cmu.ac.th/fonita/api/v1/ita/2569
+                {exampleUrl}
               </code>
             </p>
         </WarmSectionCard>

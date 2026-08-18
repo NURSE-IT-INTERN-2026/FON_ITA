@@ -2,7 +2,7 @@
 // the *frozen* external contract, and the home page renders the same data — so
 // the fetch + parse lives here and both call sites share it.
 
-const CHANNEL_ID = "UCrsvXl143w91ND6BjGn9cZw";
+const CHANNEL_ID = process.env.YOUTUBE_CHANNEL_ID ?? "UCrsvXl143w91ND6BjGn9cZw";
 const FEED_URL = `https://www.youtube.com/feeds/videos.xml?channel_id=${CHANNEL_ID}`;
 export const YOUTUBE_FEED_ENTRY_COUNT = 2;
 

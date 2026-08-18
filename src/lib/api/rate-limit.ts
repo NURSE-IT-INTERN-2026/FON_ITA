@@ -6,7 +6,10 @@
 // /api/nurse/youtube-feed reports next. Keeping them separate would hand out a
 // larger budget than the contract advertises.
 
-export const RATE_LIMIT = 60;
+// Default 60 matches the frozen contract (`throttle:60,1` on the old Laravel
+// system, `X-RateLimit-Limit: 60`). The env override exists so ops can tune it
+// without a code change, but any value other than 60 deviates from that contract.
+export const RATE_LIMIT = Number(process.env.PUBLIC_API_RATE_LIMIT_PER_MIN ?? 60);
 const WINDOW_MS = 60_000;
 
 type Bucket = { count: number; resetAt: number };
