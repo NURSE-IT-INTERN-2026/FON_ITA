@@ -4,7 +4,10 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { logActivity } from "@/lib/activity/log";
 import { RESET_PASSWORD_PATH } from "@/lib/auth/guards";
-import { consumeLoginRateLimit, resetLoginRateLimit } from "@/lib/auth/login-rate-limit";
+import {
+  consumeLoginRateLimit,
+  resetIdentityLoginRateLimit,
+} from "@/lib/auth/login-rate-limit";
 import { fakeVerifyDelay, verifyPassword } from "@/lib/auth/password";
 import { getSafeRedirectPath } from "@/lib/auth/roles";
 import { createSession } from "@/lib/auth/session";
@@ -68,7 +71,7 @@ export async function authenticate(
     return { error: "บัญชีนี้ถูกปิดใช้งาน โปรดติดต่อผู้ดูแลระบบ" };
   }
 
-  resetLoginRateLimit(rate.ipKey, rate.identityKey);
+  resetIdentityLoginRateLimit(rate.identityKey);
   await createSession(user.id);
   // Only successful logins are recorded. A failed attempt would be worth having,
   // but the log is readable by SUPERADMIN and a mistyped password lands in the
