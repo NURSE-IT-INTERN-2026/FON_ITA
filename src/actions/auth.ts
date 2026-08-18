@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { logActivity } from "@/lib/activity/log";
 import { RESET_PASSWORD_PATH } from "@/lib/auth/guards";
+import { consumeLoginRateLimit, resetLoginRateLimit } from "@/lib/auth/login-rate-limit";
 import { fakeVerifyDelay, verifyPassword } from "@/lib/auth/password";
 import { getSafeRedirectPath } from "@/lib/auth/roles";
 import { createSession } from "@/lib/auth/session";
@@ -12,6 +13,7 @@ import { prisma } from "@/lib/prisma";
 // Same message whether the account does not exist or the password is wrong, so
 // the form cannot be used to discover which emails are registered.
 const INVALID_CREDENTIALS = "อีเมลหรือรหัสผ่านไม่ถูกต้อง";
+const RATE_LIMITED = "พยายามเข้าสู่ระบบบ่อยเกินไป โปรดลองอีกครั้งในอีกไม่กี่นาที";
 
 const loginSchema = z.object({
   // Trim/lowercase BEFORE validating — `z.email().trim()` checks the format
@@ -42,6 +44,11 @@ export async function authenticate(
   }
 
   const { email, password, next } = parsed.data;
+  const rate = await consumeLoginRateLimit(email);
+  if (!rate.allowed) {
+    return { error: RATE_LIMITED };
+  }
+
   const user = await prisma.user.findUnique({ where: { email } });
 
   if (!user) {
@@ -61,6 +68,7 @@ export async function authenticate(
     return { error: "บัญชีนี้ถูกปิดใช้งาน โปรดติดต่อผู้ดูแลระบบ" };
   }
 
+  resetLoginRateLimit(rate.ipKey, rate.identityKey);
   await createSession(user.id);
   // Only successful logins are recorded. A failed attempt would be worth having,
   // but the log is readable by SUPERADMIN and a mistyped password lands in the

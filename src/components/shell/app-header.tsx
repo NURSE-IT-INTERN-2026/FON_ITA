@@ -135,14 +135,14 @@ export function AppHeader({ user }: { user: ShellUser | null }) {
                   โปรไฟล์
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                {/* Route handler, not a page — a plain <a> avoids <Link> prefetching
-                    the URL and logging the user out on hover. Implemented in F9. */}
-                <a href={withBasePath("/api/auth/logout")}>
-                  <LogOut className="mr-2 h-4 w-4" aria-hidden />
-                  ออกจากระบบ
-                </a>
-              </DropdownMenuItem>
+              <form action={withBasePath("/api/auth/logout")} method="post">
+                <DropdownMenuItem asChild>
+                  <button type="submit" className="w-full">
+                    <LogOut className="mr-2 h-4 w-4" aria-hidden />
+                    ออกจากระบบ
+                  </button>
+                </DropdownMenuItem>
+              </form>
             </DropdownMenuContent>
           </DropdownMenu>
         ) : (

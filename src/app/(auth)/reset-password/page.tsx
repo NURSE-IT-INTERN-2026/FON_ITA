@@ -59,12 +59,14 @@ export default async function ResetPasswordPage() {
         {/* The way out for someone who opened this on a machine that is not
             theirs, or who wants to come back later. Without it the only escape
             from a flagged session is clearing cookies by hand. */}
-        <p className="text-center text-xs text-muted-foreground">
-          ไม่ใช่บัญชีของคุณ?{" "}
-          <a href={withBasePath("/api/auth/logout")} className="underline underline-offset-4">
-            ออกจากระบบ
-          </a>
-        </p>
+        <div className="text-center text-xs text-muted-foreground">
+          <span>ไม่ใช่บัญชีของคุณ? </span>
+          <form action={withBasePath("/api/auth/logout")} method="post" className="inline">
+            <button type="submit" className="underline underline-offset-4">
+              ออกจากระบบ
+            </button>
+          </form>
+        </div>
       </div>
     </main>
   );

@@ -4,16 +4,17 @@ import { clearSession, getSessionUser } from "@/lib/auth/session";
 import { withBasePath } from "@/lib/base-path";
 
 /**
- * GET /api/auth/logout  (real path: /fonita/api/auth/logout)
+ * POST /api/auth/logout  (real path: /fonita/api/auth/logout)
  *
  * Deletes the Session row, clears the cookie, then sends the user back to the
  * login page — or through Microsoft first, if that is where the session came from.
  *
- * GET rather than POST to match the legacy route and because the OAuth
- * post-logout leg is a browser redirect. The header uses a plain <a>, not
- * <Link>, so Next never prefetches this and logs the user out on hover.
+ * POST closes the forced-logout gap from the security review: with the session
+ * cookie at SameSite=Lax, a cross-site top-level GET navigation can still send
+ * the cookie, while a cross-site POST cannot. The provider logout leg remains a
+ * redirect after the local session has already been cleared.
  */
-export async function GET(request: Request): Promise<NextResponse> {
+export async function POST(request: Request): Promise<NextResponse> {
   // Read who is leaving before the session row is gone — afterwards there is no
   // way to attribute the entry.
   const user = await getSessionUser();
@@ -39,5 +40,16 @@ export async function GET(request: Request): Promise<NextResponse> {
 
   const microsoftLogout = new URL(endSessionUrl);
   microsoftLogout.searchParams.set("post_logout_redirect_uri", postLogout);
+  // Without a hint Microsoft shows an account picker when the browser holds
+  // more than one Entra session — it cannot tell which one this app used.
+  // The email (always @cmu.ac.th, D21) identifies it and skips that page.
+  if (user) microsoftLogout.searchParams.set("logout_hint", user.email);
   return NextResponse.redirect(microsoftLogout);
+}
+
+export function GET(): NextResponse {
+  return new NextResponse("Method Not Allowed", {
+    status: 405,
+    headers: { Allow: "POST" },
+  });
 }
