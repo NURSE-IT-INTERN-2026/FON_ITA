@@ -8,7 +8,11 @@ import { SESSION_COOKIE_PATH, SESSION_COOKIE_SAMESITE } from "@/lib/auth/session
 // can feed their own authorization code to the callback and sign the victim
 // into the attacker's account.
 
-const OAUTH_STATE_COOKIE = "oauth_state";
+// Prefixed because cookies are host-scoped, not port-scoped: another app on
+// localhost (e.g. research_tools) plants `oauth_state` at path=/, and Next.js
+// resolves duplicate cookie names last-wins — the foreign path=/ cookie would
+// shadow ours and every CMU login would die with oauth_state_mismatch.
+const OAUTH_STATE_COOKIE = "fonita_oauth_state";
 
 // 10 minutes — long enough to finish a Microsoft login, short enough that an
 // abandoned attempt cannot be replayed later.

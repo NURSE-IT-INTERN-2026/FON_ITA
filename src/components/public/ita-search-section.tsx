@@ -152,12 +152,19 @@ export function ItaSearchSection({ canManage }: { canManage: boolean }) {
         </div>
 
         <Select
-          value={year ?? undefined}
+          // "" (not undefined) so the select is controlled from the first
+          // render — Radix shows the placeholder for "" either way, and
+          // undefined → "2569" once data lands is what triggers React's
+          // uncontrolled-to-controlled warning.
+          value={year ?? ""}
           disabled={years.length === 0}
           onValueChange={(next) => {
             // No basePath — router.push prepends it. Stays on this page; the
-            // effect above sees the new ?year= and fetches it.
-            router.push(`/?year=${next}`);
+            // effect above sees the new ?year= and fetches it. scroll:false
+            // keeps the viewport on the ITA section — the reader is already
+            // looking at it, jumping to the top would just make them scroll
+            // back down.
+            router.push(`/?year=${next}`, { scroll: false });
           }}
         >
           <SelectTrigger className="h-9 w-full shrink-0 sm:w-40" aria-label="เลือกปี พ.ศ.">

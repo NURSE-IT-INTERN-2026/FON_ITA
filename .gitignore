@@ -50,6 +50,9 @@ next-env.d.ts
 /_migration/
 /_to-migrate/
 
+# โปรเจกต์อื่นที่คัดลอกมาไว้อ้างอิงชั่วคราว (whole separate app — never part of this repo)
+/research_tools/
+
 # dev tooling (AI agent guidance, Claude Code settings — not for production)
 /.agents/
 /.claude/
