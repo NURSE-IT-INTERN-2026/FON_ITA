@@ -101,40 +101,7 @@ export default async function PublicApiPage() {
               </ul>
           </WarmSectionCard>
 
-          <WarmSectionCard title="เอกสารอ้างอิง" contentClassName="text-sm">
-              <ul className="ml-4 list-disc space-y-1">
-                <li>
-                  <Link
-                    href="/docs/specs/spec.md"
-                    target="_blank"
-                    className="text-primary hover:underline"
-                  >
-                    docs/specs/spec.md
-                  </Link>
-                  <span className="text-muted-foreground"> — ภาพรวมความต้องการและเงื่อนไขของระบบ</span>
-                </li>
-                <li>
-                  <Link
-                    href="/docs/chapters/05-public-api.md"
-                    target="_blank"
-                    className="text-primary hover:underline"
-                  >
-                    docs/chapters/05-public-api.md
-                  </Link>
-                  <span className="text-muted-foreground"> — สัญญาแช่แข็ง รายละเอียดครบทุก field</span>
-                </li>
-                <li>
-                  <Link
-                    href="/docs/others/knowledge/api-explained.html"
-                    target="_blank"
-                    className="text-primary hover:underline"
-                  >
-                    others/knowledge/api-explained.html
-                  </Link>
-                  <span className="text-muted-foreground"> — คำอธิบายเชิงระบบ สำหรับเจ้าหน้าที่</span>
-                </li>
-              </ul>
-          </WarmSectionCard>
+          
         </div>
 
         <WarmSectionCard

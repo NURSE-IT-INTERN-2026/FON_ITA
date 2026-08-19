@@ -38,7 +38,7 @@ export default async function HomePage() {
       <section className="mx-auto w-full max-w-5xl space-y-5 px-1 sm:px-0">
         <header className="space-y-3 border-b border-stone-200 pb-5 dark:border-border/70">
           <p className="text-xs font-semibold uppercase tracking-[0.26em] text-warm sm:text-sm">
-            Faculty of Nursing CMU
+            Faculty of Nursing Chiang Mai University
           </p>
           <h1 className="text-2xl font-bold tracking-tight text-warm-strong dark:text-warm sm:text-3xl lg:text-[2rem]">
             ระบบข้อมูลสาธารณะ
