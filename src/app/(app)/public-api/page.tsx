@@ -1,7 +1,6 @@
 import { Globe2, ShieldCheck, Webhook } from "lucide-react";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
-import Link from "next/link";
 import { PageHeader } from "@/components/shell/page-header";
 import {
   WarmMetricCard,

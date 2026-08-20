@@ -64,6 +64,7 @@ export function ActivityLogClient({
   const grandTotal = counts.reduce((sum, item) => sum + item.count, 0);
   const filtered = Boolean(action || actorId || category || query || from || to);
   const [searchText, setSearchText] = useState(query ?? "");
+  const [prevQuery, setPrevQuery] = useState(query);
   const [actorPickerOpen, setActorPickerOpen] = useState(false);
   const [actorSearch, setActorSearch] = useState("");
   const actorPickerRef = useRef<HTMLDivElement | null>(null);
@@ -75,9 +76,14 @@ export function ActivityLogClient({
     return item.actorName.toLocaleLowerCase("th").includes(term);
   });
 
-  useEffect(() => {
+  // Sync the typing buffer when the URL's ?q= changes from outside this input
+  // (browser back/forward, clearing a filter chip). React's sanctioned
+  // adjust-state-during-render pattern — setState during render re-renders
+  // immediately without committing, unlike an effect which cascades.
+  if (query !== prevQuery) {
+    setPrevQuery(query);
     setSearchText(query ?? "");
-  }, [query]);
+  }
 
   useEffect(() => {
     function onPointerDown(event: MouseEvent) {
