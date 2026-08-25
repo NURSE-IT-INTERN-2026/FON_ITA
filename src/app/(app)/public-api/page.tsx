@@ -10,7 +10,7 @@ import { requireRole } from "@/lib/auth/guards";
 import { BASE_PATH } from "@/lib/base-path";
 import { currentBEYear } from "@/lib/date";
 
-export const metadata: Metadata = { title: "API ขาออก — FON-ITA" };
+export const metadata: Metadata = { title: "API สาธารณะ — FON-ITA" };
 
 /**
  * Internal reference for ADMIN+ showing what the Public API exposes — endpoints,
@@ -31,8 +31,8 @@ export default async function PublicApiPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="API ขาออก"
-        breadcrumb={[{ label: "หน้าแรก", href: "/" }, { label: "API ขาออก" }]}
+        title="API สาธารณะ"
+        breadcrumb={[{ label: "หน้าแรก", href: "/" }, { label: "API สาธารณะ" }]}
         description="ข้อมูลอ้างอิงสำหรับ endpoint สาธารณะที่เว็บหลักใช้ดึงข้อมูลไปแสดง"
         variant="featured"
       />
