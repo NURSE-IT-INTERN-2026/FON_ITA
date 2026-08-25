@@ -1,4 +1,4 @@
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ChevronDown } from "lucide-react";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
@@ -99,12 +99,22 @@ export default async function LoginPage({
               <span className="h-px flex-1 bg-border" />
             </div>
 
-            <div className="space-y-3">
-              <p className="text-center text-xs text-muted-foreground">
+            {/* The fallback channel stays folded away: nobody should reach for
+                it unless CMU OAuth is down, and an open form invites people to
+                type credentials they were never given (D7). Native <details>
+                keeps this a Server Component — same pattern as D22. */}
+            <details className="group">
+              <summary className="flex cursor-pointer list-none flex-col items-center gap-0.5 text-center text-xs text-muted-foreground hover:text-foreground [&::-webkit-details-marker]:hidden">
                 เข้าสู่ระบบด้วยอีเมลและรหัสผ่าน — สำหรับกรณีบัญชี CMU ใช้งานไม่ได้
-              </p>
-              <LoginForm next={next} />
-            </div>
+                <ChevronDown
+                  className="size-3.5 shrink-0 transition-transform group-open:rotate-180"
+                  aria-hidden
+                />
+              </summary>
+              <div className="space-y-3 pt-3">
+                <LoginForm next={next} />
+              </div>
+            </details>
           </CardContent>
         </Card>
 
