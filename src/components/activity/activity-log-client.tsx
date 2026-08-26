@@ -16,7 +16,6 @@ import {
 } from "@/components/ui/select";
 import type { AppRole } from "@/generated/prisma/enums";
 import type { ActivityCategory } from "@/lib/activity/meta";
-import { formatBEDate } from "@/lib/date";
 import { ACTIVITY_CATEGORIES, categoryLabel, getActivityMeta } from "@/lib/activity/meta";
 import { cn } from "@/lib/utils";
 
@@ -174,54 +173,6 @@ export function ActivityLogClient({
     if (searchTimer.current) clearTimeout(searchTimer.current);
     searchTimer.current = setTimeout(() => commitSearch(next), DEBOUNCE_MS);
   }
-
-  const activeFilters = [
-    query
-      ? {
-          key: "query",
-          label: `คำค้น: ${query}`,
-          onClear: () => {
-            setSearchText("");
-            pushFilters({ action, actorId, category, query: undefined, from, to });
-          },
-        }
-      : null,
-    action
-      ? {
-          key: "action",
-          label: `กิจกรรม: ${getActivityMeta(action).label}`,
-          onClear: () => pushFilters({ action: undefined, actorId, category, query, from, to }),
-        }
-      : null,
-    category
-      ? {
-          key: "category",
-          label: `หมวด: ${categoryLabel(category)}`,
-          onClear: () => pushFilters({ action, actorId, category: undefined, query, from, to }),
-        }
-      : null,
-    selectedActor
-      ? {
-          key: "actor",
-          label: `ผู้ใช้: ${selectedActor.actorName}`,
-          onClear: () => pushFilters({ action, actorId: undefined, category, query, from, to }),
-        }
-      : null,
-    from
-      ? {
-          key: "from",
-          label: `จาก: ${formatBEDate(from)}`,
-          onClear: () => pushFilters({ action, actorId, category, query, from: undefined, to }),
-        }
-      : null,
-    to
-      ? {
-          key: "to",
-          label: `ถึง: ${formatBEDate(to)}`,
-          onClear: () => pushFilters({ action, actorId, category, query, from, to: undefined }),
-        }
-      : null,
-  ].filter(Boolean) as Array<{ key: string; label: string; onClear: () => void }>;
 
   return (
     <div className="space-y-6">
@@ -503,22 +454,6 @@ export function ActivityLogClient({
           <p className="text-xs text-muted-foreground">
             แสดงหมวด <span className="font-medium text-foreground">{categoryLabel(category)}</span>
           </p>
-        ) : null}
-
-        {activeFilters.length > 0 ? (
-          <div className="flex flex-wrap gap-2 border-t pt-4">
-            {activeFilters.map((item) => (
-              <button
-                key={item.key}
-                type="button"
-                onClick={item.onClear}
-                className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/40 px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
-              >
-                <span>{item.label}</span>
-                <X className="size-3.5 text-muted-foreground" aria-hidden />
-              </button>
-            ))}
-          </div>
         ) : null}
 
         {filtered ? (
