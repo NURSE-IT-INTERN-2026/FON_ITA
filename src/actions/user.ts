@@ -7,6 +7,7 @@ import { FORBIDDEN_MESSAGE } from "@/lib/auth/errors";
 import { requireUser } from "@/lib/auth/guards";
 import { hashPassword } from "@/lib/auth/password";
 import { revokeAllSessions } from "@/lib/auth/session";
+import { roleLabel } from "@/components/misc/role-badge";
 import { prisma } from "@/lib/prisma";
 import { countActiveSuperadmins } from "@/lib/users/queries";
 
@@ -173,7 +174,9 @@ export async function createUser(formData: FormData): Promise<UserActionState> {
     target: `${firstname} ${lastname}`.trim(),
     detail: [
       created.email,
-      role,
+      // Thai label, not the enum: this line is what the activity log shows the
+      // person, and "ADMIN" reads as noise next to everything else being Thai.
+      roleLabel(role),
       created.mustResetPassword ? "บังคับตั้งรหัสผ่านใหม่เมื่อเข้าใช้" : null,
     ]
       .filter(Boolean)
@@ -245,7 +248,7 @@ export async function updateUser(formData: FormData): Promise<UserActionState> {
   await logActivity(actor, "user.update", {
     target: `${firstname} ${lastname}`.trim(),
     detail: [
-      target.role !== role ? `บทบาท ${target.role} → ${role}` : null,
+      target.role !== role ? `บทบาท ${roleLabel(target.role)} → ${roleLabel(role)}` : null,
       password ? "ตั้งรหัสผ่านใหม่ (ออกจากระบบทุกอุปกรณ์)" : null,
       password && mustReset ? "บังคับตั้งรหัสผ่านใหม่เมื่อเข้าใช้" : null,
     ]

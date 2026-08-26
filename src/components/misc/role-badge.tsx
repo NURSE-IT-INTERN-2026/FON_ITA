@@ -8,6 +8,11 @@ const LABELS: Record<AppRole, string> = {
   USER: "ผู้ใช้ทั่วไป",
 };
 
+/** Thai label alone, for plain-text contexts such as activity-log details. */
+export function roleLabel(role: AppRole): string {
+  return LABELS[role];
+}
+
 const STYLES: Record<AppRole, string> = {
   SUPERADMIN: "bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300",
   ADMIN: "bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300",

@@ -564,9 +564,13 @@ export function ActivityLogClient({
 
                   <div className="min-w-0 flex-1 space-y-1">
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+                      {/* Badge belongs to the ACTOR, so it sits on their name.
+                          After the action label it read as the object —
+                          "เพิ่มผู้ใช้ ผู้ดูแลสูงสุด" looked like the created
+                          account's role instead of the operator's. */}
                       <span className="font-semibold text-foreground">{entry.actorName}</span>
-                      <span className="text-foreground">{meta.label}</span>
                       <RoleBadge role={entry.actorRole} />
+                      <span className="text-foreground">{meta.label}</span>
                     </div>
 
                     {entry.target ? (
