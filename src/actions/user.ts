@@ -5,7 +5,7 @@ import { z } from "zod";
 import { logActivity } from "@/lib/activity/log";
 import { FORBIDDEN_MESSAGE } from "@/lib/auth/errors";
 import { requireUser } from "@/lib/auth/guards";
-import { hashPassword, verifyPassword } from "@/lib/auth/password";
+import { hashPassword } from "@/lib/auth/password";
 import { revokeAllSessions } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import { countActiveSuperadmins } from "@/lib/users/queries";
@@ -99,11 +99,6 @@ const updateSchema = z.object({
   // Blank means "leave the current password alone".
   password: passwordField,
   mustReset: z.boolean(),
-  /**
-   * The signed-in SUPERADMIN's OWN password, re-entered. Only read when
-   * `password` is non-empty — see the guard in updateUser().
-   */
-  actorPassword: z.string(),
 });
 
 const idSchema = z.object({ id: z.coerce.number().int().positive() });
@@ -113,36 +108,6 @@ async function requireSuperadmin() {
   return user.role === "SUPERADMIN" ? user : null;
 }
 
-/**
- * Re-prove who is at the keyboard before an edit that HANDS OUT ACCESS (D23).
- *
- * Holding a session is enough for ordinary edits. It is not enough for these,
- * because an unlocked screen is all it otherwise takes to give yourself a way
- * back in after the real operator walks away — a password you know, or a
- * SUPERADMIN account of your own.
- *
- * Returns an error message, or null when the caller may proceed.
- */
-async function confirmActorIdentity(
-  actorId: number,
-  actorPassword: string,
-): Promise<string | null> {
-  const me = await prisma.user.findUnique({
-    where: { id: actorId },
-    select: { password: true },
-  });
-
-  // Nothing to check against. Refusing is the honest outcome: the point of this
-  // step is proof, and a session alone is exactly what it declines to trust.
-  if (!me?.password) {
-    return "บัญชีของคุณไม่มีรหัสผ่านจึงยืนยันตัวตนไม่ได้ — ตั้งรหัสผ่านของคุณเองที่หน้าโปรไฟล์ก่อน";
-  }
-  if (!(await verifyPassword(actorPassword, me.password))) {
-    return "รหัสผ่านของคุณไม่ถูกต้อง";
-  }
-  return null;
-}
-
 function fields(formData: FormData) {
   return {
     prefix: (formData.get("prefix") as string | null)?.trim() || undefined,
@@ -150,7 +115,6 @@ function fields(formData: FormData) {
     lastname: formData.get("lastname"),
     role: formData.get("role"),
     password: (formData.get("password") as string | null) ?? "",
-    actorPassword: (formData.get("actorPassword") as string | null) ?? "",
     // An unchecked checkbox sends nothing at all, so absence is the "false".
     mustReset: formData.get("mustReset") === "on",
   };
@@ -166,8 +130,8 @@ export async function createUser(formData: FormData): Promise<UserActionState> {
   const { email, password, prefix, firstname, lastname, role, mustReset } = parsed.data;
 
   // No identity confirmation on create (D23, amended 26 ส.ค. 2569): a brand-new
-  // account hands the operator nothing they did not already control. The edit
-  // path still confirms — see updateUser().
+  // account hands the operator nothing they did not already control — and the
+  // same amendment later dropped the confirmation from the edit path too.
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) return { error: "มีบัญชีที่ใช้อีเมลนี้อยู่แล้ว" };
 
@@ -227,8 +191,7 @@ export async function updateUser(formData: FormData): Promise<UserActionState> {
   const parsed = updateSchema.safeParse({ ...fields(formData), id: formData.get("id") });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "ข้อมูลไม่ถูกต้อง" };
 
-  const { id, prefix, firstname, lastname, role, password, mustReset, actorPassword } =
-    parsed.data;
+  const { id, prefix, firstname, lastname, role, password, mustReset } = parsed.data;
 
   const target = await prisma.user.findUnique({ where: { id } });
   if (!target) return { error: "ไม่พบบัญชีที่ต้องการแก้ไข" };
@@ -246,15 +209,9 @@ export async function updateUser(formData: FormData): Promise<UserActionState> {
     };
   }
 
-  // Same rule as createUser (D23): confirm for what the edit hands out. Promotion
-  // counts — it is how someone at an unlocked screen keeps their access.
-  // Re-saving a row that is ALREADY SUPERADMIN grants nothing, so it does not ask.
-  const promotes = role === "SUPERADMIN" && target.role !== "SUPERADMIN";
-  if (password || promotes) {
-    const denied = await confirmActorIdentity(actor.id, actorPassword);
-    if (denied) return { error: denied };
-  }
-
+  // No actor confirmation (D23, fully repealed 26 ส.ค. 2569): SUPERADMIN already
+  // holds the highest privilege, so re-proving it proves nothing new — the
+  // activity log records who made the change instead.
   const losingSuperadmin = target.role === "SUPERADMIN" && role !== "SUPERADMIN";
 
   // Changing your own role is refused outright: it is the one edit that can
@@ -289,7 +246,7 @@ export async function updateUser(formData: FormData): Promise<UserActionState> {
     target: `${firstname} ${lastname}`.trim(),
     detail: [
       target.role !== role ? `บทบาท ${target.role} → ${role}` : null,
-      password ? "ตั้งรหัสผ่านใหม่ (ออกจากระบบทุกอุปกรณ์ · ยืนยันรหัสผ่านผู้ดำเนินการแล้ว)" : null,
+      password ? "ตั้งรหัสผ่านใหม่ (ออกจากระบบทุกอุปกรณ์)" : null,
       password && mustReset ? "บังคับตั้งรหัสผ่านใหม่เมื่อเข้าใช้" : null,
     ]
       .filter(Boolean)
@@ -359,9 +316,8 @@ export async function restoreUser(formData: FormData): Promise<UserActionState> 
  * the uploader — and its audit-log rows keep their recorded text with `actorId`
  * nulled.
  *
- * No D23 password confirmation: unlike setting a password or promoting, a
- * delete takes access away instead of handing it out. The confirmation dialog
- * on the button is the guard against a slip.
+ * No password confirmation (D23, fully repealed 26 ส.ค. 2569): the confirmation
+ * dialog on the button is the guard against a slip.
  */
 export async function deleteUser(formData: FormData): Promise<UserActionState> {
   const actor = await requireSuperadmin();

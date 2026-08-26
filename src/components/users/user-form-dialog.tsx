@@ -16,7 +16,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PasswordInput } from "@/components/ui/password-input";
 import { PrefixSelect } from "@/components/users/prefix-select";
 import {
   Select,
@@ -90,10 +89,7 @@ function PasswordField({
   label: string;
   placeholder: string;
   hint: string;
-  /**
-   * Owned by the dialog, not this component: whether to ask the operator to
-   * confirm depends on the role as well (D23), and that lives up there.
-   */
+  /** Owned by the dialog so it stays uncontrolled in here but resets on close. */
   value: string;
   onValueChange: (value: string) => void;
 }) {
@@ -185,30 +181,6 @@ function PasswordField({
   );
 }
 
-/**
- * "Confirm with your own password", shown when the edit hands out access (D23).
- *
- * Lives outside the folded password block: granting SUPERADMIN triggers it too,
- * and that decision is made in the role dropdown, which is always visible.
- * The Server Action re-checks — this field is the prompt, not the guard.
- */
-function ActorConfirmField({ reason }: { reason: string }) {
-  return (
-    <div className="space-y-1.5 rounded-md border border-destructive/30 bg-destructive/5 p-3">
-      <Label htmlFor="actor-password" className="text-xs">
-        ยืนยันด้วยรหัสผ่านของคุณ <span className="text-destructive">*</span>
-      </Label>
-      <PasswordInput
-        id="actor-password"
-        name="actorPassword"
-        autoComplete="current-password"
-        placeholder="รหัสผ่านของบัญชีที่คุณกำลังใช้อยู่"
-      />
-      <p className="text-[11px] text-muted-foreground">{reason}</p>
-    </div>
-  );
-}
-
 function UserFormDialog({
   open,
   onOpenChange,
@@ -222,16 +194,10 @@ function UserFormDialog({
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  // Both feed the same question: does this save hand out access? (D23)
+  // `password` decides whether the mustReset checkbox shows; `role` drives the
+  // Select. Neither gates anything else anymore (D23 repealed).
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<AppRole>(user?.role ?? "ADMIN");
-
-  // Re-saving a row that is already SUPERADMIN grants nothing new, so it does
-  // not ask — mirrors the `promotes` check in updateUser().
-  const promotes = role === "SUPERADMIN" && user?.role !== "SUPERADMIN";
-  const confirmReason = password
-    ? "การตั้งรหัสผ่านให้บัญชีนี้เท่ากับเข้าถึงบัญชีนั้นได้ — ระบบจึงขอยืนยันว่าเป็นคุณจริง"
-    : "การให้สิทธิ์ผู้ดูแลสูงสุดเท่ากับให้จัดการผู้ใช้ทุกคนได้ — ระบบจึงขอยืนยันว่าเป็นคุณจริง";
 
   /**
    * onSubmit, deliberately not `<form action={...}>`.
@@ -263,8 +229,8 @@ function UserFormDialog({
       open={open}
       onOpenChange={(next) => {
         // The `key` on <form> remounts the inputs, but this state sits above it
-        // and would otherwise survive a close — reopening would show the confirm
-        // box for a password the person can no longer see.
+        // and would otherwise survive a close — reopening would carry a stale
+        // password and role over from the previous session.
         if (!next) {
           setError(null);
           setPassword("");
@@ -410,13 +376,6 @@ function UserFormDialog({
               }
             />
           </details>
-
-          {/* Create asks nothing (D23, amended 26 ส.ค. 2569) — a brand-new
-              account hands the operator nothing. Only an edit that grants a
-              password or SUPERADMIN does. */}
-          {editMode && (password !== "" || promotes) && (
-            <ActorConfirmField reason={confirmReason} />
-          )}
 
           {error && (
             <p
