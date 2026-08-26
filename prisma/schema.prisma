@@ -140,7 +140,9 @@ model Oit {
 /// คลังไฟล์กลาง (legacy table: ita_files)
 model ItaFile {
   id     Int    @id @default(autoincrement())
-  userId Int    @map("user_id")
+  /// Null once the uploader's account is deleted (D26) — the file stays in the
+  /// library; who uploaded it survives in `createdBy` below.
+  userId Int?   @map("user_id")
   /// uploader's display name, denormalized in the legacy schema — column is camelCase there
   createdBy String @map("createdBy")
   /// user-facing file name, unique across the library
@@ -151,7 +153,7 @@ model ItaFile {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  user User @relation(fields: [userId], references: [id])
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@map("ita_files")

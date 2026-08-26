@@ -9,8 +9,10 @@ export type FileRow = {
   id: number;
   name: string;
   path: string;
-  /** uploader — decides who sees the delete button (D5) */
-  userId: number;
+  /** uploader — decides who sees the delete button (D5). Null once the
+      uploader's account has been deleted (D26); the display name survives in
+      `createdBy`. */
+  userId: number | null;
   createdBy: string;
   createdAt: Date;
 };

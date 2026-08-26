@@ -411,7 +411,12 @@ function UserFormDialog({
             />
           </details>
 
-          {(password !== "" || promotes) && <ActorConfirmField reason={confirmReason} />}
+          {/* Create asks nothing (D23, amended 26 ส.ค. 2569) — a brand-new
+              account hands the operator nothing. Only an edit that grants a
+              password or SUPERADMIN does. */}
+          {editMode && (password !== "" || promotes) && (
+            <ActorConfirmField reason={confirmReason} />
+          )}
 
           {error && (
             <p

@@ -20,8 +20,11 @@ import { countActiveSuperadmins } from "@/lib/users/queries";
 //   • New accounts are ADMIN or SUPERADMIN only. USER exists in the enum for
 //     legacy rows (D12) and is offered only when editing an account that is
 //     already USER — never as a way to create one.
-//   • "Deleting" is disabling (`status = false`). ItaFile rows reference users,
-//     and an upload's history should survive the uploader leaving.
+//   • Disabling (`status = false`) is the reversible way to retire an account.
+//     Hard delete (deleteUser, D26) exists for rows that should be gone for
+//     good: files it uploaded stay in the library (`userId` → null, `createdBy`
+//     keeps the name), audit-log rows keep their recorded text (`actorId` →
+//     null), and its sessions go with it.
 
 export type UserActionState = { error?: string };
 
@@ -85,8 +88,6 @@ const createSchema = z.object({
   role: createRoleField,
   password: passwordField,
   mustReset: z.boolean(),
-  /** See updateSchema — only read when the edit hands out access (D23). */
-  actorPassword: z.string(),
 });
 
 const updateSchema = z.object({
@@ -162,24 +163,11 @@ export async function createUser(formData: FormData): Promise<UserActionState> {
   const parsed = createSchema.safeParse({ ...fields(formData), email: formData.get("email") });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "ข้อมูลไม่ถูกต้อง" };
 
-  const { email, password, prefix, firstname, lastname, role, mustReset, actorPassword } =
-    parsed.data;
+  const { email, password, prefix, firstname, lastname, role, mustReset } = parsed.data;
 
-  // Confirm identity for what this hands out, not for the act of creating (D23).
-  //
-  //   • a password    → a way in that does not need the person's CMU account
-  //   • SUPERADMIN    → the ability to do all of this again, tomorrow
-  //
-  // Creating an ordinary ADMIN with no password stays friction-free: that account
-  // can only be entered through CMU OAuth, by the one person who owns that CMU
-  // identity — which is also what makes it traceable. Requiring a password there
-  // would lock out any SUPERADMIN who signs in through CMU only, and adding
-  // colleagues is the core job of the role.
-  if (password || role === "SUPERADMIN") {
-    const denied = await confirmActorIdentity(actor.id, actorPassword);
-    if (denied) return { error: denied };
-  }
-
+  // No identity confirmation on create (D23, amended 26 ส.ค. 2569): a brand-new
+  // account hands the operator nothing they did not already control. The edit
+  // path still confirms — see updateUser().
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) return { error: "มีบัญชีที่ใช้อีเมลนี้อยู่แล้ว" };
 
@@ -357,6 +345,42 @@ export async function restoreUser(formData: FormData): Promise<UserActionState> 
   await prisma.user.update({ where: { id: target.id }, data: { status: true } });
 
   await logActivity(actor, "user.restore", {
+    target: `${target.firstname} ${target.lastname}`.trim(),
+    detail: target.email,
+  });
+
+  revalidatePath("/user-management");
+  return {};
+}
+
+/**
+ * Hard-delete an account (D26). Sessions go with it (FK cascade); files it
+ * uploaded stay in the library with `userId` nulled — `createdBy` still names
+ * the uploader — and its audit-log rows keep their recorded text with `actorId`
+ * nulled.
+ *
+ * No D23 password confirmation: unlike setting a password or promoting, a
+ * delete takes access away instead of handing it out. The confirmation dialog
+ * on the button is the guard against a slip.
+ */
+export async function deleteUser(formData: FormData): Promise<UserActionState> {
+  const actor = await requireSuperadmin();
+  if (!actor) return { error: FORBIDDEN_MESSAGE };
+
+  const parsed = idSchema.safeParse({ id: formData.get("id") });
+  if (!parsed.success) return { error: "คำขอไม่ถูกต้อง" };
+
+  const target = await prisma.user.findUnique({ where: { id: parsed.data.id } });
+  if (!target) return { error: "ไม่พบบัญชีที่ต้องการลบ" };
+  if (target.id === actor.id) return { error: "ลบบัญชีของตนเองไม่ได้" };
+
+  if (target.role === "SUPERADMIN" && target.status && (await countActiveSuperadmins()) <= 1) {
+    return { error: "ต้องมีผู้ดูแลสูงสุดที่ใช้งานได้อย่างน้อย 1 บัญชี" };
+  }
+
+  await prisma.user.delete({ where: { id: target.id } });
+
+  await logActivity(actor, "user.delete", {
     target: `${target.firstname} ${target.lastname}`.trim(),
     detail: target.email,
   });

@@ -1,6 +1,6 @@
 "use client";
 
-import { KeyRound, Save, User as UserIcon } from "lucide-react";
+import { BadgeCheck, KeyRound, Save, User as UserIcon } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { changePassword, updateProfile } from "@/actions/profile";
@@ -21,9 +21,12 @@ type Props = {
   lastname: string;
   /** false = CMU-only account, which is setting a password rather than changing one. */
   hasPassword: boolean;
+  /** This session was signed in through CMU OAuth (D27) — Microsoft proved who
+      is here, so the "current password" field is not asked for. */
+  cmuVerified: boolean;
 };
 
-export function ProfileForms({ prefix, firstname, lastname, hasPassword }: Props) {
+export function ProfileForms({ prefix, firstname, lastname, hasPassword, cmuVerified }: Props) {
   return (
     <Tabs defaultValue="profile" className="max-w-2xl">
       <TabsList className="border border-warm/15 bg-warm-soft/70 dark:border-warm/20 dark:bg-warm/10">
@@ -42,7 +45,7 @@ export function ProfileForms({ prefix, firstname, lastname, hasPassword }: Props
       </TabsContent>
 
       <TabsContent value="password">
-        <PasswordForm hasPassword={hasPassword} />
+        <PasswordForm hasPassword={hasPassword} cmuVerified={cmuVerified} />
       </TabsContent>
     </Tabs>
   );
@@ -58,7 +61,7 @@ function FormError({ message }: { message: string | null }) {
   );
 }
 
-function ProfileForm({ prefix, firstname, lastname }: Omit<Props, "hasPassword">) {
+function ProfileForm({ prefix, firstname, lastname }: Omit<Props, "hasPassword" | "cmuVerified">) {
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -132,7 +135,7 @@ function ProfileForm({ prefix, firstname, lastname }: Omit<Props, "hasPassword">
   );
 }
 
-function PasswordForm({ hasPassword }: { hasPassword: boolean }) {
+function PasswordForm({ hasPassword, cmuVerified }: { hasPassword: boolean; cmuVerified: boolean }) {
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   // Bumped after a success to remount the form, which clears the three fields
@@ -168,7 +171,20 @@ function PasswordForm({ hasPassword }: { hasPassword: boolean }) {
       contentClassName="space-y-4"
     >
       <form key={formKey} onSubmit={submit} className="space-y-4">
-        {hasPassword && (
+        {hasPassword && cmuVerified && (
+          // The Server Action re-checks this — the note is the prompt, not the guard.
+          <p className="rounded-md border border-primary/25 bg-primary/5 px-3 py-2 text-sm">
+            <span className="inline-flex items-center gap-1.5 font-medium">
+              <BadgeCheck className="size-4 text-primary" aria-hidden />
+              ยืนยันตัวตนด้วยบัญชี CMU แล้ว
+            </span>
+            <span className="mt-0.5 block text-xs text-muted-foreground">
+              คุณล็อกอินด้วยบัญชี CMU อยู่ — ไม่ต้องกรอกรหัสผ่านปัจจุบัน
+            </span>
+          </p>
+        )}
+
+        {hasPassword && !cmuVerified && (
           <div className="space-y-1.5">
             <Label htmlFor="password-current">
               รหัสผ่านปัจจุบัน <span className="text-destructive">*</span>
@@ -179,6 +195,10 @@ function PasswordForm({ hasPassword }: { hasPassword: boolean }) {
               autoComplete="current-password"
               required
             />
+            <p className="text-xs text-muted-foreground">
+              ลืมรหัสผ่านปัจจุบัน? ออกจากระบบแล้วล็อกอินกลับด้วยปุ่มบัญชี CMU —
+              กลับมาหน้านี้ใหม่จะตั้งรหัสผ่านใหม่ได้โดยไม่ต้องใช้รหัสเก่า
+            </p>
           </div>
         )}
 

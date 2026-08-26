@@ -38,6 +38,9 @@ export default async function ProfilePage() {
         firstname={user.firstname}
         lastname={user.lastname}
         hasPassword={account?.password != null}
+        // A session signed in through CMU replaces the "current password" field
+        // (D27) — the forgot-password path without any email infrastructure.
+        cmuVerified={user.loginMethod === "CMU_OAUTH"}
       />
     </div>
   );

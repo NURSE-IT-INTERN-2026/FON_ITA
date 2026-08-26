@@ -5,6 +5,7 @@ import { RoleBadge } from "@/components/misc/role-badge";
 import { PageHeader } from "@/components/shell/page-header";
 import { WarmTableHead, WarmTableSurface } from "@/components/shell/surfaces";
 import { UserCreateButton, UserEditButton } from "@/components/users/user-form-dialog";
+import { UserDeleteButton } from "@/components/users/user-delete-button";
 import { UserStatusSwitch } from "@/components/users/user-status-switch";
 import {
   Table,
@@ -84,7 +85,7 @@ export default async function UserManagementPage() {
                     />
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex justify-end">
+                    <div className="flex justify-end gap-1">
                       <UserEditButton
                         user={{
                           id: user.id,
@@ -96,6 +97,12 @@ export default async function UserManagementPage() {
                           hasPassword: user.hasPassword,
                           isSelf: user.id === actor.id,
                         }}
+                      />
+                      <UserDeleteButton
+                        userId={user.id}
+                        name={`${user.firstname} ${user.lastname}`.trim()}
+                        email={user.email}
+                        isSelf={user.id === actor.id}
                       />
                     </div>
                   </TableCell>

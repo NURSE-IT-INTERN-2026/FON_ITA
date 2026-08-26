@@ -34,7 +34,8 @@ const profileSchema = z.object({
 const passwordSchema = z
   .object({
     // Blank is allowed here and rejected below only when the account has a
-    // password to check against — a CMU-only account is setting its first one.
+    // password to check against — a CMU-only account is setting its first one,
+    // and a CMU-login session stands in for the password (D27).
     current: z.string(),
     next: z
       .string()
@@ -117,7 +118,12 @@ export async function changePassword(formData: FormData): Promise<ProfileActionS
   // A CMU-only account has nothing to verify against and is setting its first
   // password. Whoever is asking already holds a valid session for the account,
   // which is the same level of proof the current-password check provides.
-  if (hadPassword && !(await verifyPassword(current, row.password))) {
+  //
+  // The other way past the check (D27): a session signed in through CMU OAuth.
+  // Microsoft authenticated the account owner to start it, which is exactly
+  // what the forgotten current password cannot prove.
+  const cmuVerified = user.loginMethod === "CMU_OAUTH";
+  if (hadPassword && !cmuVerified && !(await verifyPassword(current, row.password))) {
     return { error: "รหัสผ่านปัจจุบันไม่ถูกต้อง" };
   }
 
@@ -138,7 +144,11 @@ export async function changePassword(formData: FormData): Promise<ProfileActionS
   await createSession(user.id, loginMethod);
 
   await logActivity(user, "profile.password_change", {
-    detail: hadPassword ? "ออกจากระบบอุปกรณ์อื่นทั้งหมด" : "ตั้งรหัสผ่านครั้งแรก",
+    detail: hadPassword
+      ? cmuVerified && current === ""
+        ? "ยืนยันตัวตนด้วยบัญชี CMU · ออกจากระบบอุปกรณ์อื่นทั้งหมด"
+        : "ออกจากระบบอุปกรณ์อื่นทั้งหมด"
+      : "ตั้งรหัสผ่านครั้งแรก",
   });
 
   return {};

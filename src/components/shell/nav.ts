@@ -33,7 +33,7 @@ export const NAV_LINKS: NavLink[] = [
   { href: "/ita-list", label: "รายการ ITA", icon: ListChecks, roles: ["ADMIN", "SUPERADMIN"] },
   { href: "/ita-file", label: "คลังไฟล์", icon: FolderOpen, roles: ["ADMIN", "SUPERADMIN"] },
   { href: "/user-management", label: "จัดการผู้ใช้", icon: Users, roles: ["SUPERADMIN"] },
-  { href: "/public-api", label: "API สาธารณะ", icon: Webhook, roles: ["ADMIN", "SUPERADMIN"] },
+  { href: "/public-api", label: "API สาธารณะ", icon: Webhook, roles: ["SUPERADMIN"] },
   { href: "/activity-log", label: "บันทึกกิจกรรม", icon: History, roles: ["SUPERADMIN"] },
 ];
 
