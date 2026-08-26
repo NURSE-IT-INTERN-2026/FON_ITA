@@ -106,6 +106,9 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
  *
  * Deleting only the cookie would leave a working session for anyone who copied
  * it. Server Action / Route Handler only, same as `createSession`.
+ *
+ * The Microsoft/Entra session is NOT cleared — logout is local-only (D25,
+ * amended 26 ส.ค. 2569). The returned method only feeds the activity log.
  */
 export async function clearSession(): Promise<LoginMethod | null> {
   const cookieStore = await cookies();
@@ -114,8 +117,8 @@ export async function clearSession(): Promise<LoginMethod | null> {
 
   if (token) {
     const id = hashSessionToken(token);
-    // Read the method before deleting — the caller needs it to decide whether
-    // logout must also bounce through the identity provider.
+    // Read the method before deleting — the logout route attributes the entry
+    // to the right channel in the activity log.
     loginMethod = (await prisma.session.findUnique({ where: { id } }))?.loginMethod ?? null;
     // deleteMany, not delete — a stale or forged cookie must not throw on logout.
     await prisma.session.deleteMany({ where: { id } });
