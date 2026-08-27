@@ -59,6 +59,7 @@ next-env.d.ts
 AGENTS.md
 CLAUDE.md
 /.github/
+skills-lock.json
 
 
 # Uploaded files (UPLOAD_DIR) — real documents, never committed
