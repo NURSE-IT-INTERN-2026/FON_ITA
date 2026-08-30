@@ -26,7 +26,7 @@
 
 ## เริ่มต้นพัฒนา
 
-ต้องมี **Node.js 20+**, **Docker** (สำหรับ PostgreSQL), และ **pnpm หรือ npm**
+ต้องมี **Node.js 20+**, **Docker** (สำหรับ PostgreSQL), และ **npm** (repo ใช้ `package-lock.json`)
 
 ```bash
 # 1. ติดตั้ง dependencies
@@ -60,6 +60,7 @@ npm run db:migrate       # รัน Prisma migration
 npm run db:generate      # สร้าง Prisma Client
 npm run db:studio        # เปิด Prisma Studio (ดู/แก้ข้อมูลใน DB)
 npm run db:seed          # ใส่ข้อมูลตัวอย่าง
+npm run db:reset         # รีเซ็ต DB (ล้างข้อมูล + migrate + seed ใหม่)
 npm run db:migrate-legacy # ย้ายข้อมูลจากระบบ Laravel เดิม
 
 npm run api:verify       # ตรวจสัญญา Public API กับระบบเดิม (119 ข้อ)
@@ -72,24 +73,29 @@ npm run lint             # รัน ESLint
 src/
 ├── app/                      # App Router (pages, layouts, route handlers)
 │   ├── (auth)/               # หน้า login (ไม่มี shell)
-│   ├── (app)/                # หน้าที่มี shell (หลังเข้าสู่ระบบ)
-│   ├── (public)/             # หน้าสาธารณะ (หน้าแรก, ค้นหา ITA)
-│   └── api/                  # Route Handlers รวม Public API
+│   ├── (app)/                # หน้าที่มี shell — รวมหน้าอ่านสาธารณะ (หน้าแรก, ดู ITA ตามปี)
+│   ├── api/                  # Route Handlers — auth, Public API, YouTube proxy
+│   ├── storage/              # ส่งไฟล์จากคลัง (นอก public/) ผ่าน route handler
+│   └── {error,not-found,…}   # หน้า error ภาษาไทย (error, global-error, 403, 404)
+├── actions/                  # Server Actions (ita, oit, file, user, profile, auth, …)
 ├── components/
 │   ├── ui/                   # shadcn primitives
-│   ├── public/               # คอมโพเนนต์หน้าสาธารณะ
-│   └── ...                   # คอมโพเนนต์ feature ต่าง ๆ
+│   ├── shell/                # โครงหน้า (header, sidebar, footer, theme)
+│   ├── public/               # คอมโพเนนต์หน้าสาธารณะ (hero, ita-accordion, video)
+│   ├── ita/ · files/ · users/ · misc/   # คอมโพเนนต์เฉพาะงาน
 ├── lib/
-│   ├── auth/                 # session, scrypt, RBAC
-│   ├── api/                  # ตัวแปลงร่างสำหรับ Public API (legacy compat)
-│   ├── db/                   # Prisma client
-│   └── ...
-└── ...
+│   ├── auth/                 # session, scrypt, login rate limit, RBAC
+│   ├── api/                  # ตัวแปลงร่างสำหรับ Public API (legacy compat) + rate limit
+│   ├── files/ · ita/ · users/ · activity/ · youtube/
+│   ├── prisma.ts             # Prisma client
+│   └── date.ts · sanitize.ts · base-path.ts
+└── proxy.ts                  # ป้องกัน route + RBAC ประตูแรก (Next.js 16 ใช้ proxy ไม่ใช่ middleware)
 
 prisma/
 ├── schema.prisma             # schema ของฐานข้อมูล
 ├── migrations/               # migration SQL
-└── seed.ts                   # ข้อมูลเริ่มต้น
+├── seed.ts                   # ข้อมูลเริ่มต้น
+└── migrate-legacy.ts         # สคริปต์ย้ายข้อมูลจากระบบ Laravel เดิม
 
 scripts/
 └── verify-api-contract.ts    # สคริปต์ตรวจสัญญา Public API
