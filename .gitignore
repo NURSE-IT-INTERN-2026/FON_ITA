@@ -46,9 +46,8 @@ next-env.d.ts
 # docs
 /docs/
 
-# migration staging area (โค้ดอ้างอิง + คอนฟิกต้นแบบ รอย้ายเข้า src/ — ลบได้เมื่อย้ายครบ)
-/_migration/
-/_to-migrate/
+# archived migration material (โค้ดอ้างอิง + คอนฟิกต้นแบบจากการย้ายระบบ — ย้ายครบแล้ว เก็บไว้อ้างอิง)
+/_migration-archive/
 
 # โปรเจกต์อื่นที่คัดลอกมาไว้อ้างอิงชั่วคราว (whole separate app — never part of this repo)
 /research_tools/

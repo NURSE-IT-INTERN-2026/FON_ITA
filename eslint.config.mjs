@@ -12,10 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
-    // Staging areas for the Lovable/auth port — not part of the app yet.
-    // See docs/migration/file-manifest.md; delete once everything is moved.
-    "_migration/**",
-    "_to-migrate/**",
+    // Archived Lovable/auth migration material — the port is complete, kept for
+    // reference only. See _migration-archive/README.md.
+    "_migration-archive/**",
     // Lovable prototype kept alongside for UI comparison — reference only,
     // and it ships its own node_modules.
     "fonita-loveableui/**",
