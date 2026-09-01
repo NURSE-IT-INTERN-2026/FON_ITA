@@ -16,6 +16,13 @@ const nextConfig: NextConfig = {
   basePath,
   reactCompiler: true,
 
+  // Dev-only: testing from a phone on the LAN (e.g. http://10.125.66.90:3000)
+  // sends a non-localhost Origin, which Next blocks by default — every JS
+  // chunk and HMR gets 403, so pages render without hydration (the home page's
+  // ITA list, fetched client-side, never appears). Production builds ignore
+  // this option entirely. Add the Mac's current Wi-Fi IP here when it changes.
+  allowedDevOrigins: ["10.125.66.90"],
+
   experimental: {
     // Required for unauthorized() / forbidden() from next/navigation, which render
     // src/app/unauthorized.tsx (401) and src/app/forbidden.tsx (403). Still flagged
