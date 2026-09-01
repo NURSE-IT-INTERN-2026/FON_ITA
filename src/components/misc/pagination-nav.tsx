@@ -1,19 +1,17 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import Link from "next/link";
+import { PaginationLink } from "@/components/misc/pagination-link";
 import {
   Pagination,
   PaginationContent,
   PaginationItem,
 } from "@/components/ui/pagination";
-import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 
 /**
  * Page links for a server-rendered list.
  *
- * Uses the shadcn Pagination shell for layout, but its own <Link>s rather than
- * `PaginationLink`: that renders a plain <a>, which loses client-side
- * navigation and would need the basePath spelled out by hand.
+ * Uses the shadcn Pagination shell for layout, but its own links (PaginationLink)
+ * rather than `PaginationLink` from shadcn: that renders a plain `<a>`, which
+ * loses client-side navigation and would need the basePath spelled out by hand.
  */
 export function PaginationNav({
   page,
@@ -31,7 +29,7 @@ export function PaginationNav({
     <Pagination className="mt-6">
       <PaginationContent>
         <PaginationItem>
-          <PageLink
+          <PaginationLink
             href={hrefFor(page - 1)}
             disabled={page === 1}
             label="หน้าก่อนหน้า"
@@ -39,7 +37,7 @@ export function PaginationNav({
           >
             <ChevronLeft className="size-4" aria-hidden />
             ก่อนหน้า
-          </PageLink>
+          </PaginationLink>
         </PaginationItem>
 
         {pageWindow(page, totalPages).map((n, i) =>
@@ -51,15 +49,15 @@ export function PaginationNav({
             </PaginationItem>
           ) : (
             <PaginationItem key={n}>
-              <PageLink href={hrefFor(n)} active={n === page} label={`หน้า ${n}`}>
+              <PaginationLink href={hrefFor(n)} active={n === page} label={`หน้า ${n}`}>
                 {n}
-              </PageLink>
+              </PaginationLink>
             </PaginationItem>
           ),
         )}
 
         <PaginationItem>
-          <PageLink
+          <PaginationLink
             href={hrefFor(page + 1)}
             disabled={page === totalPages}
             label="หน้าถัดไป"
@@ -67,48 +65,10 @@ export function PaginationNav({
           >
             ถัดไป
             <ChevronRight className="size-4" aria-hidden />
-          </PageLink>
+          </PaginationLink>
         </PaginationItem>
       </PaginationContent>
     </Pagination>
-  );
-}
-
-function PageLink({
-  href,
-  active,
-  disabled,
-  label,
-  className,
-  children,
-}: {
-  href: string;
-  active?: boolean;
-  disabled?: boolean;
-  label: string;
-  className?: string;
-  children: React.ReactNode;
-}) {
-  const classes = cn(
-    buttonVariants({ variant: active ? "outline" : "ghost", size: children ? "default" : "icon" }),
-    "min-w-9",
-    className,
-  );
-
-  // A disabled link is rendered as a span: an <a> with no href is still in the
-  // tab order and reads as a link to a screen reader.
-  if (disabled) {
-    return (
-      <span className={cn(classes, "pointer-events-none opacity-50")} aria-disabled>
-        {children}
-      </span>
-    );
-  }
-
-  return (
-    <Link href={href} aria-label={label} aria-current={active ? "page" : undefined} className={classes}>
-      {children}
-    </Link>
   );
 }
 

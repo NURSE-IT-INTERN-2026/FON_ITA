@@ -161,7 +161,7 @@ export function ActivityLogClient({
       all: boolean;
     }>,
   ) {
-    router.push(buildHref({ ...baseHrefState, ...next, page: 1 }));
+    router.push(buildHref({ ...baseHrefState, ...next, page: 1 }), { scroll: false });
   }
 
   function commitSearch(term: string) {
@@ -421,7 +421,7 @@ export function ActivityLogClient({
               variant="outline"
               size="sm"
               className="h-9 border-orange-200 bg-orange-50 px-4 text-orange-700 hover:bg-orange-100 hover:text-orange-800 dark:border-orange-900/60 dark:bg-orange-950/30 dark:text-orange-300 dark:hover:bg-orange-950/50 dark:hover:text-orange-200"
-              onClick={() => router.push("/activity-log")}
+              onClick={() => router.push("/activity-log", { scroll: false })}
             >
               ล้างตัวกรองทั้งหมด
             </Button>

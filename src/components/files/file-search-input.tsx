@@ -25,7 +25,9 @@ export function FileSearchInput({ defaultValue }: { defaultValue: string }) {
     const trimmed = term.trim();
     // Drops `page` on purpose: results for a new term start at page 1, and
     // keeping the old page number would often land on an empty page.
-    router.push(trimmed ? `/ita-file?q=${encodeURIComponent(trimmed)}` : "/ita-file");
+    router.push(trimmed ? `/ita-file?q=${encodeURIComponent(trimmed)}` : "/ita-file", {
+      scroll: false,
+    });
   }
 
   function onChange(next: string) {
