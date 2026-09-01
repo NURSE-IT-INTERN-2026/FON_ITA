@@ -199,7 +199,7 @@ function ItaCard({
                 type="button"
                 {...dragHandle.attributes}
                 {...dragHandle.listeners}
-                className="mt-1 inline-flex shrink-0 cursor-grab touch-none text-muted-foreground hover:text-foreground"
+                className="-m-1.5 mt-1 inline-flex shrink-0 cursor-grab touch-none p-1.5 text-muted-foreground hover:text-foreground"
                 aria-label="ลากเพื่อจัดลำดับ"
               >
                 <GripVertical className="size-4" aria-hidden />

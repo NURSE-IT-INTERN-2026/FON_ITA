@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Noto_Sans_Thai } from "next/font/google";
 import { ThemeProvider } from "@/components/shell/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
@@ -15,6 +15,13 @@ const notoSansThai = Noto_Sans_Thai({
 export const metadata: Metadata = {
   title: "FON-ITA — ระบบจัดการข้อมูลสาธารณะ",
   description: "ระบบจัดการข้อมูล ITA/OIT คณะพยาบาลศาสตร์ มหาวิทยาลัยเชียงใหม่",
+};
+
+// Explicit rather than relying on Next's default injection — responsive
+// layouts are the contract, not an accident.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({

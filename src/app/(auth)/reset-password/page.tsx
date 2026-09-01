@@ -26,7 +26,7 @@ export default async function ResetPasswordPage() {
   if (!needsPasswordReset(user)) redirect(ROLE_HOME[user.role]);
 
   return (
-    <main className="flex min-h-screen items-center justify-center px-4 py-10">
+    <main className="flex min-h-dvh items-center justify-center px-4 py-10">
       <div className="w-full max-w-sm space-y-6">
         <div className="flex flex-col items-center gap-3 text-center">
           <Image

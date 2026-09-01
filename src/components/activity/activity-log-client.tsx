@@ -200,7 +200,7 @@ export function ActivityLogClient({
             ค้นหาในบันทึก
           </p>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <div className="relative flex-1 min-w-72">
+            <div className="relative min-w-0 flex-1 sm:min-w-72">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
               <Input
                 value={searchText}
@@ -240,7 +240,7 @@ export function ActivityLogClient({
         </form>
 
         <div className="flex flex-wrap items-start gap-4">
-          <div className="min-w-64 space-y-2">
+          <div className="w-full space-y-2 sm:w-auto sm:min-w-64">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               ประเภทกิจกรรม
             </p>
@@ -257,7 +257,7 @@ export function ActivityLogClient({
                 })
               }
             >
-              <SelectTrigger className="w-64" aria-label="กรองตามประเภทกิจกรรม">
+              <SelectTrigger className="w-full sm:w-64" aria-label="กรองตามประเภทกิจกรรม">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -271,7 +271,7 @@ export function ActivityLogClient({
             </Select>
           </div>
 
-          <div className="min-w-52 space-y-2">
+          <div className="w-full space-y-2 sm:w-auto sm:min-w-52">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               หมวดข้อมูล
             </p>
@@ -288,7 +288,7 @@ export function ActivityLogClient({
                 })
               }
             >
-              <SelectTrigger className="w-56" aria-label="กรองตามหมวดข้อมูล">
+              <SelectTrigger className="w-full sm:w-56" aria-label="กรองตามหมวดข้อมูล">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -302,11 +302,11 @@ export function ActivityLogClient({
             </Select>
           </div>
 
-          <div className="min-w-64 space-y-2">
+          <div className="w-full space-y-2 sm:w-auto sm:min-w-64">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               ผู้ใช้
             </p>
-            <div className="relative w-64" ref={actorPickerRef}>
+            <div className="relative w-full sm:w-64" ref={actorPickerRef}>
               <Button
                 type="button"
                 variant="outline"
@@ -338,7 +338,7 @@ export function ActivityLogClient({
                     {actorSearch ? (
                       <button
                         type="button"
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 -m-1.5 text-muted-foreground hover:text-foreground"
                         onClick={() => setActorSearch("")}
                         aria-label="ล้างคำค้นผู้ใช้"
                       >

@@ -474,7 +474,7 @@ function ToolButton({
       title={label}
       aria-pressed={active}
       onClick={onClick}
-      className={cn("size-8 p-0", active && "bg-accent text-accent-foreground")}
+      className={cn("size-9 p-0", active && "bg-accent text-accent-foreground")}
     >
       {children}
     </Button>

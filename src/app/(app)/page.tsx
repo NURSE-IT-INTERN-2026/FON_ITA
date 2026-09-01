@@ -41,7 +41,7 @@ export default async function HomePage() {
             Faculty of Nursing Chiang Mai University
           </p>
           <h1 className="text-2xl font-bold tracking-tight text-warm-strong dark:text-warm sm:text-3xl lg:text-[2rem]">
-            ระบบข้อมูลสาธารณะ
+            ระบบจัดการข้อมูลสาธารณะ
           </h1>
           
         </header>

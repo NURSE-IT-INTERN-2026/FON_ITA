@@ -144,7 +144,7 @@ export function ItaSearchSection({ canManage }: { canManage: boolean }) {
               type="button"
               onClick={() => setQ("")}
               aria-label="ล้างคำค้นหา"
-              className="absolute right-2 top-1/2 grid size-6 -translate-y-1/2 cursor-pointer place-items-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
+              className="absolute right-1.5 top-1/2 grid size-8 -translate-y-1/2 cursor-pointer place-items-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
             >
               <X className="size-3.5" aria-hidden />
             </button>

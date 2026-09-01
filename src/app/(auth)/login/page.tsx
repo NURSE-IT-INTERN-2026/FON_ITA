@@ -31,7 +31,7 @@ export default async function LoginPage({
   const message = error ? LOGIN_ERROR_MESSAGES[error as LoginErrorCode] : undefined;
 
   return (
-    <main className="flex min-h-screen items-center justify-center px-4 py-10">
+    <main className="flex min-h-dvh items-center justify-center px-4 py-10">
       <div className="w-full max-w-sm space-y-6">
         {/* The seal and the system name are the first thing anyone looks at, so
             they double as the way home — the same habit as clicking a site's
@@ -104,12 +104,14 @@ export default async function LoginPage({
                 type credentials they were never given (D7). Native <details>
                 keeps this a Server Component — same pattern as D22. */}
             <details className="group">
-              <summary className="flex cursor-pointer list-none flex-col items-center gap-0.5 text-center text-xs text-muted-foreground hover:text-foreground [&::-webkit-details-marker]:hidden">
+              <summary className="flex cursor-pointer list-none flex-col items-center gap-1.5 text-center text-xs text-muted-foreground hover:text-foreground [&::-webkit-details-marker]:hidden">
                 เข้าสู่ระบบด้วยอีเมลและรหัสผ่าน — สำหรับกรณีบัญชี CMU ใช้งานไม่ได้
-                <ChevronDown
-                  className="size-3.5 shrink-0 transition-transform group-open:rotate-180"
-                  aria-hidden
-                />
+                <span className="flex size-8 items-center justify-center rounded-full border border-border bg-accent text-foreground transition-colors hover:bg-secondary">
+                  <ChevronDown
+                    className="size-5 transition-transform duration-200 group-open:rotate-180"
+                    aria-hidden
+                  />
+                </span>
               </summary>
               <div className="space-y-3 pt-3">
                 <LoginForm next={next} />

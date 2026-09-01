@@ -27,7 +27,7 @@ export default async function AppLayout({
   if (user && needsPasswordReset(user)) redirect(RESET_PASSWORD_PATH);
 
   return (
-    <div className="flex min-h-screen w-full flex-col">
+    <div className="flex min-h-dvh w-full flex-col overflow-x-clip">
       <AppHeader user={user} />
       <main className="min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-8">
         <div className="mx-auto w-full max-w-screen-2xl">

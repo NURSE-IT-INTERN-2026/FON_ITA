@@ -155,7 +155,7 @@ export function OitForm({
         </CardContent>
       </Card>
 
-      <div className="flex justify-end gap-2">
+      <div className="flex flex-wrap justify-end gap-2">
         {editMode && oit && (
           <OitDeleteButton
             oitId={oit.id}
