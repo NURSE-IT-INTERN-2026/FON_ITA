@@ -1,6 +1,6 @@
 "use client";
 
-import { Clock, ExternalLink, FileText, Link as LinkIcon, Pencil, SearchX } from "lucide-react";
+import { ChevronsDownUp, ChevronsUpDown, Clock, ExternalLink, FileText, Link as LinkIcon, Pencil, SearchX } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -34,13 +34,12 @@ import { cn } from "@/lib/utils";
  * `entries` are already filtered by year and search before they reach this
  * component; an empty list shows a contextual empty state.
  *
- * Open state uses `defaultValue`, not `value` + state: deriving it in
- * `useEffect` triggered cascading renders (the React 19 lint rule), and a
- * controlled accordion would need that effect to track `entries`/`isSearching`
- * changes. Instead the parent passes a `key` combining the year and the
- * search-mode toggle, which remounts this component at exactly the moments
- * the default open set should change. Manual opens and closes survive between
- * those remounts because there are none in between.
+ * Open state is controlled (`value` + `onValueChange`) because the
+ * collapse-all / expand-all button has to set it. Re-applying the default open
+ * set when the year or search mode changes needs no effect: the parent passes
+ * a `key` combining both, which remounts this component and re-runs
+ * `useState(defaultValue)` — the React-sanctioned reset, instead of the
+ * effect-sync the React 19 lint rule forbids.
  */
 export function ItaAccordion({
   entries,
@@ -60,6 +59,8 @@ export function ItaAccordion({
       : isSearching
         ? entries.map((e) => String(e.id))
         : [String(entries[0].id)];
+  const [openIds, setOpenIds] = useState<string[]>(defaultValue);
+  const allIds = entries.map((e) => String(e.id));
 
   /**
    * What a click on a row does, in order of what the reader most likely wants:
@@ -80,9 +81,28 @@ export function ItaAccordion({
 
   return (
     <>
+      {entries.length > 0 ? (
+        <div className="flex justify-end">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 gap-1.5 px-2.5 text-xs text-muted-foreground"
+            onClick={() => setOpenIds(openIds.length === 0 ? allIds : [])}
+          >
+            {openIds.length === 0 ? (
+              <ChevronsUpDown className="size-3.5" aria-hidden />
+            ) : (
+              <ChevronsDownUp className="size-3.5" aria-hidden />
+            )}
+            {openIds.length === 0 ? "ขยายทั้งหมด" : "พับเก็บทั้งหมด"}
+          </Button>
+        </div>
+      ) : null}
+
       <Accordion
         type="multiple"
-        defaultValue={defaultValue}
+        value={openIds}
+        onValueChange={setOpenIds}
         className="rounded-lg border bg-card"
       >
         {entries.map((entry, idx) => (

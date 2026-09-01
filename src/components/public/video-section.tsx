@@ -32,9 +32,6 @@ export function VideoSection() {
           className="aspect-video w-full border-0"
         />
       </div>
-      <p className="px-1 pt-3 text-center text-xs leading-5 text-muted-foreground sm:text-sm">
-        วิดีโอแนะนำการดำเนินงานด้านคุณธรรมและความโปร่งใสของคณะพยาบาลศาสตร์
-      </p>
     </FeaturedSurface>
   );
 }
