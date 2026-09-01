@@ -82,7 +82,11 @@ export function ItaAccordion({
   return (
     <>
       {entries.length > 0 ? (
-        <div className="flex justify-end">
+        // Sticks under the shell header (h-16, z-30) so the control stays
+        // reachable while scrolling a long topic list. Same translucent
+        // background treatment as the header; -mx-1 bleeds to the viewport
+        // edge on mobile so rows don't peek past the bar's sides.
+        <div className="sticky top-16 z-20 -mx-1 flex justify-end bg-background/90 px-1 py-1.5 backdrop-blur">
           <Button
             variant="ghost"
             size="sm"
