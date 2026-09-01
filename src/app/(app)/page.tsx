@@ -37,7 +37,10 @@ export default async function HomePage() {
 
       <section className="mx-auto w-full max-w-5xl space-y-5 px-1 sm:px-0">
         <header className="space-y-3 border-b border-stone-200 pb-5 dark:border-border/70">
-          <p className="text-xs font-semibold uppercase tracking-[0.26em] text-warm sm:text-sm">
+          {/* nowrap + clamp: the tracked-out uppercase line must never wrap,
+              so the font shrinks with the viewport instead. Tracking tightens
+              to 0.16em below sm so the floor can stay readable. */}
+          <p className="whitespace-nowrap text-[clamp(0.5rem,2.6vw,0.875rem)] font-semibold uppercase tracking-[0.16em] text-warm sm:tracking-[0.26em]">
             Faculty of Nursing Chiang Mai University
           </p>
           <h1 className="text-2xl font-bold tracking-tight text-warm-strong dark:text-warm sm:text-3xl lg:text-[2rem]">

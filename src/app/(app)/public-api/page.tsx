@@ -88,8 +88,10 @@ export default async function PublicApiPage() {
         variant="featured"
       />
 
-      {/* Swagger-style document header */}
-      <div className="overflow-hidden rounded-xl border bg-card shadow">
+      {/* Swagger-style document header. overflow-clip, not overflow-hidden:
+          hidden creates a scroll container, which silently disables the
+          sticky tester inside (sticky anchors to it, and it never scrolls). */}
+      <div className="overflow-clip rounded-xl border bg-card shadow">
         <div className="flex flex-wrap items-center gap-3 border-b border-stone-200 bg-linear-to-b from-warm-surface to-warm-soft/70 px-5 py-4 dark:border-border/70 dark:from-background dark:to-accent/30">
           <span className="text-base font-bold tracking-tight text-warm-strong dark:text-warm">FON-ITA Public API</span>
           <span className="rounded-full bg-warm/15 px-2 py-0.5 text-xs font-semibold text-warm-strong dark:text-warm">v1</span>
@@ -117,7 +119,11 @@ export default async function PublicApiPage() {
             {serverUrl}/api/v1/ita/2569
           </p>
 
-          <div className="mt-6 space-y-6">
+          {/* Docs on the left, live tester on the right from lg up; stacked with
+              the tester last on narrow screens. min-w-0 on both columns — a grid
+              child without it sizes to content and overflows (ita-file lesson). */}
+          <div className="mt-6 grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.85fr)]">
+            <div className="min-w-0 space-y-6">
             <section className="space-y-2">
               <SectionTitle>พารามิเตอร์</SectionTitle>
               <Table>
@@ -162,6 +168,59 @@ export default async function PublicApiPage() {
             </section>
 
             <section className="space-y-2">
+              <SectionTitle>รหัสสถานะที่เป็นไปได้ (Status Codes)</SectionTitle>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-20 font-mono text-xs">รหัส</TableHead>
+                    <TableHead className="w-36 text-xs font-medium">ความหมาย</TableHead>
+                    <TableHead className="text-xs font-medium">ได้รับเมื่อไร</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  <TableRow>
+                    <TableCell className="font-mono text-xs font-bold text-emerald-600 dark:text-emerald-400">200</TableCell>
+                    <TableCell className="text-xs">สำเร็จ — ดึงข้อมูลได้</TableCell>
+                    <TableCell className="text-xs">
+                      ทุกการเรียกที่ถูกต้อง รวมถึงปีที่ไม่มีข้อมูลหรือปีไม่ถูกต้อง ซึ่งตอบ{" "}
+                      <code className="font-mono">[]</code> เสมอ —{" "}
+                      <span className="font-medium text-foreground">ไม่มี 404 สำหรับปีว่าง</span>{" "}
+                      เพราะเว็บคณะไล่ปีถอยหลังและถือว่าคำตอบที่ไม่ใช่อาเรย์คือพังทั้งหน้า (สัญญาเดิมจาก Laravel)
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell className="font-mono text-xs font-bold text-destructive">404</TableCell>
+                    <TableCell className="text-xs">ไม่พบ endpoint</TableCell>
+                    <TableCell className="text-xs">
+                      ปกติไม่เกิดกับ API นี้ — ถ้าได้แปลว่า URL ผิดหรือติดตั้งไม่ตรง (เช่น ลืม{" "}
+                      <code className="font-mono">/fonita</code>) ไม่ใช่กรณีปีไม่มีข้อมูล
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell className="font-mono text-xs font-bold text-amber-600 dark:text-amber-400">429</TableCell>
+                    <TableCell className="text-xs">เกินโควตาคำขอ</TableCell>
+                    <TableCell className="text-xs">
+                      เกิน 60 คำขอ/นาที ต่อ IP — อ่านจำนวนวินาทีที่ต้องรอจาก header{" "}
+                      <code className="font-mono">Retry-After</code> แล้วลองใหม่ · body เป็น{" "}
+                      <code className="font-mono">&#123;&quot;message&quot;:&quot;Too Many Attempts.&quot;&#125;</code>
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell className="font-mono text-xs font-bold text-destructive">5xx</TableCell>
+                    <TableCell className="text-xs">เซิร์ฟเวอร์ผิดปกติ</TableCell>
+                    <TableCell className="text-xs">
+                      ฐานข้อมูลล่มหรือระบบขัดข้อง — นี่คือความหมายของ &quot;API ล่ม&quot; จริง ๆ ลองอีกครั้งภายหลัง
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+              <p className="text-xs text-muted-foreground">
+                การใช้งานปกติจะเจอแต่ 200 เท่านั้น — รหัสอื่นมีไว้สำหรับวินาทีที่ระบบมีปัญหา
+                ตัวเทสด้านขวาแสดงข้อความของแต่ละกรณีให้ดูได้
+              </p>
+            </section>
+
+            <section className="space-y-2">
               <SectionTitle>ส่วนหัวของการตอบกลับ (Response Headers)</SectionTitle>
               <Table>
                 <TableHeader>
@@ -187,13 +246,17 @@ export default async function PublicApiPage() {
               </p>
             </section>
 
-            <section className="space-y-2">
-              <SectionTitle>ตัวอย่างการตอบกลับ (Preview)</SectionTitle>
-              <p className="text-xs text-muted-foreground">
-                ดึงข้อมูลจริงจาก API ตามปีที่เลือก — แสดงผลอย่างเดียว
-              </p>
-              <ResponsePreview defaultYear={defaultYear} />
-            </section>
+            </div>
+
+            <aside className="min-w-0 space-y-2 self-start lg:sticky lg:top-20">
+              <section className="space-y-2">
+                <SectionTitle>ตัวอย่างการตอบกลับ (Preview)</SectionTitle>
+                <p className="text-xs text-muted-foreground">
+                  ดึงข้อมูลจริงจาก API ตามปีที่เลือก — แสดงผลอย่างเดียว · พรีวิวย่อแสดงเฉพาะ 2 หัวข้อแรก
+                </p>
+                <ResponsePreview defaultYear={defaultYear} />
+              </section>
+            </aside>
           </div>
         </div>
       </div>

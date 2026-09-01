@@ -9,7 +9,7 @@ import {
   normalizeCategoryFilter,
 } from "@/lib/activity/queries";
 import { requireRole } from "@/lib/auth/guards";
-import { formatBEDateTime } from "@/lib/date";
+import { currentBangkokMonth, formatBEDateTime } from "@/lib/date";
 
 export const metadata: Metadata = { title: "บันทึกกิจกรรม — FON-ITA" };
 
@@ -22,6 +22,7 @@ type Props = {
     q?: string;
     from?: string;
     to?: string;
+    all?: string;
   }>;
 };
 
@@ -65,14 +66,24 @@ export default async function ActivityLogPage({ searchParams }: Props) {
     q: rawQuery,
     from: rawFrom,
     to: rawTo,
+    all: rawAll,
   } = await searchParams;
   const requested = Number(rawPage);
   const action = normalizeActionFilter(rawAction);
   const actorId = parsePositiveInt(rawActor);
   const category = normalizeCategoryFilter(rawCategory);
   const query = rawQuery?.trim() ? rawQuery.trim() : undefined;
-  const from = normalizeDate(rawFrom);
-  const to = normalizeDate(rawTo);
+
+  // Default window = the current Bangkok month. The log grows without bound
+  // and "recent" is what anyone opening the page wants; `?all=1` opts out and
+  // explicit from/to replace it (datesAreDefault tells the client which case
+  // it is showing, so the "กรองอยู่" copy stays honest).
+  const showAll = rawAll === "1";
+  const fromParam = normalizeDate(rawFrom);
+  const toParam = normalizeDate(rawTo);
+  const monthDefault = !showAll && !fromParam && !toParam ? currentBangkokMonth() : undefined;
+  const from = fromParam ?? monthDefault?.from;
+  const to = toParam ?? monthDefault?.to;
 
   const [{ activities, page, totalPages, total }, counts, actors] = await Promise.all([
     listActivities(Number.isInteger(requested) && requested > 0 ? requested : 1, {
@@ -105,6 +116,8 @@ export default async function ActivityLogPage({ searchParams }: Props) {
         query={query}
         from={from}
         to={to}
+        datesAreDefault={Boolean(monthDefault)}
+        allActive={showAll}
         page={page}
         totalPages={totalPages}
         total={total}

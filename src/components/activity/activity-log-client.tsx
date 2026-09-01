@@ -20,7 +20,6 @@ import { ACTIVITY_CATEGORIES, categoryLabel, getActivityMeta } from "@/lib/activ
 import { cn } from "@/lib/utils";
 
 const ALL = "ALL";
-const DEBOUNCE_MS = 350;
 
 type ActivityListItem = {
   id: number;
@@ -45,6 +44,8 @@ export function ActivityLogClient({
   query,
   from,
   to,
+  datesAreDefault,
+  allActive,
 }: {
   activities: ActivityListItem[];
   counts: { action: string; count: number }[];
@@ -56,24 +57,36 @@ export function ActivityLogClient({
   actorId?: number;
   category?: ActivityCategory;
   query?: string;
+  /** Effective window — the month default when no explicit dates are set. */
   from?: string;
   to?: string;
+  /** True when from/to are the server's current-month default, not a filter. */
+  datesAreDefault: boolean;
+  /** True when the user opted out of the month default via ?all=1. */
+  allActive: boolean;
 }) {
   const router = useRouter();
   const grandTotal = counts.reduce((sum, item) => sum + item.count, 0);
-  const filtered = Boolean(action || actorId || category || query || from || to);
+  const filtered = Boolean(
+    action || actorId || category || query || ((from || to) && !datesAreDefault),
+  );
   const [searchText, setSearchText] = useState(query ?? "");
   const [prevQuery, setPrevQuery] = useState(query);
   const [actorPickerOpen, setActorPickerOpen] = useState(false);
   const [actorSearch, setActorSearch] = useState("");
   const actorPickerRef = useRef<HTMLDivElement | null>(null);
-  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const selectedActor = actors.find((item) => item.actorId === actorId);
   const filteredActors = actors.filter((item) => {
     const term = actorSearch.trim().toLocaleLowerCase("th");
     if (!term) return true;
     return item.actorName.toLocaleLowerCase("th").includes(term);
   });
+
+  // The inputs show the effective window, but the URL carries only dates the
+  // user chose — threading the month default into it would silently turn
+  // "this month" into an explicit date filter the moment another filter moved.
+  const urlFrom = datesAreDefault ? undefined : from;
+  const urlTo = datesAreDefault ? undefined : to;
 
   // Sync the typing buffer when the URL's ?q= changes from outside this input
   // (browser back/forward, clearing a filter chip). React's sanctioned
@@ -95,21 +108,23 @@ export function ActivityLogClient({
     return () => document.removeEventListener("mousedown", onPointerDown);
   }, []);
 
-  useEffect(() => {
-    return () => {
-      if (searchTimer.current) clearTimeout(searchTimer.current);
-    };
-  }, []);
+  /**
+   * The filter state a navigation should carry when nothing overrides it.
+   * Merged with `{...base, ...next}` so a caller passing `from: undefined`
+   * explicitly DROPS the date, while omitting the key keeps it — the
+   * distinction the old destructuring defaults could not make.
+   */
+  const baseHrefState = {
+    action,
+    actorId,
+    category,
+    query,
+    from: urlFrom,
+    to: urlTo,
+    all: allActive,
+  };
 
-  function buildHref({
-    page: nextPage = page,
-    action: nextAction = action,
-    actorId: nextActorId = actorId,
-    category: nextCategory = category,
-    query: nextQuery = query,
-    from: nextFrom = from,
-    to: nextTo = to,
-  }: {
+  function buildHref(next: {
     page?: number;
     action?: string;
     actorId?: number;
@@ -117,61 +132,42 @@ export function ActivityLogClient({
     query?: string;
     from?: string;
     to?: string;
+    all?: boolean;
   }) {
     const params = new URLSearchParams();
 
-    if (nextAction) params.set("action", nextAction);
-    if (nextActorId) params.set("actor", String(nextActorId));
-    if (nextCategory) params.set("category", nextCategory);
-    if (nextQuery) params.set("q", nextQuery);
-    if (nextFrom) params.set("from", nextFrom);
-    if (nextTo) params.set("to", nextTo);
-    if (nextPage > 1) params.set("page", String(nextPage));
+    if (next.action) params.set("action", next.action);
+    if (next.actorId) params.set("actor", String(next.actorId));
+    if (next.category) params.set("category", next.category);
+    if (next.query) params.set("q", next.query);
+    if (next.from) params.set("from", next.from);
+    if (next.to) params.set("to", next.to);
+    if (next.all) params.set("all", "1");
+    if (next.page && next.page > 1) params.set("page", String(next.page));
 
-    const query = params.toString();
-    return query ? `/activity-log?${query}` : "/activity-log";
+    const search = params.toString();
+    return search ? `/activity-log?${search}` : "/activity-log";
   }
 
-  function pushFilters(next: {
-    action?: string;
-    actorId?: number;
-    category?: ActivityCategory;
-    query?: string;
-    from?: string;
-    to?: string;
-    page?: number;
-  }) {
-    router.push(
-      buildHref({
-        page: next.page ?? 1,
-        action: next.action,
-        actorId: next.actorId,
-        category: next.category,
-        query: next.query,
-        from: next.from,
-        to: next.to,
-      }),
-    );
+  /** Any filter change: resets to page 1, keeps everything not overridden. */
+  function pushFilters(
+    next: Partial<{
+      action: string;
+      actorId: number;
+      category: ActivityCategory;
+      query: string;
+      from: string;
+      to: string;
+      all: boolean;
+    }>,
+  ) {
+    router.push(buildHref({ ...baseHrefState, ...next, page: 1 }));
   }
 
   function commitSearch(term: string) {
     const nextQuery = term.trim() || undefined;
     if ((query ?? "") === (nextQuery ?? "")) return;
-
-    pushFilters({
-      action,
-      actorId,
-      category,
-      query: nextQuery,
-      from,
-      to,
-    });
-  }
-
-  function onSearchChange(next: string) {
-    setSearchText(next);
-    if (searchTimer.current) clearTimeout(searchTimer.current);
-    searchTimer.current = setTimeout(() => commitSearch(next), DEBOUNCE_MS);
+    pushFilters({ query: nextQuery });
   }
 
   return (
@@ -183,7 +179,9 @@ export function ActivityLogClient({
             <p className="text-xs text-muted-foreground">
               {filtered
                 ? `แสดง ${total} จาก ${grandTotal} รายการตามตัวกรองปัจจุบัน`
-                : `ทั้งหมด ${grandTotal} รายการ เรียงจากใหม่ไปเก่า`}
+                : datesAreDefault
+                  ? `เหตุการณ์เดือนนี้ · ${total} จาก ${grandTotal} รายการทั้งหมด — กด "ล้างวันที่" เพื่อดูทั้งหมด`
+                  : `ทั้งหมด ${grandTotal} รายการ เรียงจากใหม่ไปเก่า`}
             </p>
           </div>
         </div>
@@ -192,7 +190,6 @@ export function ActivityLogClient({
           className="space-y-2"
           onSubmit={(event) => {
             event.preventDefault();
-            if (searchTimer.current) clearTimeout(searchTimer.current);
             commitSearch(searchText);
           }}
         >
@@ -204,13 +201,7 @@ export function ActivityLogClient({
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
               <Input
                 value={searchText}
-                onChange={(event) => onSearchChange(event.currentTarget.value)}
-                onKeyDown={(event) => {
-                  if (event.key !== "Enter") return;
-                  event.preventDefault();
-                  if (searchTimer.current) clearTimeout(searchTimer.current);
-                  commitSearch(searchText);
-                }}
+                onChange={(event) => setSearchText(event.currentTarget.value)}
                 placeholder="ค้นหาจากผู้กระทำ เป้าหมาย หรือรายละเอียดกิจกรรม"
                 className="pl-9"
                 aria-label="ค้นหาในบันทึกกิจกรรม"
@@ -227,7 +218,6 @@ export function ActivityLogClient({
                   size="sm"
                   className="h-9 px-3"
                   onClick={() => {
-                    if (searchTimer.current) clearTimeout(searchTimer.current);
                     setSearchText("");
                     commitSearch("");
                   }}
@@ -246,16 +236,7 @@ export function ActivityLogClient({
             </p>
             <Select
               value={action ?? ALL}
-              onValueChange={(next) =>
-                pushFilters({
-                  action: next === ALL ? undefined : next,
-                  actorId,
-                  category,
-                  query,
-                  from,
-                  to,
-                })
-              }
+              onValueChange={(next) => pushFilters({ action: next === ALL ? undefined : next })}
             >
               <SelectTrigger className="w-full sm:w-64" aria-label="กรองตามประเภทกิจกรรม">
                 <SelectValue />
@@ -278,14 +259,7 @@ export function ActivityLogClient({
             <Select
               value={category ?? ALL}
               onValueChange={(next) =>
-                pushFilters({
-                  action,
-                  actorId,
-                  category: next === ALL ? undefined : (next as ActivityCategory),
-                  query,
-                  from,
-                  to,
-                })
+                pushFilters({ category: next === ALL ? undefined : (next as ActivityCategory) })
               }
             >
               <SelectTrigger className="w-full sm:w-56" aria-label="กรองตามหมวดข้อมูล">
@@ -355,7 +329,7 @@ export function ActivityLogClient({
                         !actorId && "bg-accent/60",
                       )}
                       onClick={() => {
-                        pushFilters({ action, actorId: undefined, category, query, from, to });
+                        pushFilters({ actorId: undefined });
                         setActorPickerOpen(false);
                         setActorSearch("");
                       }}
@@ -373,7 +347,7 @@ export function ActivityLogClient({
                             actorId === item.actorId && "bg-accent/60",
                           )}
                           onClick={() => {
-                            pushFilters({ action, actorId: item.actorId, category, query, from, to });
+                            pushFilters({ actorId: item.actorId });
                             setActorPickerOpen(false);
                             setActorSearch("");
                           }}
@@ -391,63 +365,48 @@ export function ActivityLogClient({
             </div>
           </div>
 
-          <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              วันที่เริ่มต้น
-            </p>
-            <Input
-              type="date"
-              className="w-44"
-              value={from ?? ""}
-              onChange={(event) =>
-                pushFilters({
-                  action,
-                  actorId,
-                  category,
-                  query,
-                  from: event.currentTarget.value || undefined,
-                  to,
-                })
-              }
-            />
-          </div>
+          {/* One line at every size: the two date fields share the row and shrink
+              (flex-1 min-w-0) while the button keeps its width. */}
+          <div className="flex w-full items-end gap-2 sm:w-auto">
+            <div className="min-w-0 flex-1 space-y-2 sm:flex-none">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                วันที่เริ่มต้น
+              </p>
+              <Input
+                type="date"
+                className="w-full sm:w-44"
+                value={from ?? ""}
+                onChange={(event) =>
+                  pushFilters({ from: event.currentTarget.value || undefined, all: false })
+                }
+              />
+            </div>
 
-          <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              วันที่สิ้นสุด
-            </p>
-            <Input
-              type="date"
-              className="w-44"
-              value={to ?? ""}
-              onChange={(event) =>
-                pushFilters({
-                  action,
-                  actorId,
-                  category,
-                  query,
-                  from,
-                  to: event.currentTarget.value || undefined,
-                })
-              }
-            />
-          </div>
+            <div className="min-w-0 flex-1 space-y-2 sm:flex-none">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                วันที่สิ้นสุด
+              </p>
+              <Input
+                type="date"
+                className="w-full sm:w-44"
+                value={to ?? ""}
+                onChange={(event) =>
+                  pushFilters({ to: event.currentTarget.value || undefined, all: false })
+                }
+              />
+            </div>
 
-          {from || to ? (
-            <div className="space-y-2 self-end">
-              <p className="text-xs font-semibold uppercase tracking-wider text-transparent">ล้างวันที่</p>
+            {from || to ? (
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-9 px-3"
-                onClick={() =>
-                  pushFilters({ action, actorId, category, query, from: undefined, to: undefined })
-                }
+                className="h-9 shrink-0 px-3"
+                onClick={() => pushFilters({ from: undefined, to: undefined, all: true })}
               >
                 ล้างวันที่
               </Button>
-            </div>
-          ) : null}
+            ) : null}
+          </div>
         </div>
 
         {category ? (
@@ -474,7 +433,9 @@ export function ActivityLogClient({
         <section className="rounded-lg border border-dashed bg-card px-6 py-10 text-center text-sm text-muted-foreground">
           {filtered
             ? "ไม่พบกิจกรรมที่ตรงตัวกรอง ลองเปลี่ยนคำค้นหรือเงื่อนไขแล้วค้นอีกครั้ง"
-            : "ยังไม่มีกิจกรรมในระบบ กิจกรรมสำคัญจะถูกบันทึกและแสดงที่หน้านี้"}
+            : datesAreDefault
+              ? "ไม่มีกิจกรรมในเดือนนี้ — กด \"ล้างวันที่\" เพื่อดูย้อนหลังทั้งหมด"
+              : "ยังไม่มีกิจกรรมในระบบ กิจกรรมสำคัญจะถูกบันทึกและแสดงที่หน้านี้"}
         </section>
       ) : (
         <section className="overflow-hidden rounded-lg border bg-card">
@@ -527,7 +488,11 @@ export function ActivityLogClient({
         </section>
       )}
 
-      <PaginationNav page={page} totalPages={totalPages} hrefFor={(nextPage) => buildHref({ page: nextPage })} />
+      <PaginationNav
+        page={page}
+        totalPages={totalPages}
+        hrefFor={(nextPage) => buildHref({ ...baseHrefState, page: nextPage })}
+      />
     </div>
   );
 }

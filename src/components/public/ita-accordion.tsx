@@ -100,7 +100,7 @@ export function ItaAccordion({
                   {String(idx + 1).padStart(2, "0")}
                 </span>
                 <div className="min-w-0 text-left">
-                  <p className="truncate font-semibold text-warm dark:text-warm-strong">{entry.title}</p>
+                  <p className="line-clamp-2 font-semibold text-warm dark:text-warm-strong">{entry.title}</p>
                   <p className="flex items-center gap-1 text-xs font-normal text-muted-foreground">
                     <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 font-medium text-secondary-foreground">
                       {entry.oits.length} รายการย่อย
@@ -118,7 +118,7 @@ export function ItaAccordion({
                   </span>
                 </div>
               ) : (
-                <ul className="space-y-1">
+                <ul className="space-y-0">
                   {entry.oits.map((oit) => (
                     <OitRow
                       key={oit.id}
@@ -176,7 +176,9 @@ function OitRow({
       tabIndex={disabled ? -1 : 0}
       aria-label={disabled ? undefined : `ดู ${oit.title}`}
       className={cn(
-        "group flex flex-col gap-2 rounded-md border border-transparent px-3 py-2.5 transition-colors sm:flex-row sm:items-center sm:justify-between sm:gap-3",
+        // border-b on the li itself (not divide-*) because the hover state
+        // paints this same border — a divide utility would fight it.
+        "group flex flex-col gap-2 rounded-md border-b border-stone-200/70 px-3 py-2.5 transition-colors last:border-b-0 sm:flex-row sm:items-center sm:justify-between sm:gap-3 dark:border-border/60",
         !disabled && "cursor-pointer hover:border-warm/25 hover:bg-warm-soft/35 dark:hover:bg-warm/10",
       )}
     >
@@ -190,7 +192,7 @@ function OitRow({
           <FileText className="size-3.5" aria-hidden />
         </span>
         <div className="min-w-0 flex-1">
-          <span className="truncate text-sm font-semibold">
+          <span className="line-clamp-2 text-sm font-semibold">
             {oit.title}
             {/* Marks a row that leaves the site instead of opening the modal */}
             {oit.link && (
@@ -200,10 +202,12 @@ function OitRow({
               />
             )}
           </span>
-          <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
-            <Clock className="size-3" aria-hidden />
-            อัปเดต {formatBELong(oit.updatedAt)}
-          </p>
+          {canManage && (
+            <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+              <Clock className="size-3" aria-hidden />
+              อัปเดต {formatBELong(oit.updatedAt)}
+            </p>
+          )}
         </div>
       </div>
 
@@ -256,10 +260,12 @@ function OitDetailDialog({
           <>
             <DialogHeader className="border-b px-6 py-4">
               <DialogTitle className="text-left text-lg">{oit.title}</DialogTitle>
-              <DialogDescription className="flex items-center gap-1 pt-1 text-left">
-                <Clock className="size-3.5" aria-hidden />
-                อัปเดตล่าสุด {formatBELong(oit.updatedAt)}
-              </DialogDescription>
+              {canManage && (
+                <DialogDescription className="flex items-center gap-1 pt-1 text-left">
+                  <Clock className="size-3.5" aria-hidden />
+                  อัปเดตล่าสุด {formatBELong(oit.updatedAt)}
+                </DialogDescription>
+              )}
             </DialogHeader>
 
             <div className="flex-1 overflow-y-auto px-6 py-4">

@@ -94,3 +94,27 @@ export function formatBEDateTime(value: string | Date): string {
   const year = toBE(Number(parts.get("year")));
   return `${day} ${TH_MONTHS_SHORT[month]} ${year} ${parts.get("hour")}:${parts.get("minute")} น.`;
 }
+
+/**
+ * First and last day of the current month in Asia/Bangkok, as `YYYY-MM-DD` —
+ * the activity log's default window (F26). Bangkok, not the host zone: on a
+ * UTC server at 20:00 UTC it is already the next day in Thailand, and a
+ * "this month" that disagrees with the reader's calendar is confusing.
+ */
+const BANGKOK_YEAR_MONTH = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Asia/Bangkok",
+  year: "numeric",
+  month: "numeric",
+});
+
+export function currentBangkokMonth(): { from: string; to: string } {
+  const parts = new Map(
+    BANGKOK_YEAR_MONTH.formatToParts(new Date()).map((p) => [p.type, p.value]),
+  );
+  const year = Number(parts.get("year"));
+  const month = Number(parts.get("month"));
+  // Day 0 of the following month = last day of this one.
+  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  const mm = String(month).padStart(2, "0");
+  return { from: `${year}-${mm}-01`, to: `${year}-${mm}-${String(lastDay).padStart(2, "0")}` };
+}

@@ -264,4 +264,15 @@
   .prose-oit h3 {
     @apply mt-3 mb-2 font-semibold;
   }
+
+  /* Editor-authored content may contain wide tables or code blocks. The app
+     shell clips horizontal overflow for the whole page, so each wide element
+     becomes its own scroll container instead of pushing the layout wide. */
+  .prose-oit :is(table, pre) {
+    @apply block max-w-full overflow-x-auto;
+  }
+
+  .prose-oit :is(img, video) {
+    @apply h-auto max-w-full;
+  }
 }

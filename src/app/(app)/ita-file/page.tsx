@@ -104,7 +104,10 @@ export default async function ItaFilePage({ searchParams }: Props) {
           </div>
         ) : (
           <>
-            <div className="grid gap-3 md:hidden">
+            {/* grid-cols-1 (minmax(0,1fr)) — an implicit auto track would size to
+                the card's max-content, and a nowrap filename pushes it past the
+                viewport, where the shell's overflow-x-clip makes it unreachable. */}
+            <div className="grid grid-cols-1 gap-3 md:hidden">
               {files.map((file) => {
                 const Icon = fileIcon(file.path);
                 const canDelete = file.userId === user.id || user.role === "SUPERADMIN";
@@ -120,7 +123,7 @@ export default async function ItaFilePage({ searchParams }: Props) {
                         rel="noopener noreferrer"
                         className="min-w-0 flex-1 text-left"
                       >
-                        <span className="inline-flex items-center gap-2 text-sm font-semibold text-warm-strong hover:underline dark:text-warm">
+                        <span className="flex min-w-0 items-center gap-2 text-sm font-semibold text-warm-strong hover:underline dark:text-warm">
                           <Icon className="size-4 shrink-0 text-warm" aria-hidden />
                           <span className="truncate">{file.name}</span>
                           <ExternalLink className="size-3 shrink-0 opacity-60" aria-hidden />
