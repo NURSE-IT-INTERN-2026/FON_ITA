@@ -1,0 +1,21 @@
+node_modules
+.next
+.git
+.github
+docs
+_migration-archive
+research_tools
+.agents
+.claude
+
+# Local dev env files must never end up inside the image — real values come
+# from the platform's own environment variables at runtime.
+.env
+.env.local
+.env*.local
+
+# Real uploaded documents — never part of the image, mounted/synced separately.
+storage/
+
+npm-debug.log*
+*.tsbuildinfo
