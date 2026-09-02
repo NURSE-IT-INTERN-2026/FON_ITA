@@ -15,4 +15,6 @@ EXPOSE 3008
 ENV PORT=3008
 ENV NODE_ENV=production
 
-CMD ["npm", "start"]
+# ต้องมี DATABASE_URL ชี้ไปที่ Postgres ของ Dokploy ก่อน container จะ start ได้
+# (schema ยังไม่มีอยู่เลยจนกว่าจะรัน migrate deploy ครั้งแรก)
+CMD ["sh", "-c", "npx prisma migrate deploy && npm start"]
