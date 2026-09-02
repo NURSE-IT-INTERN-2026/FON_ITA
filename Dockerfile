@@ -8,7 +8,15 @@ RUN npm ci
 
 # Copy โค้ดทั้งหมดและ build
 COPY . .
-RUN DATABASE_URL="postgresql://mock:mock@localhost:5432/mock" npx prisma generate
+
+# ค่าหลอกสำหรับตอน build เท่านั้น — next build ต้อง import ทุก route (รวม route ที่ใช้
+# Prisma) เพื่อเก็บ metadata แม้ route จะเป็น dynamic ก็ตาม จึงต้องมี DATABASE_URL ที่
+# parse ได้ (ไม่ต้องต่อฐานจริง) ไม่งั้น build พังตั้งแต่ import module
+# host ตั้งใจใช้ชื่อปลอมชัดเจน ไม่ใช่ localhost — กันสับสนกับกรณี DATABASE_URL จริงจาก
+# Dokploy ไม่ถูกส่งเข้ามาตอน runtime (ค่านี้ต้องถูกตัวแปรจริงทับตอน container start เสมอ)
+ENV DATABASE_URL="postgresql://build:build@build-time-placeholder:5432/build"
+
+RUN npx prisma generate
 RUN npm run build
 
 EXPOSE 3008
