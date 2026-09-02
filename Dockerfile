@@ -8,7 +8,7 @@ RUN npm ci
 
 # Copy โค้ดทั้งหมดและ build
 COPY . .
-RUN npx prisma generate
+RUN DATABASE_URL="postgresql://mock:mock@localhost:5432/mock" npx prisma generate
 RUN npm run build
 
 EXPOSE 3008
