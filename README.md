@@ -59,13 +59,58 @@ npm run db:up            # เริ่ม PostgreSQL ใน Docker
 npm run db:migrate       # รัน Prisma migration
 npm run db:generate      # สร้าง Prisma Client
 npm run db:studio        # เปิด Prisma Studio (ดู/แก้ข้อมูลใน DB)
-npm run db:seed          # ใส่ข้อมูลตัวอย่าง
-npm run db:reset         # รีเซ็ต DB (ล้างข้อมูล + migrate + seed ใหม่)
-npm run db:migrate-legacy # ย้ายข้อมูลจากระบบ Laravel เดิม
+npm run db:seed          # สร้าง SUPERADMIN คนแรก (อ่าน BOOTSTRAP_ADMIN_EMAIL/PASSWORD)
+npm run db:reset         # รีเซ็ต DB (ล้างข้อมูล + migrate ใหม่ทั้งหมด)
+npm run db:migrate-legacy # ย้ายข้อมูลจากระบบ Laravel เดิม (F32)
 
-npm run api:verify       # ตรวจสัญญา Public API กับระบบเดิม (119 ข้อ)
+npm run api:verify       # ตรวจสัญญา Public API (63 ข้อ)
 npm run lint             # รัน ESLint
 ```
+
+## การ Deploy และตั้งระบบครั้งแรก (Dokploy)
+
+รันคำสั่งทั้งหมดใน **terminal ของ service ตัวแอป** บน Dokploy — image มีทั้ง source
+และ dependencies ครบ (build ด้วย `npm ci` + `COPY . .`) และ env ของ service ถูกส่งเข้า
+container ให้สคริปต์ใช้ได้เลย
+
+**Environment ที่ต้องตั้งใน service ก่อน:**
+
+| ตัวแปร | ใช้ทำอะไร |
+|---|---|
+| `DATABASE_URL` | ชี้ไปที่ PostgreSQL ของ Dokploy (ไม่มี container start ไม่ได้) |
+| `BOOTSTRAP_ADMIN_EMAIL` · `BOOTSTRAP_ADMIN_PASSWORD` | บัญชี SUPERADMIN คนแรก (รหัส ≥ 12 ตัวอักษร) |
+| `LEGACY_ORIGIN` | ที่อยู่ระบบเดิม — default `https://dev.nurse.cmu.ac.th/fonita` |
+
+**ลำดับการทำงาน:**
+
+```bash
+# 1. schema — รันให้อัตโนมัติอยู่แล้วตอน container start (CMD ใน Dockerfile) ข้ามได้
+npx prisma migrate deploy
+
+# 2. สร้าง SUPERADMIN คนแรก (ครั้งเดียวต่อฐานข้อมูล)
+npm run db:seed
+
+# 3. ย้ายข้อมูลจากระบบเดิม — ดึงจาก Public API เส้นเดียว:
+#      GET {LEGACY_ORIGIN}/api/v1/ita/{year}   วนปี 2565–2569
+#    ไฟล์แนบดาวน์โหลดแยกต่างหากจากพาธ /storage/itafile ของระบบเดิม
+npm run db:migrate-legacy -- --dry-run    # พรีวิวก่อน ไม่เขียนอะไร
+npm run db:migrate-legacy                 # ย้ายจริง
+
+# 4. ตรวจว่า API ของ deployment นี้ตอบตรงสัญญา — ต้องรันหลังขั้น 3 เท่านั้น
+#    (ก่อนย้ายข้อมูล DB ว่าง API ตอบ [] จึงไม่มีอะไรให้ตรวจ)
+VERIFY_ORIGIN=http://localhost:3008/fonita npm run api:verify
+```
+
+**ข้อควรระวัง:**
+
+- **mount volume ถาวรที่ `/app/storage` ก่อนเริ่มขั้น 3** — ไฟล์จากระบบเดิมเขียนลง disk
+  ของ container ถ้าไม่ mount ไว้ ไฟล์จะหายทุกครั้งที่ redeploy (DB ยังอยู่แต่ลิงก์ไฟล์ 404 ทั้งหมด)
+- `db:migrate-legacy` ย้ายครั้งเดียวพอ — รันซ้ำจะโดน guard กันทับข้อมูล ต้องใช้ `--force`
+  ถ้าต้องการลบปีเหล่านั้นแล้วย้ายใหม่ (ไฟล์ที่มีอยู่แล้วจะข้าม ไม่โหลดซ้ำ)
+- การย้าย**ไม่รวมตาราง users** (D14) — เจ้าหน้าที่คนอื่นสร้างใหม่ผ่านหน้าจัดการผู้ใช้
+- **เข้าใช้งานผ่าน HTTPS เท่านั้น** — session cookie ติดแฟล็ก `Secure` ใน production
+  เปิดผ่าน `http://` ธรรมดา browser จะไม่เก็บ cookie → ล็อกอินได้แต่คลิกหน้าอื่นแล้วเด้งกลับ
+  หน้า login ทุกครั้ง (ผูกโดเมน + ขอ certificate ใน Dokploy)
 
 ## โครงสร้างโปรเจค
 
