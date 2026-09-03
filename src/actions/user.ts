@@ -4,12 +4,13 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { logActivity } from "@/lib/activity/log";
 import { FORBIDDEN_MESSAGE } from "@/lib/auth/errors";
-import { requireUser } from "@/lib/auth/guards";
-import { hashPassword } from "@/lib/auth/password";
+import { getActorIfRole } from "@/lib/auth/guards";
+import { hashPassword, MIN_PASSWORD_LENGTH } from "@/lib/auth/password";
 import { revokeAllSessions } from "@/lib/auth/session";
 import { roleLabel } from "@/components/misc/role-badge";
 import { prisma } from "@/lib/prisma";
 import { countActiveSuperadmins } from "@/lib/users/queries";
+import { nameField } from "@/lib/users/validation";
 
 // User management (F24) — SUPERADMIN only (decisions.md D4).
 //
@@ -28,9 +29,6 @@ import { countActiveSuperadmins } from "@/lib/users/queries";
 //     null), and its sessions go with it.
 
 export type UserActionState = { error?: string };
-
-/** Minimum for an account created here. The bootstrap admin uses a longer one. */
-const MIN_PASSWORD_LENGTH = 8;
 
 /**
  * Only CMU addresses may be registered.
@@ -61,13 +59,6 @@ const emailField = z
     (value) => ALLOWED_EMAIL_DOMAINS.some((domain) => value.endsWith(`@${domain}`)),
     { message: `ต้องเป็นอีเมล @${ALLOWED_EMAIL_DOMAINS.join(" หรือ @")} เท่านั้น` },
   );
-
-const nameField = (label: string) =>
-  z
-    .string()
-    .trim()
-    .min(1, { message: `กรุณากรอก${label}` })
-    .max(100, { message: `${label}ต้องไม่เกิน 100 ตัวอักษร` });
 
 /** Roles a new account may be given. USER is not one — see the note at the top. */
 const createRoleField = z.enum(["ADMIN", "SUPERADMIN"], { message: "บทบาทไม่ถูกต้อง" });
@@ -104,11 +95,6 @@ const updateSchema = z.object({
 
 const idSchema = z.object({ id: z.coerce.number().int().positive() });
 
-async function requireSuperadmin() {
-  const user = await requireUser();
-  return user.role === "SUPERADMIN" ? user : null;
-}
-
 /** Blocks an action that would leave zero active SUPERADMIN accounts. */
 async function guardLastSuperadmin(
   wouldRemoveActiveSuperadmin: boolean,
@@ -131,7 +117,7 @@ function fields(formData: FormData) {
 }
 
 export async function createUser(formData: FormData): Promise<UserActionState> {
-  const actor = await requireSuperadmin();
+  const actor = await getActorIfRole("SUPERADMIN");
   if (!actor) return { error: FORBIDDEN_MESSAGE };
 
   const parsed = createSchema.safeParse({ ...fields(formData), email: formData.get("email") });
@@ -197,7 +183,7 @@ export async function createUser(formData: FormData): Promise<UserActionState> {
 }
 
 export async function updateUser(formData: FormData): Promise<UserActionState> {
-  const actor = await requireSuperadmin();
+  const actor = await getActorIfRole("SUPERADMIN");
   if (!actor) return { error: FORBIDDEN_MESSAGE };
 
   const parsed = updateSchema.safeParse({ ...fields(formData), id: formData.get("id") });
@@ -273,7 +259,7 @@ export async function updateUser(formData: FormData): Promise<UserActionState> {
  * also rejects `status = false` on the next request either way (F5).
  */
 export async function disableUser(formData: FormData): Promise<UserActionState> {
-  const actor = await requireSuperadmin();
+  const actor = await getActorIfRole("SUPERADMIN");
   if (!actor) return { error: FORBIDDEN_MESSAGE };
 
   const parsed = idSchema.safeParse({ id: formData.get("id") });
@@ -300,7 +286,7 @@ export async function disableUser(formData: FormData): Promise<UserActionState> 
 
 /** Re-enable a disabled account, from the "ปิดใช้งาน" tab. */
 export async function restoreUser(formData: FormData): Promise<UserActionState> {
-  const actor = await requireSuperadmin();
+  const actor = await getActorIfRole("SUPERADMIN");
   if (!actor) return { error: FORBIDDEN_MESSAGE };
 
   const parsed = idSchema.safeParse({ id: formData.get("id") });
@@ -330,7 +316,7 @@ export async function restoreUser(formData: FormData): Promise<UserActionState> 
  * dialog on the button is the guard against a slip.
  */
 export async function deleteUser(formData: FormData): Promise<UserActionState> {
-  const actor = await requireSuperadmin();
+  const actor = await getActorIfRole("SUPERADMIN");
   if (!actor) return { error: FORBIDDEN_MESSAGE };
 
   const parsed = idSchema.safeParse({ id: formData.get("id") });

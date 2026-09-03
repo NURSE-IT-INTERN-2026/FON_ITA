@@ -4,8 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { logActivity } from "@/lib/activity/log";
 import { FORBIDDEN_MESSAGE } from "@/lib/auth/errors";
-import { requireUser } from "@/lib/auth/guards";
-import { hasRole } from "@/lib/auth/roles";
+import { getActorIfRole } from "@/lib/auth/guards";
 import { type PickerFile, type PickerResult, searchFilesByName } from "@/lib/files/queries";
 import { checkUpload, deleteUpload, saveUpload } from "@/lib/files/storage";
 import { prisma } from "@/lib/prisma";
@@ -28,8 +27,8 @@ const uploadSchema = z.object({
 });
 
 export async function uploadFile(formData: FormData): Promise<FileActionState> {
-  const user = await requireUser();
-  if (!hasRole(user, "ADMIN", "SUPERADMIN")) return { error: FORBIDDEN_MESSAGE };
+  const user = await getActorIfRole("ADMIN", "SUPERADMIN");
+  if (!user) return { error: FORBIDDEN_MESSAGE };
 
   const parsed = uploadSchema.safeParse({ name: formData.get("name") });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "ข้อมูลไม่ถูกต้อง" };
@@ -88,8 +87,8 @@ export async function uploadFile(formData: FormData): Promise<FileActionState> {
  * list rather than an error, so the picker has nothing to leak.
  */
 export async function searchFiles(term: string): Promise<PickerResult> {
-  const user = await requireUser();
-  if (!hasRole(user, "ADMIN", "SUPERADMIN")) return { files: [], total: 0 };
+  const user = await getActorIfRole("ADMIN", "SUPERADMIN");
+  if (!user) return { files: [], total: 0 };
 
   const parsed = z.string().max(255).safeParse(term);
   if (!parsed.success) return { files: [], total: 0 };
@@ -104,8 +103,8 @@ export async function searchFiles(term: string): Promise<PickerResult> {
  * would otherwise be undeletable by anyone.
  */
 export async function deleteFile(formData: FormData): Promise<FileActionState> {
-  const user = await requireUser();
-  if (!hasRole(user, "ADMIN", "SUPERADMIN")) return { error: FORBIDDEN_MESSAGE };
+  const user = await getActorIfRole("ADMIN", "SUPERADMIN");
+  if (!user) return { error: FORBIDDEN_MESSAGE };
 
   const parsed = deleteSchema.safeParse({ id: formData.get("id") });
   if (!parsed.success) return { error: "คำขอไม่ถูกต้อง" };

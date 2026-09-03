@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ITA_SELECT, OIT_SELECT, toLegacyIta } from "@/lib/api/legacy-ita";
+import { ITA_SELECT, OIT_SELECT, loadLegacyYear, toLegacyIta } from "@/lib/api/legacy-ita";
 import { legacyHeaders, tooManyRequests } from "@/lib/api/legacy-response";
 import { clientKey, consumeRateLimit, sameOrigin } from "@/lib/api/rate-limit";
 import { prisma } from "@/lib/prisma";
@@ -40,7 +40,7 @@ export async function GET(
   // (api-streaming.md §4.5). Answered here rather than redirected: a redirect
   // costs a round trip and drops the Accept header on some clients.
   if (!(request.headers.get("accept") ?? "").includes(NDJSON)) {
-    const rows = year ? await loadYear(year) : [];
+    const rows = year ? await loadLegacyYear(year) : [];
     return new Response(JSON.stringify(rows), {
       status: 200,
       headers: legacyHeaders(rate, CORS_ORIGIN),
@@ -97,15 +97,6 @@ export async function GET(
   headers.set("X-Accel-Buffering", "no");
 
   return new Response(stream, { status: 200, headers });
-}
-
-async function loadYear(year: string) {
-  const rows = await prisma.ita.findMany({
-    where: { year },
-    orderBy: { order: "asc" },
-    select: { ...ITA_SELECT, oits: { orderBy: { id: "asc" }, select: OIT_SELECT } },
-  });
-  return rows.map(({ oits, ...ita }) => toLegacyIta(ita, oits));
 }
 
 export function OPTIONS() {

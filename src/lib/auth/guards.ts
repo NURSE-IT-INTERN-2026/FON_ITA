@@ -81,3 +81,18 @@ export async function requireRole(...allowed: AppRole[]): Promise<SessionUser> {
   if (!allowed.includes(user.role)) forbidden();
   return user;
 }
+
+/**
+ * The same decision as `requireRole()`, but as a value instead of an interrupt.
+ *
+ * Server Actions are its callers: a form action must return its refusal as
+ * `{ error }` for the dialog to display, not raise `forbidden()`. Signing out
+ * mid-session still interrupts via `requireUser()` underneath — only the
+ * wrong-role outcome becomes null.
+ */
+export async function getActorIfRole(
+  ...allowed: AppRole[]
+): Promise<SessionUser | null> {
+  const user = await requireUser();
+  return allowed.includes(user.role) ? user : null;
+}

@@ -18,3 +18,15 @@ function createPrismaClient(): PrismaClient {
 export const prisma = globalForPrisma.prisma ?? createPrismaClient();
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+
+/**
+ * Escape the LIKE wildcards in a search term before passing it to Prisma's
+ * `contains` (which builds an ILIKE pattern and passes the term through as-is —
+ * verified: a raw "%" matched every row, and "_" any single character). Not an
+ * injection (the value stays parameterised), but a literal "ITA-100%" would be
+ * unsearchable. PostgreSQL's default escape character is a backslash, which
+ * must itself be escaped first.
+ */
+export function escapeLike(term: string): string {
+  return term.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
+}

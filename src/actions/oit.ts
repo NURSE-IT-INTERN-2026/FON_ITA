@@ -4,8 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { logActivity } from "@/lib/activity/log";
 import { FORBIDDEN_MESSAGE } from "@/lib/auth/errors";
-import { requireUser } from "@/lib/auth/guards";
-import { hasRole } from "@/lib/auth/roles";
+import { getActorIfRole } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 import { htmlToText, sanitizeHtml } from "@/lib/sanitize";
 
@@ -39,11 +38,6 @@ const createSchema = z.object({ ...oitFields, itaId: z.coerce.number().int().pos
 const updateSchema = z.object({ ...oitFields, id: z.coerce.number().int().positive() });
 const deleteSchema = z.object({ id: z.coerce.number().int().positive() });
 
-async function requireEditor() {
-  const user = await requireUser();
-  return hasRole(user, "ADMIN", "SUPERADMIN") ? user : null;
-}
-
 function revalidateOitViews(itaId: number, year: string, oitId?: number) {
   revalidatePath("/ita-list");
   revalidatePath(`/ita/by-year/${year}`);
@@ -71,7 +65,7 @@ function prepareContent(raw: string): { content: string | null } | { error: stri
 }
 
 export async function createOit(formData: FormData): Promise<OitActionState> {
-  const user = await requireEditor();
+  const user = await getActorIfRole("ADMIN", "SUPERADMIN");
   if (!user) return { error: FORBIDDEN_MESSAGE };
 
   const parsed = createSchema.safeParse({
@@ -103,7 +97,7 @@ export async function createOit(formData: FormData): Promise<OitActionState> {
 }
 
 export async function updateOit(formData: FormData): Promise<OitActionState> {
-  const user = await requireEditor();
+  const user = await getActorIfRole("ADMIN", "SUPERADMIN");
   if (!user) return { error: FORBIDDEN_MESSAGE };
 
   const parsed = updateSchema.safeParse({
@@ -144,7 +138,7 @@ export async function updateOit(formData: FormData): Promise<OitActionState> {
 }
 
 export async function deleteOit(formData: FormData): Promise<OitActionState> {
-  const user = await requireEditor();
+  const user = await getActorIfRole("ADMIN", "SUPERADMIN");
   if (!user) return { error: FORBIDDEN_MESSAGE };
 
   const parsed = deleteSchema.safeParse({ id: formData.get("id") });

@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { escapeLike, prisma } from "@/lib/prisma";
 
 // Read side of the central file library (F18).
 
@@ -23,19 +23,6 @@ export type FilePage = {
   totalPages: number;
   total: number;
 };
-
-/**
- * Escape the LIKE wildcards in a search term.
- *
- * Prisma's `contains` builds an ILIKE pattern and passes the term through as-is
- * — verified: searching for "%" returned every row, and "_" matched any single
- * character. That is not an injection (the value is still parameterised), but it
- * makes a literal "ITA-100%" unsearchable. PostgreSQL's default escape
- * character is a backslash, which must itself be escaped first.
- */
-function escapeLike(term: string): string {
-  return term.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
-}
 
 /** Case-insensitive "contains" filter on the display name (F21). */
 function nameFilter(search?: string) {

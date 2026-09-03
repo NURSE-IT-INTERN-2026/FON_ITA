@@ -13,6 +13,13 @@ const scryptAsync = promisify(scrypt) as (
 const SALT_BYTES = 16;
 const KEY_BYTES = 64;
 
+/**
+ * The one password-length floor, shared by user management (F24), the profile
+ * page (F25) and the forced reset (F34). It lives here — with the code that
+ * hashes passwords — so the three schemas cannot drift apart silently.
+ */
+export const MIN_PASSWORD_LENGTH = 8;
+
 /** Stored in `User.password` as `saltHex:hashHex`. */
 export async function hashPassword(password: string): Promise<string> {
   const salt = randomBytes(SALT_BYTES);

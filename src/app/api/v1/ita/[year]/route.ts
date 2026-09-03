@@ -1,8 +1,7 @@
 import { z } from "zod";
-import { ITA_SELECT, type LegacyIta, OIT_SELECT, toLegacyIta } from "@/lib/api/legacy-ita";
+import { type LegacyIta, loadLegacyYear } from "@/lib/api/legacy-ita";
 import { legacyHeaders, tooManyRequests } from "@/lib/api/legacy-response";
 import { clientKey, consumeRateLimit, sameOrigin } from "@/lib/api/rate-limit";
-import { prisma } from "@/lib/prisma";
 
 /**
  * GET /api/v1/ita/{year}  (real path: /fonita/api/v1/ita/{year})
@@ -36,27 +35,12 @@ export async function GET(
   // An unparseable year still gets a 200 and an empty array. The faculty page
   // walks years backwards with findLatestAvailableYear() and treats any
   // non-array as a hard failure — a 404 here would break the whole page.
-  const payload: LegacyIta[] = parsed.success ? await loadYear(parsed.data) : [];
+  const payload: LegacyIta[] = parsed.success ? await loadLegacyYear(parsed.data) : [];
 
   return new Response(JSON.stringify(payload), {
     status: 200,
     headers: legacyHeaders(rate, CORS_ORIGIN),
   });
-}
-
-async function loadYear(year: string): Promise<LegacyIta[]> {
-  const rows = await prisma.ita.findMany({
-    where: { year },
-    // Both levels are ordered explicitly. PostgreSQL gives no row order without
-    // ORDER BY — an UPDATE alone is enough to move a row — and the faculty page
-    // renders the OITs in the order it receives them, as O1…O26. MySQL used to
-    // return PK order by accident; relying on that here would scramble the
-    // published page.
-    orderBy: { order: "asc" },
-    select: { ...ITA_SELECT, oits: { orderBy: { id: "asc" }, select: OIT_SELECT } },
-  });
-
-  return rows.map(({ oits, ...ita }) => toLegacyIta(ita, oits));
 }
 
 /**

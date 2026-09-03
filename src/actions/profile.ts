@@ -4,9 +4,10 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { logActivity } from "@/lib/activity/log";
 import { requireUser } from "@/lib/auth/guards";
-import { hashPassword, verifyPassword } from "@/lib/auth/password";
+import { hashPassword, MIN_PASSWORD_LENGTH, verifyPassword } from "@/lib/auth/password";
 import { createSession, getSessionLoginMethod, revokeAllSessions } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
+import { nameField } from "@/lib/users/validation";
 
 // Own-account editing (F25). ADMIN+ in practice, because only staff have
 // accounts at all (decisions.md D12) — but no role check is needed here beyond
@@ -14,16 +15,6 @@ import { prisma } from "@/lib/prisma";
 // the request. That is what keeps this safe to expose to any account.
 
 export type ProfileActionState = { error?: string };
-
-/** Same floor as user management (F24), so the two cannot drift apart. */
-const MIN_PASSWORD_LENGTH = 8;
-
-const nameField = (label: string) =>
-  z
-    .string()
-    .trim()
-    .min(1, { message: `กรุณากรอก${label}` })
-    .max(100, { message: `${label}ต้องไม่เกิน 100 ตัวอักษร` });
 
 const profileSchema = z.object({
   prefix: z.string().trim().max(50, { message: "คำนำหน้าต้องไม่เกิน 50 ตัวอักษร" }).optional(),

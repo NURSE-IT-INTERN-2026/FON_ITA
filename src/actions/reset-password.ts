@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { logActivity } from "@/lib/activity/log";
 import { needsPasswordReset, requireSession } from "@/lib/auth/guards";
-import { hashPassword, verifyPassword } from "@/lib/auth/password";
+import { hashPassword, MIN_PASSWORD_LENGTH, verifyPassword } from "@/lib/auth/password";
 import { ROLE_HOME } from "@/lib/auth/roles";
 import { createSession, revokeAllSessions } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
@@ -18,9 +18,6 @@ import { prisma } from "@/lib/prisma";
 // that password stops being the one that opens the account.
 
 export type ResetPasswordState = { error?: string };
-
-/** Same floor as user management (F24) and the profile page (F25). */
-const MIN_PASSWORD_LENGTH = 8;
 
 const schema = z
   .object({

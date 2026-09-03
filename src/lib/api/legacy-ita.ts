@@ -1,3 +1,4 @@
+import { prisma } from "@/lib/prisma";
 import { legacyTimestamp } from "@/lib/api/legacy-response";
 
 // The one place that knows what an ITA looks like in the frozen Public API
@@ -88,4 +89,23 @@ export function toLegacyIta(ita: ItaRow, oits: OitRow[]): LegacyIta {
       updated_at: legacyTimestamp(oit.updatedAt),
     })),
   };
+}
+
+/**
+ * The year's rows as the contract returns them — eager-loaded, both levels
+ * ordered explicitly (PostgreSQL promises no row order without ORDER BY, and
+ * the faculty page renders OITs in the order it receives them).
+ *
+ * The one query behind the plain endpoint AND the stream's JSON fallback. It
+ * lives here, next to `toLegacyIta()`, so a change to what the frozen contract
+ * returns happens in exactly one place.
+ */
+export async function loadLegacyYear(year: string): Promise<LegacyIta[]> {
+  const rows = await prisma.ita.findMany({
+    where: { year },
+    orderBy: { order: "asc" },
+    select: { ...ITA_SELECT, oits: { orderBy: { id: "asc" }, select: OIT_SELECT } },
+  });
+
+  return rows.map(({ oits, ...ita }) => toLegacyIta(ita, oits));
 }

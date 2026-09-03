@@ -1,7 +1,7 @@
 import type { AppRole } from "@/generated/prisma/enums";
 import type { ActivityCategory } from "@/lib/activity/meta";
 import { categoryForAction } from "@/lib/activity/meta";
-import { prisma } from "@/lib/prisma";
+import { escapeLike, prisma } from "@/lib/prisma";
 import { isActivityAction } from "@/lib/activity/actions";
 
 // Read side of the activity log (F26). SUPERADMIN only — enforced by the page
@@ -41,10 +41,6 @@ export type ActivityFilters = {
   from?: Date;
   to?: Date;
 };
-
-function escapeLike(term: string): string {
-  return term.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
-}
 
 /**
  * Only a known action is allowed through to the query. An unknown value from

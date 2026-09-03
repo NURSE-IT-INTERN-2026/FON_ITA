@@ -4,8 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { logActivity } from "@/lib/activity/log";
 import { FORBIDDEN_MESSAGE } from "@/lib/auth/errors";
-import { requireUser } from "@/lib/auth/guards";
-import { hasRole } from "@/lib/auth/roles";
+import { getActorIfRole } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 
 // Write side of ITA (F14). Every action re-checks the role here, not only in the
@@ -47,12 +46,6 @@ const reorderSchema = z.object({
   orderedIds: z.array(z.coerce.number().int().positive()).min(1),
 });
 
-/** ADMIN and SUPERADMIN may write; USER may only read (role matrix, D4/D5). */
-async function requireEditor() {
-  const user = await requireUser();
-  return hasRole(user, "ADMIN", "SUPERADMIN") ? user : null;
-}
-
 /** Both list routes show the same rows, so both caches must drop. */
 function revalidateItaViews(year: string) {
   revalidatePath("/ita-list");
@@ -70,7 +63,7 @@ async function nextOrder(year: string): Promise<number> {
 }
 
 export async function createIta(formData: FormData): Promise<ItaActionState> {
-  const user = await requireEditor();
+  const user = await getActorIfRole("ADMIN", "SUPERADMIN");
   if (!user) return { error: FORBIDDEN_MESSAGE };
 
   const parsed = createSchema.safeParse({
@@ -92,7 +85,7 @@ export async function createIta(formData: FormData): Promise<ItaActionState> {
 }
 
 export async function updateIta(formData: FormData): Promise<ItaActionState> {
-  const user = await requireEditor();
+  const user = await getActorIfRole("ADMIN", "SUPERADMIN");
   if (!user) return { error: FORBIDDEN_MESSAGE };
 
   const parsed = updateSchema.safeParse({
@@ -143,7 +136,7 @@ export async function updateIta(formData: FormData): Promise<ItaActionState> {
 }
 
 export async function deleteIta(formData: FormData): Promise<ItaActionState> {
-  const user = await requireEditor();
+  const user = await getActorIfRole("ADMIN", "SUPERADMIN");
   if (!user) return { error: FORBIDDEN_MESSAGE };
 
   const parsed = deleteSchema.safeParse({ id: formData.get("id") });
@@ -175,7 +168,7 @@ export async function deleteIta(formData: FormData): Promise<ItaActionState> {
  * year slipped into the request and would otherwise be moved to the wrong year.
  */
 export async function reorderIta(formData: FormData): Promise<ItaActionState> {
-  const user = await requireEditor();
+  const user = await getActorIfRole("ADMIN", "SUPERADMIN");
   if (!user) return { error: FORBIDDEN_MESSAGE };
 
   const parsed = reorderSchema.safeParse({
