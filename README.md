@@ -67,17 +67,20 @@ npm run api:verify       # ตรวจสัญญา Public API (63 ข้อ)
 npm run lint             # รัน ESLint
 ```
 
-## การ Deploy และตั้งระบบครั้งแรก (Dokploy)
+## การ Deploy และตั้งระบบครั้งแรก
 
-รันคำสั่งทั้งหมดใน **terminal ของ service ตัวแอป** บน Dokploy — image มีทั้ง source
-และ dependencies ครบ (build ด้วย `npm ci` + `COPY . .`) และ env ของ service ถูกส่งเข้า
-container ให้สคริปต์ใช้ได้เลย
+ขั้นตอนเหมือนกันทุก platform ที่รันเป็น Docker — Dokploy, VPS + docker compose,
+หรือเซิร์ฟเวอร์จริงของคณะ — เพราะสั่งทั้งหมดรัน**ใน container ของแอปเอง** (เปิดด้วย
+`docker exec -it <container> sh` หรือปุ่ม terminal ที่ platform มีให้) image มีทั้ง source
+และ dependencies ครบ (build ด้วย `npm ci` + `COPY . .`) และ env ที่ใส่ตอนรัน container
+ถูกส่งถึงสคริปต์ทุกตัว สิ่งที่ต่างกันระหว่าง platform มีแค่วิธีใส่ env · วิธีเปิด terminal ·
+ชั้น reverse proxy + TLS ด้านนอก container
 
-**Environment ที่ต้องตั้งใน service ก่อน:**
+**Environment ที่ต้องใส่ให้ container ก่อน:**
 
 | ตัวแปร | ใช้ทำอะไร |
 |---|---|
-| `DATABASE_URL` | ชี้ไปที่ PostgreSQL ของ Dokploy (ไม่มี container start ไม่ได้) |
+| `DATABASE_URL` | ชี้ไปที่ PostgreSQL ที่ container เข้าถึงได้ (ไม่มี container start ไม่ได้) |
 | `BOOTSTRAP_ADMIN_EMAIL` · `BOOTSTRAP_ADMIN_PASSWORD` | บัญชี SUPERADMIN คนแรก (รหัส ≥ 12 ตัวอักษร) |
 | `LEGACY_ORIGIN` | ที่อยู่ระบบเดิม — default `https://dev.nurse.cmu.ac.th/fonita` |
 
@@ -110,7 +113,8 @@ VERIFY_ORIGIN=http://localhost:3008/fonita npm run api:verify
 - การย้าย**ไม่รวมตาราง users** (D14) — เจ้าหน้าที่คนอื่นสร้างใหม่ผ่านหน้าจัดการผู้ใช้
 - **เข้าใช้งานผ่าน HTTPS เท่านั้น** — session cookie ติดแฟล็ก `Secure` ใน production
   เปิดผ่าน `http://` ธรรมดา browser จะไม่เก็บ cookie → ล็อกอินได้แต่คลิกหน้าอื่นแล้วเด้งกลับ
-  หน้า login ทุกครั้ง (ผูกโดเมน + ขอ certificate ใน Dokploy)
+  หน้า login ทุกครั้ง (ต้องมีโดเมน + TLS ปลายทาง — บนเซิร์ฟเวอร์จริงของคณะได้มาจาก
+  reverse proxy ของหน่วย IT ซึ่งทำให้อยู่แล้ว)
 
 ## โครงสร้างโปรเจค
 
