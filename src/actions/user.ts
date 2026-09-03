@@ -109,6 +109,15 @@ async function requireSuperadmin() {
   return user.role === "SUPERADMIN" ? user : null;
 }
 
+/** Blocks an action that would leave zero active SUPERADMIN accounts. */
+async function guardLastSuperadmin(
+  wouldRemoveActiveSuperadmin: boolean,
+): Promise<UserActionState | null> {
+  if (!wouldRemoveActiveSuperadmin) return null;
+  if ((await countActiveSuperadmins()) > 1) return null;
+  return { error: "ต้องมีผู้ดูแลสูงสุดที่ใช้งานได้อย่างน้อย 1 บัญชี" };
+}
+
 function fields(formData: FormData) {
   return {
     prefix: (formData.get("prefix") as string | null)?.trim() || undefined,
@@ -224,9 +233,8 @@ export async function updateUser(formData: FormData): Promise<UserActionState> {
   }
 
   // Someone must be left who can manage users.
-  if (losingSuperadmin && target.status && (await countActiveSuperadmins()) <= 1) {
-    return { error: "ต้องมีผู้ดูแลสูงสุดที่ใช้งานได้อย่างน้อย 1 บัญชี" };
-  }
+  const superadminGuard = await guardLastSuperadmin(losingSuperadmin && target.status);
+  if (superadminGuard) return superadminGuard;
 
   await prisma.user.update({
     where: { id },
@@ -275,9 +283,8 @@ export async function disableUser(formData: FormData): Promise<UserActionState> 
   if (!target) return { error: "ไม่พบบัญชีที่ต้องการปิดใช้งาน" };
   if (target.id === actor.id) return { error: "ปิดใช้งานบัญชีของตนเองไม่ได้" };
 
-  if (target.role === "SUPERADMIN" && (await countActiveSuperadmins()) <= 1) {
-    return { error: "ต้องมีผู้ดูแลสูงสุดที่ใช้งานได้อย่างน้อย 1 บัญชี" };
-  }
+  const superadminGuard = await guardLastSuperadmin(target.role === "SUPERADMIN");
+  if (superadminGuard) return superadminGuard;
 
   await prisma.user.update({ where: { id: target.id }, data: { status: false } });
   await revokeAllSessions(target.id);
@@ -333,9 +340,8 @@ export async function deleteUser(formData: FormData): Promise<UserActionState> {
   if (!target) return { error: "ไม่พบบัญชีที่ต้องการลบ" };
   if (target.id === actor.id) return { error: "ลบบัญชีของตนเองไม่ได้" };
 
-  if (target.role === "SUPERADMIN" && target.status && (await countActiveSuperadmins()) <= 1) {
-    return { error: "ต้องมีผู้ดูแลสูงสุดที่ใช้งานได้อย่างน้อย 1 บัญชี" };
-  }
+  const superadminGuard = await guardLastSuperadmin(target.role === "SUPERADMIN" && target.status);
+  if (superadminGuard) return superadminGuard;
 
   await prisma.user.delete({ where: { id: target.id } });
 

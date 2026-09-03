@@ -19,7 +19,7 @@ import { formatBEShort } from "@/lib/date";
 import { fileIcon } from "@/lib/files/display";
 import type { PickerFile } from "@/lib/files/queries";
 import { fileUrl } from "@/lib/files/url";
-import { cn } from "@/lib/utils";
+import { cn, mbToBytes } from "@/lib/utils";
 
 /**
  * Pick a file from the library and insert a link to it into the editor (F21).
@@ -133,7 +133,7 @@ export function FilePickerDialog({
 
   function handleUploadPick(f: File | null) {
     if (!f) return;
-    if (f.size > maxSizeMb * 1024 * 1024) {
+    if (f.size > mbToBytes(maxSizeMb)) {
       setUploadError(`ไฟล์ต้องมีขนาดไม่เกิน ${maxSizeMb} MB`);
       return;
     }
@@ -153,7 +153,7 @@ export function FilePickerDialog({
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
     const file = formData.get("file");
-    if (file instanceof File && file.size > maxSizeMb * 1024 * 1024) {
+    if (file instanceof File && file.size > mbToBytes(maxSizeMb)) {
       setUploadError(`ไฟล์ต้องมีขนาดไม่เกิน ${maxSizeMb} MB`);
       return;
     }

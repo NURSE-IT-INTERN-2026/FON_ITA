@@ -35,7 +35,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { PickerFile } from "@/lib/files/queries";
 import { fileUrl } from "@/lib/files/url";
-import { cn } from "@/lib/utils";
+import { cn, mbToBytes } from "@/lib/utils";
 
 /**
  * Rich text editor for OIT content (F17). Client Component — Tiptap needs the
@@ -252,7 +252,7 @@ export function TiptapEditor({
   function handleDroppedFile(file: File, pos: number) {
     if (!editor) return;
 
-    if (file.size > fileMaxSizeMb * 1024 * 1024) {
+    if (file.size > mbToBytes(fileMaxSizeMb)) {
       toast.error(`ไฟล์ต้องมีขนาดไม่เกิน ${fileMaxSizeMb} MB`);
       return;
     }

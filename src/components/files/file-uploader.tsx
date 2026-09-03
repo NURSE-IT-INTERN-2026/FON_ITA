@@ -8,7 +8,7 @@ import { FeaturedSurface, WarmSectionHeading } from "@/components/shell/surfaces
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { cn } from "@/lib/utils";
+import { cn, mbToBytes } from "@/lib/utils";
 
 /**
  * Standalone upload panel — the always-visible uploader at the top of the file
@@ -39,7 +39,7 @@ export function FileUploader({
     if (!f) return;
     // Pre-check client-side so Next.js does not reject the body before the
     // action runs (serverActions.bodySizeLimit). The action re-checks anyway.
-    if (f.size > maxSizeMb * 1024 * 1024) {
+    if (f.size > mbToBytes(maxSizeMb)) {
       setError(`ไฟล์ต้องมีขนาดไม่เกิน ${maxSizeMb} MB`);
       return;
     }
