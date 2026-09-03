@@ -83,10 +83,13 @@ export function ItaAccordion({
     <>
       {entries.length > 0 ? (
         // Sticks under the shell header (h-16, z-30) so the control stays
-        // reachable while scrolling a long topic list. Same translucent
-        // background treatment as the header; -mx-1 bleeds to the viewport
-        // edge on mobile so rows don't peek past the bar's sides.
-        <div className="sticky top-16 z-20 -mx-1 flex justify-end bg-background/90 px-1 py-1.5 backdrop-blur">
+        // reachable while scrolling a long topic list. Takes the card's tone,
+        // not the header's: the bar slides over the accordion card (bg-card),
+        // and the dark page background is darker than that card — with
+        // bg-background it read as a hard black strip in dark mode.
+        // -mx-1 bleeds to the viewport edge on mobile so rows don't peek
+        // past the bar's sides.
+        <div className="sticky top-16 z-20 -mx-1 flex justify-end bg-card/90 px-1 py-1.5 backdrop-blur">
           <Button
             variant="ghost"
             size="sm"

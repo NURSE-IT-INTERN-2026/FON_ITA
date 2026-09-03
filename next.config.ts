@@ -37,6 +37,48 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "11mb",
     },
   },
+
+  // Defense-in-depth: the reverse proxy in front of this app (IIS on the
+  // faculty server, or whatever Dokploy puts in front) may or may not add its
+  // own security headers, so the app sets its own rather than depending on it.
+  // `script-src`/`style-src` keep 'unsafe-inline' because Next's own hydration
+  // payload and Tailwind runtime styles are inline — tightening that to a
+  // nonce-based CSP is a separate, riskier change. The real XSS defense here is
+  // DOMPurify sanitising OIT content (decisions.md D3), not this header.
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" },
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+          {
+            key: "Content-Security-Policy",
+            value: [
+              "default-src 'self'",
+              // 'unsafe-eval' only in dev: React/Fast Refresh calls eval() to
+              // reconstruct stack traces across HMR boundaries. Production
+              // builds never eval(), so the real deployment stays strict.
+              process.env.NODE_ENV === "production"
+                ? "script-src 'self' 'unsafe-inline'"
+                : "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+              "style-src 'self' 'unsafe-inline'",
+              "img-src 'self' data:",
+              "font-src 'self' data:",
+              "frame-src https://www.youtube-nocookie.com",
+              "connect-src 'self'",
+              "frame-ancestors 'none'",
+              "base-uri 'self'",
+              "form-action 'self'",
+            ].join("; "),
+          },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;
