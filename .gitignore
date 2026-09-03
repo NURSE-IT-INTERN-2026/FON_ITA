@@ -32,6 +32,8 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# ...ยกเว้นตัวอย่าง — มีแค่ placeholder ไม่มี secret จริง ต้อง commit ไว้เป็นแหล่งอ้างอิงของตัวแปร env ทั้งหมด
+!.env.example
 
 # vercel
 .vercel

@@ -60,7 +60,7 @@ npm run db:migrate       # รัน Prisma migration
 npm run db:generate      # สร้าง Prisma Client
 npm run db:studio        # เปิด Prisma Studio (ดู/แก้ข้อมูลใน DB)
 npm run db:seed          # สร้าง SUPERADMIN คนแรก (อ่าน BOOTSTRAP_ADMIN_EMAIL/PASSWORD)
-npm run db:reset         # รีเซ็ต DB (ล้างข้อมูล + migrate ใหม่ทั้งหมด)
+npm run db:reset         # รีเซ็ต DB (ล้างข้อมูล + migrate ใหม่ทั้งหมด + seed อัตโนมัติตาม prisma.config.ts)
 npm run db:migrate-legacy # ย้ายข้อมูลจากระบบ Laravel เดิม (F32)
 
 npm run api:verify       # ตรวจสัญญา Public API (63 ข้อ)
