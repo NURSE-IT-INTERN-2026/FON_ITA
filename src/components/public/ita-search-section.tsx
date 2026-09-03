@@ -72,13 +72,18 @@ export function ItaSearchSection({ canManage }: { canManage: boolean }) {
     return () => controller.abort();
   }, []);
 
-  // The year's topics. Runs again whenever ?year= changes, and once more when
-  // the year had to be resolved from the list above.
+  // The year whose topics to show. Before the year list arrives this is the
+  // current พ.ศ. (an empty database still renders a page); once it arrives,
+  // the newest year that has data. Derived on purpose: when resolving the
+  // list does not actually change the year — the common cold load, where the
+  // current พ.ศ. is also the newest with data — the fetch effect below sees
+  // an unchanged dep and does not run a second time. Keying the effect on the
+  // resolved year (not on `years`) is what fetches it once instead of twice.
+  const target = yearParam ?? years[0] ?? String(currentBEYear());
+
+  // The year's topics. Runs only when the target year itself changes.
   useEffect(() => {
     const controller = new AbortController();
-    // Nothing asked for: show the newest year that has data, falling back to the
-    // current พ.ศ. year so an empty database still renders the page.
-    const target = yearParam ?? years[0] ?? String(currentBEYear());
 
     fetchItasByYear(target, controller.signal)
       .then((rows) => {
@@ -90,7 +95,7 @@ export function ItaSearchSection({ canManage }: { canManage: boolean }) {
         setData({ status: "error", year: target, entries: [] });
       });
     return () => controller.abort();
-  }, [yearParam, years]);
+  }, [target]);
 
   const isSearching = q.trim().length > 0;
 

@@ -3,10 +3,10 @@
 import { ZoomIn } from "lucide-react";
 import { useState } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-// Static import, not src="/hero.jpg": with a basePath set, a literal src string
+// Static import, not src="/hero.webp": with a basePath set, a literal src string
 // is sent as-is and 404s. A static import is resolved at build time and the
 // optimizer emits the basePath-correct URL for any deployment.
-import heroImage from "@/../public/hero.jpg";
+import heroImage from "@/../public/hero.webp";
 
 /**
  * Hero banner on the home page.
@@ -35,6 +35,9 @@ export function PublicHero() {
                 alt="คณะพยาบาลศาสตร์ มหาวิทยาลัยเชียงใหม่"
                 className="h-full w-full object-contain object-center"
                 loading="eager"
+                // The hero is the LCP element of every visit — the browser
+                // should not queue it behind anything else.
+                fetchPriority="high"
                 onError={() => setErrored(true)}
               />
               <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-linear-to-t from-warm-surface via-warm-soft/70 to-transparent dark:from-background dark:via-background/70 sm:h-16" />
