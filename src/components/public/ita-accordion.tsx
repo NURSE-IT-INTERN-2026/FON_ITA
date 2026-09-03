@@ -19,6 +19,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { formatBELong } from "@/lib/date";
+import { type AccordionOit, type ItaAccordionEntry } from "@/lib/ita/public-api";
 import { cn } from "@/lib/utils";
 
 /**
@@ -328,26 +329,3 @@ function OitDetailDialog({
     </Dialog>
   );
 }
-
-/**
- * Match the prisma select in `getPublicItasByYear` — kept as a type alias so
- * the page can pass server data straight through without a mapping step.
- * `updatedAt` arrives as a serialisable ISO string after crossing the
- * Server→Client boundary, so the type accepts both forms.
- */
-export type AccordionOit = {
-  id: number;
-  title: string;
-  link: string | null;
-  /** Already sanitised on the server. Null when the OIT has no content. */
-  contentHtml: string | null;
-  updatedAt: string | Date;
-};
-
-export type ItaAccordionEntry = {
-  id: number;
-  title: string;
-  year: string;
-  order: number;
-  oits: AccordionOit[];
-};

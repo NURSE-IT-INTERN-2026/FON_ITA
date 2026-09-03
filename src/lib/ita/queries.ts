@@ -34,14 +34,6 @@ export function yearOptions(years: string[], ...ensure: string[]): string[] {
   return [...new Set([...years, ...ensure])].sort((a, b) => b.localeCompare(a));
 }
 
-/**
- * ITA topics for one year, each with its OIT children.
- *
- * Both levels are ordered explicitly. PostgreSQL makes no promise about row
- * order without ORDER BY — least of all after an UPDATE moves a row — and the
- * faculty website shows O1…O26 in sequence, so leaving it out would scramble
- * the public page (see F27).
- */
 /** One ITA topic — the parent shown read-only on the OIT create form (F15). */
 export async function getIta(id: number) {
   return prisma.ita.findUnique({
@@ -67,6 +59,14 @@ export async function getOit(id: number) {
 
 export type OitDetail = NonNullable<Awaited<ReturnType<typeof getOit>>>;
 
+/**
+ * ITA topics for one year, each with its OIT children.
+ *
+ * Both levels are ordered explicitly. PostgreSQL makes no promise about row
+ * order without ORDER BY — least of all after an UPDATE moves a row — and the
+ * staff list shows OITs in sequence, so leaving it out would scramble the
+ * page after every reorder.
+ */
 export async function getItasByYear(year: string): Promise<ItaWithOits[]> {
   return prisma.ita.findMany({
     where: { year },

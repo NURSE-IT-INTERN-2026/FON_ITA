@@ -4,7 +4,7 @@ import { ListChecks, Search, TriangleAlert, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { ItaAccordion, type ItaAccordionEntry } from "@/components/public/ita-accordion";
+import { ItaAccordion } from "@/components/public/ita-accordion";
 import { EmptyState } from "@/components/misc/empty-state";
 import { FeaturedSurface, WarmSectionHeading } from "@/components/shell/surfaces";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { currentBEYear } from "@/lib/date";
-import { fetchItaYears, fetchItasByYear } from "@/lib/ita/public-api";
+import { fetchItaYears, fetchItasByYear, type ItaAccordionEntry } from "@/lib/ita/public-api";
 
 /**
  * Public "ITA ปี …" section on the home page: year picker + search box +

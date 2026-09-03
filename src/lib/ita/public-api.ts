@@ -1,11 +1,34 @@
 import { withBasePath } from "@/lib/base-path";
-import type { ItaAccordionEntry } from "@/components/public/ita-accordion";
 
 // The home page reads its ITA list from the Public API in the browser, not from
 // the server (stakeholder requirement). This module is the seam between the
-// frozen snake_case contract and the shape the accordion renders.
+// frozen snake_case contract and the shape the accordion renders — so the
+// render shape is defined here, and the component imports it, not the other
+// way round.
 //
 // Client-safe on purpose: no Prisma, no node: imports.
+
+/**
+ * One OIT as the accordion renders it. `contentHtml` is `fetchItasByYear`'s
+ * sanitised output — never the raw `content` from the wire.
+ */
+export type AccordionOit = {
+  id: number;
+  title: string;
+  link: string | null;
+  /** Null when the OIT has no content. */
+  contentHtml: string | null;
+  /** ISO string — it crossed HTTP as the contract's `updated_at` field. */
+  updatedAt: string;
+};
+
+export type ItaAccordionEntry = {
+  id: number;
+  title: string;
+  year: string;
+  order: number;
+  oits: AccordionOit[];
+};
 
 /** One ITA topic exactly as `/api/v1/ita/{year}` returns it (F27, frozen). */
 type ApiIta = {
