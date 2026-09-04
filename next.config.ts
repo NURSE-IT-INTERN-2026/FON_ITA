@@ -53,7 +53,9 @@ const nextConfig: NextConfig = {
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "X-Frame-Options", value: "DENY" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-          { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" },
+          // No includeSubDomains: HSTS is domain-wide, so it would force HTTPS
+          // on every nurse.cmu.ac.th subdomain — not ours to decide.
+          { key: "Strict-Transport-Security", value: "max-age=63072000" },
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
           {
             key: "Content-Security-Policy",
