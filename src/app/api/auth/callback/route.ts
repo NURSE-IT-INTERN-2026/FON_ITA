@@ -9,7 +9,7 @@ import { logActivity } from "@/lib/activity/log";
 import { LoginError, type LoginErrorCode } from "@/lib/auth/errors";
 import { consumeOauthStateCookie, matchesOauthState } from "@/lib/auth/oauth-state";
 import { ROLE_HOME } from "@/lib/auth/roles";
-import { createSession } from "@/lib/auth/session";
+import { createSession, deleteExpiredSessions } from "@/lib/auth/session";
 import { withBasePath } from "@/lib/base-path";
 import { prisma } from "@/lib/prisma";
 
@@ -73,6 +73,12 @@ export async function GET(request: Request): Promise<NextResponse> {
   // password.
   await createSession(user.id, "CMU_OAUTH");
   await logActivity(user, "login", { detail: "บัญชี CMU (OAuth)" });
+
+  // Same fire-and-forget expired-session cleanup as the password login —
+  // see actions/auth.ts for why it rides on login.
+  void deleteExpiredSessions().catch((error) =>
+    console.error("[auth] expired-session cleanup failed", error),
+  );
 
   return NextResponse.redirect(new URL(withBasePath(ROLE_HOME[user.role]), request.url));
 }

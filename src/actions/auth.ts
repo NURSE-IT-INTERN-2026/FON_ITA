@@ -10,7 +10,7 @@ import {
 } from "@/lib/auth/login-rate-limit";
 import { fakeVerifyDelay, verifyPassword } from "@/lib/auth/password";
 import { getSafeRedirectPath } from "@/lib/auth/roles";
-import { createSession } from "@/lib/auth/session";
+import { createSession, deleteExpiredSessions } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 
 // Same message whether the account does not exist or the password is wrong, so
@@ -80,6 +80,14 @@ export async function authenticate(
     // but the log is readable by SUPERADMIN and a mistyped password lands in the
     // email field often enough that storing the attempts is its own risk.
     await logActivity(user, "login", { detail: "อีเมล + รหัสผ่าน" });
+
+    // Housekeeping, not part of the login: expired rows are filtered on read
+    // but accumulate forever unless something deletes them. Riding on login
+    // means no cron is needed. Fire-and-forget — cleanup must never delay or
+    // fail a sign-in.
+    void deleteExpiredSessions().catch((error) =>
+      console.error("[auth] expired-session cleanup failed", error),
+    );
 
     // A password marked as temporary gets a session — they proved they own the
     // account — but the session cannot go anywhere else: requireUser() sends every
