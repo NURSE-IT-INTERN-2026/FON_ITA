@@ -40,9 +40,36 @@ export function toBE(gregorianYear: number): number {
   return gregorianYear + BE_OFFSET;
 }
 
+// Every date helper below reads through Intl pinned to Asia/Bangkok, never the
+// host timezone: production containers run on UTC, and a UTC server is seven
+// hours behind Thailand — dates would flip at 07:00 Bangkok time instead of
+// midnight, and currentBEYear() would be wrong through each New Year week.
+const BANGKOK_DATE_PARTS = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Asia/Bangkok",
+  year: "numeric",
+  month: "numeric",
+  day: "numeric",
+});
+
+function bangkokDateParts(value: string | Date): {
+  day: number;
+  monthIndex: number;
+  yearBE: number;
+} {
+  const parts = new Map(
+    BANGKOK_DATE_PARTS.formatToParts(new Date(value)).map((p) => [p.type, p.value]),
+  );
+  return {
+    day: Number(parts.get("day")),
+    // 0-based to index the TH_MONTHS arrays directly.
+    monthIndex: Number(parts.get("month")) - 1,
+    yearBE: toBE(Number(parts.get("year"))),
+  };
+}
+
 /** Current year in Buddhist era — the default year for the ITA list. */
 export function currentBEYear(): number {
-  return toBE(new Date().getFullYear());
+  return bangkokDateParts(new Date()).yearBE;
 }
 
 /** `"2026-08-01T09:00:00Z"` → `"01/08/2569"` */
@@ -55,25 +82,20 @@ export function formatBEDate(value: string | Date): string {
 
 /** `"1 สิงหาคม 2569"` */
 export function formatBELong(value: string | Date): string {
-  const d = new Date(value);
-  return `${d.getDate()} ${TH_MONTHS[d.getMonth()]} ${toBE(d.getFullYear())}`;
+  const { day, monthIndex, yearBE } = bangkokDateParts(value);
+  return `${day} ${TH_MONTHS[monthIndex]} ${yearBE}`;
 }
 
 /** `"1 ส.ค. 2569"` */
 export function formatBEShort(value: string | Date): string {
-  const d = new Date(value);
-  return `${d.getDate()} ${TH_MONTHS_SHORT[d.getMonth()]} ${toBE(d.getFullYear())}`;
+  const { day, monthIndex, yearBE } = bangkokDateParts(value);
+  return `${day} ${TH_MONTHS_SHORT[monthIndex]} ${yearBE}`;
 }
 
 /**
  * `"1 ส.ค. 2569 16:45 น."` — for the activity log (F26), where the time of day
- * is half the information.
- *
- * Unlike the helpers above, this one pins the zone to Asia/Bangkok instead of
- * reading the host's. A server running on UTC would otherwise timestamp every
- * entry seven hours early, and a log that disagrees with the clock on the wall
- * is worse than no log. (The date-only helpers have the same exposure at the
- * day boundary — see F30.)
+ * is half the information. Bangkok-zoned like every helper in this file: a log
+ * that disagrees with the clock on the wall is worse than no log.
  */
 const BANGKOK_PARTS = new Intl.DateTimeFormat("en-GB", {
   timeZone: "Asia/Bangkok",
