@@ -18,6 +18,8 @@ import { prisma } from "@/lib/prisma";
 export type ItaActionState = { error?: string };
 
 const YEAR_MESSAGE = "ปี พ.ศ. ต้องเป็นตัวเลข 4 หลัก";
+const SAVE_FAILED = "บันทึกไม่สำเร็จ โปรดลองอีกครั้ง";
+const DELETE_FAILED = "ลบไม่สำเร็จ โปรดลองอีกครั้ง";
 
 const itaFields = {
   title: z
@@ -74,14 +76,19 @@ export async function createIta(formData: FormData): Promise<ItaActionState> {
 
   const { title, year } = parsed.data;
 
-  await prisma.ita.create({
-    data: { title, year, order: await nextOrder(year), userId: user.id },
-  });
+  try {
+    await prisma.ita.create({
+      data: { title, year, order: await nextOrder(year), userId: user.id },
+    });
 
-  await logActivity(user, "ita.create", { target: title, detail: `ปี ${year}` });
+    await logActivity(user, "ita.create", { target: title, detail: `ปี ${year}` });
 
-  revalidateItaViews(year);
-  return {};
+    revalidateItaViews(year);
+    return {};
+  } catch (error) {
+    console.error("[ita] createIta failed", error);
+    return { error: SAVE_FAILED };
+  }
 }
 
 export async function updateIta(formData: FormData): Promise<ItaActionState> {
@@ -97,42 +104,47 @@ export async function updateIta(formData: FormData): Promise<ItaActionState> {
 
   const { id, title, year } = parsed.data;
 
-  const current = await prisma.ita.findUnique({ where: { id } });
-  if (!current) return { error: "ไม่พบหัวข้อที่ต้องการแก้ไข" };
+  try {
+    const current = await prisma.ita.findUnique({ where: { id } });
+    if (!current) return { error: "ไม่พบหัวข้อที่ต้องการแก้ไข" };
 
-  if (year !== current.year) {
-    // Moved to another year: its old order belongs to the old year's sequence
-    // and would collide there, so the topic goes to the end of the new year.
-    // In a transaction because the next free slot must not change underneath.
-    await prisma.$transaction(async (tx) => {
-      const last = await tx.ita.findFirst({
-        where: { year },
-        orderBy: { order: "desc" },
-        select: { order: true },
+    if (year !== current.year) {
+      // Moved to another year: its old order belongs to the old year's sequence
+      // and would collide there, so the topic goes to the end of the new year.
+      // In a transaction because the next free slot must not change underneath.
+      await prisma.$transaction(async (tx) => {
+        const last = await tx.ita.findFirst({
+          where: { year },
+          orderBy: { order: "desc" },
+          select: { order: true },
+        });
+        await tx.ita.update({
+          where: { id },
+          data: { title, year, order: (last?.order ?? 0) + 1 },
+        });
       });
-      await tx.ita.update({
-        where: { id },
-        data: { title, year, order: (last?.order ?? 0) + 1 },
-      });
+    } else {
+      // Same year: only the title can have changed. The order stays exactly where
+      // dragging last put it.
+      await prisma.ita.update({ where: { id }, data: { title } });
+    }
+
+    await logActivity(user, "ita.update", {
+      target: title,
+      // Say what actually moved — a year change and a reorder read very
+      // differently when someone is retracing what happened to a topic.
+      detail:
+        year !== current.year ? `ย้ายจากปี ${current.year} ไปปี ${year}` : `ปี ${year}`,
     });
-  } else {
-    // Same year: only the title can have changed. The order stays exactly where
-    // dragging last put it.
-    await prisma.ita.update({ where: { id }, data: { title } });
+
+    revalidateItaViews(year);
+    // The old year's list changed too when the topic moved out of it.
+    if (year !== current.year) revalidateItaViews(current.year);
+    return {};
+  } catch (error) {
+    console.error("[ita] updateIta failed", error);
+    return { error: SAVE_FAILED };
   }
-
-  await logActivity(user, "ita.update", {
-    target: title,
-    // Say what actually moved — a year change and a reorder read very
-    // differently when someone is retracing what happened to a topic.
-    detail:
-      year !== current.year ? `ย้ายจากปี ${current.year} ไปปี ${year}` : `ปี ${year}`,
-  });
-
-  revalidateItaViews(year);
-  // The old year's list changed too when the topic moved out of it.
-  if (year !== current.year) revalidateItaViews(current.year);
-  return {};
 }
 
 export async function deleteIta(formData: FormData): Promise<ItaActionState> {
@@ -142,16 +154,21 @@ export async function deleteIta(formData: FormData): Promise<ItaActionState> {
   const parsed = deleteSchema.safeParse({ id: formData.get("id") });
   if (!parsed.success) return { error: "คำขอไม่ถูกต้อง" };
 
-  const ita = await prisma.ita.findUnique({ where: { id: parsed.data.id } });
-  if (!ita) return { error: "ไม่พบหัวข้อที่ต้องการลบ" };
+  try {
+    const ita = await prisma.ita.findUnique({ where: { id: parsed.data.id } });
+    if (!ita) return { error: "ไม่พบหัวข้อที่ต้องการลบ" };
 
-  // OIT children go with it — `onDelete: Cascade` on the relation (F1).
-  await prisma.ita.delete({ where: { id: ita.id } });
+    // OIT children go with it — `onDelete: Cascade` on the relation (F1).
+    await prisma.ita.delete({ where: { id: ita.id } });
 
-  await logActivity(user, "ita.delete", { target: ita.title, detail: `ปี ${ita.year}` });
+    await logActivity(user, "ita.delete", { target: ita.title, detail: `ปี ${ita.year}` });
 
-  revalidateItaViews(ita.year);
-  return {};
+    revalidateItaViews(ita.year);
+    return {};
+  } catch (error) {
+    console.error("[ita] deleteIta failed", error);
+    return { error: DELETE_FAILED };
+  }
 }
 
 /**
@@ -179,17 +196,22 @@ export async function reorderIta(formData: FormData): Promise<ItaActionState> {
 
   const { year, orderedIds } = parsed.data;
 
-  await prisma.$transaction(
-    orderedIds.map((id, i) =>
-      prisma.ita.updateMany({ where: { id, year }, data: { order: i + 1 } }),
-    ),
-  );
+  try {
+    await prisma.$transaction(
+      orderedIds.map((id, i) =>
+        prisma.ita.updateMany({ where: { id, year }, data: { order: i + 1 } }),
+      ),
+    );
 
-  await logActivity(user, "ita.update", {
-    target: "จัดลำดับ ITA",
-    detail: `ปี ${year}`,
-  });
+    await logActivity(user, "ita.update", {
+      target: "จัดลำดับ ITA",
+      detail: `ปี ${year}`,
+    });
 
-  revalidateItaViews(year);
-  return {};
+    revalidateItaViews(year);
+    return {};
+  } catch (error) {
+    console.error("[ita] reorderIta failed", error);
+    return { error: SAVE_FAILED };
+  }
 }

@@ -17,6 +17,7 @@ import { prisma } from "@/lib/prisma";
 // the form cannot be used to discover which emails are registered.
 const INVALID_CREDENTIALS = "อีเมลหรือรหัสผ่านไม่ถูกต้อง";
 const RATE_LIMITED = "พยายามเข้าสู่ระบบบ่อยเกินไป โปรดลองอีกครั้งในอีกไม่กี่นาที";
+const LOGIN_FAILED = "เข้าสู่ระบบไม่สำเร็จ โปรดลองอีกครั้ง";
 
 const loginSchema = z.object({
   // Trim/lowercase BEFORE validating — `z.email().trim()` checks the format
@@ -52,42 +53,52 @@ export async function authenticate(
     return { error: RATE_LIMITED };
   }
 
-  const user = await prisma.user.findUnique({ where: { email } });
+  let redirectTo: string;
+  try {
+    const user = await prisma.user.findUnique({ where: { email } });
 
-  if (!user) {
-    // Burn comparable time so "no such account" is not measurably faster than
-    // "wrong password" — otherwise the response time leaks which emails exist.
-    await fakeVerifyDelay();
-    return { error: INVALID_CREDENTIALS };
+    if (!user) {
+      // Burn comparable time so "no such account" is not measurably faster than
+      // "wrong password" — otherwise the response time leaks which emails exist.
+      await fakeVerifyDelay();
+      return { error: INVALID_CREDENTIALS };
+    }
+
+    if (!(await verifyPassword(password, user.password))) {
+      return { error: INVALID_CREDENTIALS };
+    }
+
+    // Past this point the caller has proven they own the account, so a specific
+    // reason reveals nothing they did not already know.
+    if (!user.status) {
+      return { error: "บัญชีนี้ถูกปิดใช้งาน โปรดติดต่อผู้ดูแลระบบ" };
+    }
+
+    resetIdentityLoginRateLimit(rate.identityKey);
+    await createSession(user.id);
+    // Only successful logins are recorded. A failed attempt would be worth having,
+    // but the log is readable by SUPERADMIN and a mistyped password lands in the
+    // email field often enough that storing the attempts is its own risk.
+    await logActivity(user, "login", { detail: "อีเมล + รหัสผ่าน" });
+
+    // A password marked as temporary gets a session — they proved they own the
+    // account — but the session cannot go anywhere else: requireUser() sends every
+    // guarded page and action back here until the flag is cleared (F34). Handing
+    // out a session rather than refusing the login is what makes the reset
+    // reachable at all; before this, the flag simply locked people out.
+    redirectTo = user.mustResetPassword
+      ? RESET_PASSWORD_PATH
+      : // Back to the interrupted page, or the role's home if `next` is missing,
+        // off-site, or not a path this role may reach.
+        getSafeRedirectPath(user.role, next);
+  } catch (error) {
+    // The database being unreachable must land in the form, not blow the whole
+    // page into Next's error boundary — the typed password would be lost.
+    console.error("[auth] authenticate failed", error);
+    return { error: LOGIN_FAILED };
   }
 
-  if (!(await verifyPassword(password, user.password))) {
-    return { error: INVALID_CREDENTIALS };
-  }
-
-  // Past this point the caller has proven they own the account, so a specific
-  // reason reveals nothing they did not already know.
-  if (!user.status) {
-    return { error: "บัญชีนี้ถูกปิดใช้งาน โปรดติดต่อผู้ดูแลระบบ" };
-  }
-
-  resetIdentityLoginRateLimit(rate.identityKey);
-  await createSession(user.id);
-  // Only successful logins are recorded. A failed attempt would be worth having,
-  // but the log is readable by SUPERADMIN and a mistyped password lands in the
-  // email field often enough that storing the attempts is its own risk.
-  await logActivity(user, "login", { detail: "อีเมล + รหัสผ่าน" });
-
-  // A password marked as temporary gets a session — they proved they own the
-  // account — but the session cannot go anywhere else: requireUser() sends every
-  // guarded page and action back here until the flag is cleared (F34). Handing
-  // out a session rather than refusing the login is what makes the reset
-  // reachable at all; before this, the flag simply locked people out.
-  if (user.mustResetPassword) redirect(RESET_PASSWORD_PATH);
-
-  // redirect() throws — it must stay outside any try/catch.
-  // Back to the interrupted page, or the role's home if `next` is missing,
-  // off-site, or not a path this role may reach. No basePath here: redirect()
-  // in a Server Action adds it.
-  redirect(getSafeRedirectPath(user.role, next));
+  // redirect() throws — it must stay outside any try/catch. No basePath here:
+  // redirect() in a Server Action adds it.
+  redirect(redirectTo);
 }

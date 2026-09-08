@@ -30,6 +30,11 @@ import { nameField } from "@/lib/users/validation";
 
 export type UserActionState = { error?: string };
 
+const SAVE_FAILED = "บันทึกไม่สำเร็จ โปรดลองอีกครั้ง";
+const DISABLE_FAILED = "ปิดใช้งานไม่สำเร็จ โปรดลองอีกครั้ง";
+const RESTORE_FAILED = "เปิดใช้งานไม่สำเร็จ โปรดลองอีกครั้ง";
+const DELETE_FAILED = "ลบไม่สำเร็จ โปรดลองอีกครั้ง";
+
 /**
  * Only CMU addresses may be registered.
  *
@@ -125,61 +130,71 @@ export async function createUser(formData: FormData): Promise<UserActionState> {
 
   const { email, password, prefix, firstname, lastname, role, mustReset } = parsed.data;
 
-  // No identity confirmation on create (D23, amended 26 ส.ค. 2569): a brand-new
-  // account hands the operator nothing they did not already control — and the
-  // same amendment later dropped the confirmation from the edit path too.
-  const existing = await prisma.user.findUnique({ where: { email } });
-  if (existing) return { error: "มีบัญชีที่ใช้อีเมลนี้อยู่แล้ว" };
+  try {
+    // No identity confirmation on create (D23, amended 26 ส.ค. 2569): a brand-new
+    // account hands the operator nothing they did not already control — and the
+    // same amendment later dropped the confirmation from the edit path too.
+    const existing = await prisma.user.findUnique({ where: { email } });
+    if (existing) return { error: "มีบัญชีที่ใช้อีเมลนี้อยู่แล้ว" };
 
-  // The local part of the CMU email, matching the legacy column and what the
-  // OAuth callback compares against (F8).
-  const cmuAccount = email.split("@")[0];
+    // The local part of the CMU email, matching the legacy column and what the
+    // OAuth callback compares against (F8).
+    const cmuAccount = email.split("@")[0];
 
-  // Checked separately from the email: two different emails can share a local
-  // part, and this is the value CMU login actually matches on. Without this the
-  // second row would be created and the OAuth lookup would pick between them
-  // arbitrarily. The database rejects it too (`cmuAccount @unique`) — this exists
-  // so the person sees a sentence instead of a constraint violation.
-  const clash = await prisma.user.findUnique({ where: { cmuAccount } });
-  if (clash) {
-    return {
-      error: `บัญชี CMU "${cmuAccount}" ถูกใช้กับ ${clash.email} อยู่แล้ว — ใช้อีเมลอื่นหรือแก้ไขบัญชีเดิมแทน`,
-    };
+    // Checked separately from the email: two different emails can share a local
+    // part, and this is the value CMU login actually matches on. Without this the
+    // second row would be created and the OAuth lookup would pick between them
+    // arbitrarily. The database rejects it too (`cmuAccount @unique`) — this exists
+    // so the person sees a sentence instead of a constraint violation.
+    const clash = await prisma.user.findUnique({ where: { cmuAccount } });
+    if (clash) {
+      return {
+        error: `บัญชี CMU "${cmuAccount}" ถูกใช้กับ ${clash.email} อยู่แล้ว — ใช้อีเมลอื่นหรือแก้ไขบัญชีเดิมแทน`,
+      };
+    }
+
+    const created = await prisma.user.create({
+      data: {
+        email,
+        cmuAccount,
+        prefix: prefix ?? null,
+        firstname,
+        lastname,
+        role,
+        // No password means CMU OAuth only — valid, and the schema allows it.
+        password: password ? await hashPassword(password) : null,
+        // Only meaningful alongside a password: the forced-reset gate (F34) fires
+        // on password sessions, so flagging a CMU-only account would do nothing
+        // but leave a confusing row in the database.
+        mustResetPassword: !!password && mustReset,
+        status: true,
+      },
+    });
+
+    await logActivity(actor, "user.create", {
+      target: `${firstname} ${lastname}`.trim(),
+      detail: [
+        created.email,
+        // Thai label, not the enum: this line is what the activity log shows the
+        // person, and "ADMIN" reads as noise next to everything else being Thai.
+        roleLabel(role),
+        created.mustResetPassword ? "บังคับตั้งรหัสผ่านใหม่เมื่อเข้าใช้" : null,
+      ]
+        .filter(Boolean)
+        .join(" · "),
+    });
+
+    revalidatePath("/user-management");
+    return {};
+  } catch (error) {
+    console.error("[user] createUser failed", error);
+    // The checks above race with a concurrent create; the unique indexes on
+    // email and cmuAccount are what actually holds the line.
+    if (error instanceof Error && "code" in error && error.code === "P2002") {
+      return { error: "มีบัญชีที่ใช้อีเมลนี้อยู่แล้ว" };
+    }
+    return { error: SAVE_FAILED };
   }
-
-  const created = await prisma.user.create({
-    data: {
-      email,
-      cmuAccount,
-      prefix: prefix ?? null,
-      firstname,
-      lastname,
-      role,
-      // No password means CMU OAuth only — valid, and the schema allows it.
-      password: password ? await hashPassword(password) : null,
-      // Only meaningful alongside a password: the forced-reset gate (F34) fires
-      // on password sessions, so flagging a CMU-only account would do nothing
-      // but leave a confusing row in the database.
-      mustResetPassword: !!password && mustReset,
-      status: true,
-    },
-  });
-
-  await logActivity(actor, "user.create", {
-    target: `${firstname} ${lastname}`.trim(),
-    detail: [
-      created.email,
-      // Thai label, not the enum: this line is what the activity log shows the
-      // person, and "ADMIN" reads as noise next to everything else being Thai.
-      roleLabel(role),
-      created.mustResetPassword ? "บังคับตั้งรหัสผ่านใหม่เมื่อเข้าใช้" : null,
-    ]
-      .filter(Boolean)
-      .join(" · "),
-  });
-
-  revalidatePath("/user-management");
-  return {};
 }
 
 export async function updateUser(formData: FormData): Promise<UserActionState> {
@@ -191,67 +206,72 @@ export async function updateUser(formData: FormData): Promise<UserActionState> {
 
   const { id, prefix, firstname, lastname, role, password, mustReset } = parsed.data;
 
-  const target = await prisma.user.findUnique({ where: { id } });
-  if (!target) return { error: "ไม่พบบัญชีที่ต้องการแก้ไข" };
+  try {
+    const target = await prisma.user.findUnique({ where: { id } });
+    if (!target) return { error: "ไม่พบบัญชีที่ต้องการแก้ไข" };
 
-  // An account with no password logs in through CMU only (D7). Giving it one
-  // creates a second way in that its owner never asked for and would not know
-  // about. The owner can set their own at /profile, where holding the session is
-  // the proof — nobody else can do it for them.
-  if (password && !target.password) {
-    return {
-      error:
-        target.id === actor.id
-          ? "บัญชีของคุณยังไม่มีรหัสผ่าน — ตั้งครั้งแรกได้ที่หน้าโปรไฟล์ของคุณเอง"
-          : "บัญชีนี้ใช้ล็อกอินด้วยบัญชี CMU เท่านั้น — ให้เจ้าของบัญชีตั้งรหัสผ่านเองที่หน้าโปรไฟล์",
-    };
+    // An account with no password logs in through CMU only (D7). Giving it one
+    // creates a second way in that its owner never asked for and would not know
+    // about. The owner can set their own at /profile, where holding the session is
+    // the proof — nobody else can do it for them.
+    if (password && !target.password) {
+      return {
+        error:
+          target.id === actor.id
+            ? "บัญชีของคุณยังไม่มีรหัสผ่าน — ตั้งครั้งแรกได้ที่หน้าโปรไฟล์ของคุณเอง"
+            : "บัญชีนี้ใช้ล็อกอินด้วยบัญชี CMU เท่านั้น — ให้เจ้าของบัญชีตั้งรหัสผ่านเองที่หน้าโปรไฟล์",
+      };
+    }
+
+    // No actor confirmation (D23, fully repealed 26 ส.ค. 2569): SUPERADMIN already
+    // holds the highest privilege, so re-proving it proves nothing new — the
+    // activity log records who made the change instead.
+    const losingSuperadmin = target.role === "SUPERADMIN" && role !== "SUPERADMIN";
+
+    // Changing your own role is refused outright: it is the one edit that can
+    // take away the ability to undo itself.
+    if (losingSuperadmin && target.id === actor.id) {
+      return { error: "เปลี่ยนบทบาทของบัญชีตนเองไม่ได้" };
+    }
+
+    // Someone must be left who can manage users.
+    const superadminGuard = await guardLastSuperadmin(losingSuperadmin && target.status);
+    if (superadminGuard) return superadminGuard;
+
+    await prisma.user.update({
+      where: { id },
+      data: {
+        prefix: prefix ?? null,
+        firstname,
+        lastname,
+        role,
+        ...(password
+          ? { password: await hashPassword(password), mustResetPassword: mustReset }
+          : {}),
+      },
+    });
+
+    // A new password must invalidate whatever is still signed in as them —
+    // otherwise resetting a compromised account changes nothing.
+    if (password) await revokeAllSessions(id);
+
+    await logActivity(actor, "user.update", {
+      target: `${firstname} ${lastname}`.trim(),
+      detail: [
+        target.role !== role ? `บทบาท ${roleLabel(target.role)} → ${roleLabel(role)}` : null,
+        password ? "ตั้งรหัสผ่านใหม่ (ออกจากระบบทุกอุปกรณ์)" : null,
+        password && mustReset ? "บังคับตั้งรหัสผ่านใหม่เมื่อเข้าใช้" : null,
+      ]
+        .filter(Boolean)
+        .join(" · ") || target.email,
+    });
+
+    revalidatePath("/user-management");
+    return {};
+  } catch (error) {
+    console.error("[user] updateUser failed", error);
+    return { error: SAVE_FAILED };
   }
-
-  // No actor confirmation (D23, fully repealed 26 ส.ค. 2569): SUPERADMIN already
-  // holds the highest privilege, so re-proving it proves nothing new — the
-  // activity log records who made the change instead.
-  const losingSuperadmin = target.role === "SUPERADMIN" && role !== "SUPERADMIN";
-
-  // Changing your own role is refused outright: it is the one edit that can
-  // take away the ability to undo itself.
-  if (losingSuperadmin && target.id === actor.id) {
-    return { error: "เปลี่ยนบทบาทของบัญชีตนเองไม่ได้" };
-  }
-
-  // Someone must be left who can manage users.
-  const superadminGuard = await guardLastSuperadmin(losingSuperadmin && target.status);
-  if (superadminGuard) return superadminGuard;
-
-  await prisma.user.update({
-    where: { id },
-    data: {
-      prefix: prefix ?? null,
-      firstname,
-      lastname,
-      role,
-      ...(password
-        ? { password: await hashPassword(password), mustResetPassword: mustReset }
-        : {}),
-    },
-  });
-
-  // A new password must invalidate whatever is still signed in as them —
-  // otherwise resetting a compromised account changes nothing.
-  if (password) await revokeAllSessions(id);
-
-  await logActivity(actor, "user.update", {
-    target: `${firstname} ${lastname}`.trim(),
-    detail: [
-      target.role !== role ? `บทบาท ${roleLabel(target.role)} → ${roleLabel(role)}` : null,
-      password ? "ตั้งรหัสผ่านใหม่ (ออกจากระบบทุกอุปกรณ์)" : null,
-      password && mustReset ? "บังคับตั้งรหัสผ่านใหม่เมื่อเข้าใช้" : null,
-    ]
-      .filter(Boolean)
-      .join(" · ") || target.email,
-  });
-
-  revalidatePath("/user-management");
-  return {};
 }
 
 /**
@@ -265,23 +285,28 @@ export async function disableUser(formData: FormData): Promise<UserActionState> 
   const parsed = idSchema.safeParse({ id: formData.get("id") });
   if (!parsed.success) return { error: "คำขอไม่ถูกต้อง" };
 
-  const target = await prisma.user.findUnique({ where: { id: parsed.data.id } });
-  if (!target) return { error: "ไม่พบบัญชีที่ต้องการปิดใช้งาน" };
-  if (target.id === actor.id) return { error: "ปิดใช้งานบัญชีของตนเองไม่ได้" };
+  try {
+    const target = await prisma.user.findUnique({ where: { id: parsed.data.id } });
+    if (!target) return { error: "ไม่พบบัญชีที่ต้องการปิดใช้งาน" };
+    if (target.id === actor.id) return { error: "ปิดใช้งานบัญชีของตนเองไม่ได้" };
 
-  const superadminGuard = await guardLastSuperadmin(target.role === "SUPERADMIN");
-  if (superadminGuard) return superadminGuard;
+    const superadminGuard = await guardLastSuperadmin(target.role === "SUPERADMIN");
+    if (superadminGuard) return superadminGuard;
 
-  await prisma.user.update({ where: { id: target.id }, data: { status: false } });
-  await revokeAllSessions(target.id);
+    await prisma.user.update({ where: { id: target.id }, data: { status: false } });
+    await revokeAllSessions(target.id);
 
-  await logActivity(actor, "user.disable", {
-    target: `${target.firstname} ${target.lastname}`.trim(),
-    detail: target.email,
-  });
+    await logActivity(actor, "user.disable", {
+      target: `${target.firstname} ${target.lastname}`.trim(),
+      detail: target.email,
+    });
 
-  revalidatePath("/user-management");
-  return {};
+    revalidatePath("/user-management");
+    return {};
+  } catch (error) {
+    console.error("[user] disableUser failed", error);
+    return { error: DISABLE_FAILED };
+  }
 }
 
 /** Re-enable a disabled account, from the "ปิดใช้งาน" tab. */
@@ -292,18 +317,23 @@ export async function restoreUser(formData: FormData): Promise<UserActionState> 
   const parsed = idSchema.safeParse({ id: formData.get("id") });
   if (!parsed.success) return { error: "คำขอไม่ถูกต้อง" };
 
-  const target = await prisma.user.findUnique({ where: { id: parsed.data.id } });
-  if (!target) return { error: "ไม่พบบัญชีที่ต้องการเปิดใช้งาน" };
+  try {
+    const target = await prisma.user.findUnique({ where: { id: parsed.data.id } });
+    if (!target) return { error: "ไม่พบบัญชีที่ต้องการเปิดใช้งาน" };
 
-  await prisma.user.update({ where: { id: target.id }, data: { status: true } });
+    await prisma.user.update({ where: { id: target.id }, data: { status: true } });
 
-  await logActivity(actor, "user.restore", {
-    target: `${target.firstname} ${target.lastname}`.trim(),
-    detail: target.email,
-  });
+    await logActivity(actor, "user.restore", {
+      target: `${target.firstname} ${target.lastname}`.trim(),
+      detail: target.email,
+    });
 
-  revalidatePath("/user-management");
-  return {};
+    revalidatePath("/user-management");
+    return {};
+  } catch (error) {
+    console.error("[user] restoreUser failed", error);
+    return { error: RESTORE_FAILED };
+  }
 }
 
 /**
@@ -322,20 +352,27 @@ export async function deleteUser(formData: FormData): Promise<UserActionState> {
   const parsed = idSchema.safeParse({ id: formData.get("id") });
   if (!parsed.success) return { error: "คำขอไม่ถูกต้อง" };
 
-  const target = await prisma.user.findUnique({ where: { id: parsed.data.id } });
-  if (!target) return { error: "ไม่พบบัญชีที่ต้องการลบ" };
-  if (target.id === actor.id) return { error: "ลบบัญชีของตนเองไม่ได้" };
+  try {
+    const target = await prisma.user.findUnique({ where: { id: parsed.data.id } });
+    if (!target) return { error: "ไม่พบบัญชีที่ต้องการลบ" };
+    if (target.id === actor.id) return { error: "ลบบัญชีของตนเองไม่ได้" };
 
-  const superadminGuard = await guardLastSuperadmin(target.role === "SUPERADMIN" && target.status);
-  if (superadminGuard) return superadminGuard;
+    const superadminGuard = await guardLastSuperadmin(
+      target.role === "SUPERADMIN" && target.status,
+    );
+    if (superadminGuard) return superadminGuard;
 
-  await prisma.user.delete({ where: { id: target.id } });
+    await prisma.user.delete({ where: { id: target.id } });
 
-  await logActivity(actor, "user.delete", {
-    target: `${target.firstname} ${target.lastname}`.trim(),
-    detail: target.email,
-  });
+    await logActivity(actor, "user.delete", {
+      target: `${target.firstname} ${target.lastname}`.trim(),
+      detail: target.email,
+    });
 
-  revalidatePath("/user-management");
-  return {};
+    revalidatePath("/user-management");
+    return {};
+  } catch (error) {
+    console.error("[user] deleteUser failed", error);
+    return { error: DELETE_FAILED };
+  }
 }

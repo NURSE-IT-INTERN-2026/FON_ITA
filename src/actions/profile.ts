@@ -16,6 +16,9 @@ import { nameField } from "@/lib/users/validation";
 
 export type ProfileActionState = { error?: string };
 
+const SAVE_FAILED = "บันทึกไม่สำเร็จ โปรดลองอีกครั้ง";
+const CHANGE_PASSWORD_FAILED = "เปลี่ยนรหัสผ่านไม่สำเร็จ โปรดลองอีกครั้ง";
+
 const profileSchema = z.object({
   prefix: z.string().trim().max(50, { message: "คำนำหน้าต้องไม่เกิน 50 ตัวอักษร" }).optional(),
   firstname: nameField("ชื่อ"),
@@ -61,18 +64,23 @@ export async function updateProfile(formData: FormData): Promise<ProfileActionSt
 
   const { prefix, firstname, lastname } = parsed.data;
 
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { prefix: prefix ?? null, firstname, lastname },
-  });
+  try {
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { prefix: prefix ?? null, firstname, lastname },
+    });
 
-  await logActivity(user, "profile.update", {
-    target: `${prefix ?? ""}${firstname} ${lastname}`.trim(),
-  });
+    await logActivity(user, "profile.update", {
+      target: `${prefix ?? ""}${firstname} ${lastname}`.trim(),
+    });
 
-  // The header shows the name, so every page carrying the shell is now stale.
-  revalidatePath("/", "layout");
-  return {};
+    // The header shows the name, so every page carrying the shell is now stale.
+    revalidatePath("/", "layout");
+    return {};
+  } catch (error) {
+    console.error("[profile] updateProfile failed", error);
+    return { error: SAVE_FAILED };
+  }
 }
 
 /**
@@ -96,51 +104,56 @@ export async function changePassword(formData: FormData): Promise<ProfileActionS
 
   const { current, next } = parsed.data;
 
-  // Read the hash from the database rather than the session: SessionUser does
-  // not carry it, and it must not start doing so.
-  const row = await prisma.user.findUnique({
-    where: { id: user.id },
-    select: { password: true },
-  });
-  if (!row) return { error: "ไม่พบบัญชีของคุณ" };
+  try {
+    // Read the hash from the database rather than the session: SessionUser does
+    // not carry it, and it must not start doing so.
+    const row = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { password: true },
+    });
+    if (!row) return { error: "ไม่พบบัญชีของคุณ" };
 
-  const hadPassword = row.password !== null;
+    const hadPassword = row.password !== null;
 
-  // A CMU-only account has nothing to verify against and is setting its first
-  // password. Whoever is asking already holds a valid session for the account,
-  // which is the same level of proof the current-password check provides.
-  //
-  // The other way past the check (D27): a session signed in through CMU OAuth.
-  // Microsoft authenticated the account owner to start it, which is exactly
-  // what the forgotten current password cannot prove.
-  const cmuVerified = user.loginMethod === "CMU_OAUTH";
-  if (hadPassword && !cmuVerified && !(await verifyPassword(current, row.password))) {
-    return { error: "รหัสผ่านปัจจุบันไม่ถูกต้อง" };
+    // A CMU-only account has nothing to verify against and is setting its first
+    // password. Whoever is asking already holds a valid session for the account,
+    // which is the same level of proof the current-password check provides.
+    //
+    // The other way past the check (D27): a session signed in through CMU OAuth.
+    // Microsoft authenticated the account owner to start it, which is exactly
+    // what the forgotten current password cannot prove.
+    const cmuVerified = user.loginMethod === "CMU_OAUTH";
+    if (hadPassword && !cmuVerified && !(await verifyPassword(current, row.password))) {
+      return { error: "รหัสผ่านปัจจุบันไม่ถูกต้อง" };
+    }
+
+    if (hadPassword && (await verifyPassword(next, row.password))) {
+      return { error: "รหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสผ่านเดิม" };
+    }
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { password: await hashPassword(next), mustResetPassword: false },
+    });
+
+    // Read before revoking — the row is gone afterwards.
+    const loginMethod = (await getSessionLoginMethod()) ?? "PASSWORD";
+    await revokeAllSessions(user.id);
+    // Order matters: revoke first, then issue. The reverse would delete the new
+    // session along with the old ones and log the caller out.
+    await createSession(user.id, loginMethod);
+
+    await logActivity(user, "profile.password_change", {
+      detail: hadPassword
+        ? cmuVerified && current === ""
+          ? "ยืนยันตัวตนด้วยบัญชี CMU · ออกจากระบบอุปกรณ์อื่นทั้งหมด"
+          : "ออกจากระบบอุปกรณ์อื่นทั้งหมด"
+        : "ตั้งรหัสผ่านครั้งแรก",
+    });
+
+    return {};
+  } catch (error) {
+    console.error("[profile] changePassword failed", error);
+    return { error: CHANGE_PASSWORD_FAILED };
   }
-
-  if (hadPassword && (await verifyPassword(next, row.password))) {
-    return { error: "รหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสผ่านเดิม" };
-  }
-
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { password: await hashPassword(next), mustResetPassword: false },
-  });
-
-  // Read before revoking — the row is gone afterwards.
-  const loginMethod = (await getSessionLoginMethod()) ?? "PASSWORD";
-  await revokeAllSessions(user.id);
-  // Order matters: revoke first, then issue. The reverse would delete the new
-  // session along with the old ones and log the caller out.
-  await createSession(user.id, loginMethod);
-
-  await logActivity(user, "profile.password_change", {
-    detail: hadPassword
-      ? cmuVerified && current === ""
-        ? "ยืนยันตัวตนด้วยบัญชี CMU · ออกจากระบบอุปกรณ์อื่นทั้งหมด"
-        : "ออกจากระบบอุปกรณ์อื่นทั้งหมด"
-      : "ตั้งรหัสผ่านครั้งแรก",
-  });
-
-  return {};
 }

@@ -14,6 +14,9 @@ import { prisma } from "@/lib/prisma";
 
 export type FileActionState = { error?: string; file?: PickerFile };
 
+const UPLOAD_FAILED = "อัปโหลดไม่สำเร็จ โปรดลองอีกครั้ง";
+const DELETE_FAILED = "ลบไม่สำเร็จ โปรดลองอีกครั้ง";
+
 const deleteSchema = z.object({ id: z.coerce.number().int().positive() });
 
 const uploadSchema = z.object({
@@ -41,41 +44,52 @@ export async function uploadFile(formData: FormData): Promise<FileActionState> {
   const check = checkUpload(file);
   if ("error" in check) return { error: check.error };
 
-  // Friendly message for the common case; the unique index below is what
-  // actually guarantees it when two people upload at once.
-  const clash = await prisma.itaFile.findUnique({ where: { name } });
-  if (clash) return { error: "มีไฟล์ชื่อนี้อยู่แล้ว โปรดตั้งชื่ออื่น" };
-
-  const storedName = await saveUpload(file, check.ext);
-
   try {
-    const created = await prisma.itaFile.create({
-      data: {
-        userId: user.id,
-        // Denormalised in the legacy schema so the uploader's name survives even
-        // if the account is later removed.
-        createdBy: `${user.prefix ?? ""}${user.firstname} ${user.lastname}`.trim(),
-        name,
-        path: storedName,
-      },
-      select: { id: true, name: true, path: true, createdBy: true, createdAt: true },
-    });
+    // Friendly message for the common case; the unique index below is what
+    // actually guarantees it when two people upload at once.
+    const clash = await prisma.itaFile.findUnique({ where: { name } });
+    if (clash) return { error: "มีไฟล์ชื่อนี้อยู่แล้ว โปรดตั้งชื่ออื่น" };
 
-    await logActivity(user, "file.upload", { target: name, detail: `เก็บเป็น ${storedName}` });
+    const storedName = await saveUpload(file, check.ext);
 
-    revalidatePath("/ita-file");
-    // Return the new row so callers (the OIT editor drag-drop, the inline picker
-    // upload) can insert a link to it without re-running a search to find it.
-    return { file: created };
-  } catch (error) {
-    // The row is what makes a file reachable — without it the bytes on disk are
-    // an orphan nobody can see or delete. Undo the write.
-    await deleteUpload(storedName);
+    try {
+      const created = await prisma.itaFile.create({
+        data: {
+          userId: user.id,
+          // Denormalised in the legacy schema so the uploader's name survives even
+          // if the account is later removed.
+          createdBy: `${user.prefix ?? ""}${user.firstname} ${user.lastname}`.trim(),
+          name,
+          path: storedName,
+        },
+        select: { id: true, name: true, path: true, createdBy: true, createdAt: true },
+      });
 
-    if (error instanceof Error && "code" in error && error.code === "P2002") {
-      return { error: "มีไฟล์ชื่อนี้อยู่แล้ว โปรดตั้งชื่ออื่น" };
+      await logActivity(user, "file.upload", {
+        target: name,
+        detail: `เก็บเป็น ${storedName}`,
+      });
+
+      revalidatePath("/ita-file");
+      // Return the new row so callers (the OIT editor drag-drop, the inline picker
+      // upload) can insert a link to it without re-running a search to find it.
+      return { file: created };
+    } catch (error) {
+      // The row is what makes a file reachable — without it the bytes on disk are
+      // an orphan nobody can see or delete. Undo the write.
+      await deleteUpload(storedName);
+
+      if (error instanceof Error && "code" in error && error.code === "P2002") {
+        return { error: "มีไฟล์ชื่อนี้อยู่แล้ว โปรดตั้งชื่ออื่น" };
+      }
+      throw error;
     }
-    throw error;
+  } catch (error) {
+    // Reaching here means the lookup or the disk write itself failed — either
+    // way the dialog stays open with what was typed, instead of the whole page
+    // being replaced by Next's error boundary.
+    console.error("[file] uploadFile failed", error);
+    return { error: UPLOAD_FAILED };
   }
 }
 
@@ -93,7 +107,15 @@ export async function searchFiles(term: string): Promise<PickerResult> {
   const parsed = z.string().max(255).safeParse(term);
   if (!parsed.success) return { files: [], total: 0 };
 
-  return searchFilesByName(parsed.data);
+  try {
+    return await searchFilesByName(parsed.data);
+  } catch (error) {
+    // The picker opens mid-edit inside the OIT form — an error here must not
+    // take the surrounding form down with it. An empty result degrades the
+    // picker alone.
+    console.error("[file] searchFiles failed", error);
+    return { files: [], total: 0 };
+  }
 }
 
 /**
@@ -109,29 +131,35 @@ export async function deleteFile(formData: FormData): Promise<FileActionState> {
   const parsed = deleteSchema.safeParse({ id: formData.get("id") });
   if (!parsed.success) return { error: "คำขอไม่ถูกต้อง" };
 
-  const file = await prisma.itaFile.findUnique({ where: { id: parsed.data.id } });
-  if (!file) return { error: "ไม่พบไฟล์ที่ต้องการลบ" };
+  try {
+    const file = await prisma.itaFile.findUnique({ where: { id: parsed.data.id } });
+    if (!file) return { error: "ไม่พบไฟล์ที่ต้องการลบ" };
 
-  // Ownership is decided here, not from anything the client sent: the UI hides
-  // the button, but the action is a separate door.
-  if (file.userId !== user.id && user.role !== "SUPERADMIN") {
-    return { error: "ลบได้เฉพาะไฟล์ที่ตนเองอัปโหลด" };
+    // Ownership is decided here, not from anything the client sent: the UI hides
+    // the button, but the action is a separate door.
+    if (file.userId !== user.id && user.role !== "SUPERADMIN") {
+      return { error: "ลบได้เฉพาะไฟล์ที่ตนเองอัปโหลด" };
+    }
+
+    // Row first, then the bytes. If the unlink fails afterwards the file is
+    // merely orphaned on disk — unreachable, because nothing serves a file
+    // without its row. The other order would leave a row pointing at a file that
+    // is no longer there, which users would meet as a broken download.
+    await prisma.itaFile.delete({ where: { id: file.id } });
+    await deleteUpload(file.path);
+
+    await logActivity(user, "file.delete", {
+      target: file.name,
+      // Worth recording when a SUPERADMIN removes someone else's upload — that is
+      // the case anyone reading the log later will want explained.
+      detail:
+        file.userId === user.id ? `เก็บเป็น ${file.path}` : `อัปโหลดโดย ${file.createdBy}`,
+    });
+
+    revalidatePath("/ita-file");
+    return {};
+  } catch (error) {
+    console.error("[file] deleteFile failed", error);
+    return { error: DELETE_FAILED };
   }
-
-  // Row first, then the bytes. If the unlink fails afterwards the file is
-  // merely orphaned on disk — unreachable, because nothing serves a file
-  // without its row. The other order would leave a row pointing at a file that
-  // is no longer there, which users would meet as a broken download.
-  await prisma.itaFile.delete({ where: { id: file.id } });
-  await deleteUpload(file.path);
-
-  await logActivity(user, "file.delete", {
-    target: file.name,
-    // Worth recording when a SUPERADMIN removes someone else's upload — that is
-    // the case anyone reading the log later will want explained.
-    detail: file.userId === user.id ? `เก็บเป็น ${file.path}` : `อัปโหลดโดย ${file.createdBy}`,
-  });
-
-  revalidatePath("/ita-file");
-  return {};
 }

@@ -19,6 +19,8 @@ import { prisma } from "@/lib/prisma";
 
 export type ResetPasswordState = { error?: string };
 
+const RESET_FAILED = "ตั้งรหัสผ่านใหม่ไม่สำเร็จ โปรดลองอีกครั้ง";
+
 const schema = z
   .object({
     next: z
@@ -54,36 +56,41 @@ export async function resetPassword(
 
   const { next } = parsed.data;
 
-  const row = await prisma.user.findUnique({
-    where: { id: user.id },
-    select: { password: true },
-  });
-  if (!row) return { error: "ไม่พบบัญชีของคุณ" };
+  try {
+    const row = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { password: true },
+    });
+    if (!row) return { error: "ไม่พบบัญชีของคุณ" };
 
-  // The whole point is to retire the temporary password. Keeping it would leave
-  // the account open to whoever it was handed to — a chat message, an email, the
-  // person standing at the next desk.
-  if (row.password && (await verifyPassword(next, row.password))) {
-    return { error: "รหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสผ่านชั่วคราวที่ได้รับมา" };
+    // The whole point is to retire the temporary password. Keeping it would leave
+    // the account open to whoever it was handed to — a chat message, an email, the
+    // person standing at the next desk.
+    if (row.password && (await verifyPassword(next, row.password))) {
+      return { error: "รหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสผ่านชั่วคราวที่ได้รับมา" };
+    }
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { password: await hashPassword(next), mustResetPassword: false },
+    });
+
+    // Everything issued under the temporary password goes, including this one —
+    // then a fresh session for the browser that just did the work. Order matters:
+    // issuing first would delete the new row along with the old.
+    //
+    // Always PASSWORD here, unlike F25's change-password: `needsPasswordReset()`
+    // has already established that this session is a password session.
+    await revokeAllSessions(user.id);
+    await createSession(user.id, "PASSWORD");
+
+    await logActivity(user, "profile.password_reset", {
+      detail: "ตั้งรหัสผ่านใหม่ตามที่ระบบบังคับ",
+    });
+  } catch (error) {
+    console.error("[reset-password] resetPassword failed", error);
+    return { error: RESET_FAILED };
   }
-
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { password: await hashPassword(next), mustResetPassword: false },
-  });
-
-  // Everything issued under the temporary password goes, including this one —
-  // then a fresh session for the browser that just did the work. Order matters:
-  // issuing first would delete the new row along with the old.
-  //
-  // Always PASSWORD here, unlike F25's change-password: `needsPasswordReset()`
-  // has already established that this session is a password session.
-  await revokeAllSessions(user.id);
-  await createSession(user.id, "PASSWORD");
-
-  await logActivity(user, "profile.password_reset", {
-    detail: "ตั้งรหัสผ่านใหม่ตามที่ระบบบังคับ",
-  });
 
   // redirect() throws — keep it out of any try/catch.
   redirect(ROLE_HOME[user.role]);
