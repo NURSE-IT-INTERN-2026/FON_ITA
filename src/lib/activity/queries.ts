@@ -1,6 +1,5 @@
 import type { AppRole } from "@/generated/prisma/enums";
 import type { ActivityCategory } from "@/lib/activity/meta";
-import { categoryForAction } from "@/lib/activity/meta";
 import { escapeLike, prisma } from "@/lib/prisma";
 import { isActivityAction } from "@/lib/activity/actions";
 
@@ -176,16 +175,4 @@ export async function listActivityActors(): Promise<ActivityActorOption[]> {
   return rows
     .filter((row): row is { actorId: number; actorName: string; actorRole: AppRole } => row.actorId !== null)
     .sort((a, b) => a.actorName.localeCompare(b.actorName, "th"));
-}
-
-export function categoryCountSummary(counts: { action: string; count: number }[]) {
-  const totals = new Map<ActivityCategory, number>();
-
-  for (const { action, count } of counts) {
-    const category = categoryForAction(action);
-    if (!category) continue;
-    totals.set(category, (totals.get(category) ?? 0) + count);
-  }
-
-  return totals;
 }

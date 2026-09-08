@@ -72,14 +72,6 @@ export function currentBEYear(): number {
   return bangkokDateParts(new Date()).yearBE;
 }
 
-/** `"2026-08-01T09:00:00Z"` → `"01/08/2569"` */
-export function formatBEDate(value: string | Date): string {
-  const d = new Date(value);
-  const dd = String(d.getDate()).padStart(2, "0");
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  return `${dd}/${mm}/${toBE(d.getFullYear())}`;
-}
-
 /** `"1 สิงหาคม 2569"` */
 export function formatBELong(value: string | Date): string {
   const { day, monthIndex, yearBE } = bangkokDateParts(value);

@@ -53,16 +53,6 @@ export async function loadYoutubeFeed(): Promise<YoutubeFeedEntry[]> {
   }
 }
 
-/** `yt:video:VIDEO_ID` → `VIDEO_ID`. Returns the raw id when the prefix is missing. */
-export function youTubeVideoId(entry: YoutubeFeedEntry): string {
-  return entry.id.replace(/^yt:video:/, "");
-}
-
-/** Watch URL — the `link[@attributes].href` field the faculty page reads. */
-export function youTubeWatchUrl(entry: YoutubeFeedEntry): string {
-  return entry.link["@attributes"].href;
-}
-
 /**
  * Minimal Atom reader for this one feed.
  *

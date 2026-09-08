@@ -79,16 +79,6 @@ export function categoryLabel(category: ActivityCategory): string {
   return ACTIVITY_CATEGORIES.find((item) => item.value === category)?.label ?? category;
 }
 
-export function categoryForAction(action: string): ActivityCategory | undefined {
-  if (action === "login" || action === "logout") return "auth";
-  if (action.startsWith("ita.") || action.startsWith("oit.")) return "ita_oit";
-  if (action.startsWith("file.")) return "file";
-  if (action.startsWith("user.")) return "user";
-  if (action.startsWith("profile.")) return "profile";
-
-  return undefined;
-}
-
 export function getActivityMeta(action: string): ActivityMeta {
   const match = META_BY_PREFIX.find((item) => item.match(action));
 
