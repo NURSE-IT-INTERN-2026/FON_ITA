@@ -1,6 +1,7 @@
 import { Users } from "lucide-react";
 import type { Metadata } from "next";
 import { EmptyState } from "@/components/misc/empty-state";
+import { PaginationNav } from "@/components/misc/pagination-nav";
 import { RoleBadge } from "@/components/misc/role-badge";
 import { PageHeader } from "@/components/shell/page-header";
 import { WarmTableHead, WarmTableSurface } from "@/components/shell/surfaces";
@@ -27,13 +28,25 @@ export const metadata: Metadata = { title: "จัดการผู้ใช้
  * disabled rows live in the same table — the Switch in the "สถานะ" column
  * toggles between them, so disabled accounts stay visible (and reversible)
  * without needing a separate tab.
+ *
+ * Paginated (15/page) like the other admin tables — the query reads `?page=`
+ * so a page position can be bookmarked; out-of-range values are clamped in
+ * `listManagedUsers`.
  */
-export default async function UserManagementPage() {
+export default async function UserManagementPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
   // requireRole raises forbidden() → the 403 page (F12), which is right here:
   // an ADMIN who follows a bookmarked link should be told, not redirected.
   const actor = await requireRole("SUPERADMIN");
 
-  const users = await listManagedUsers("all");
+  const params = await searchParams;
+  const requested = Number(params.page);
+  const { users, page, totalPages } = await listManagedUsers(
+    Number.isInteger(requested) && requested > 0 ? requested : 1,
+  );
 
   return (
     <div>
@@ -183,6 +196,12 @@ export default async function UserManagementPage() {
               </Table>
             </WarmTableSurface>
           </div>
+
+          <PaginationNav
+            page={page}
+            totalPages={totalPages}
+            hrefFor={(n) => (n > 1 ? `/user-management?page=${n}` : "/user-management")}
+          />
         </>
       )}
     </div>
