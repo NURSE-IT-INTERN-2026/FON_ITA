@@ -89,6 +89,10 @@ export function FilePickerDialog({
   // Inline-upload form state. Same shape as FileUploader, but trimmed to fit
   // inside a dialog.
   const [uploadName, setUploadName] = useState("");
+  // The name derived from the picked file, or null once the user types their
+  // own — lets a file swap replace the auto-fill without clobbering a custom
+  // name. Same idea as FileUploader on the library page.
+  const [uploadAutoName, setUploadAutoName] = useState<string | null>(null);
   const [uploadFileObj, setUploadFileObj] = useState<File | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -116,6 +120,7 @@ export function FilePickerDialog({
     setLabel("");
     setUploadError(null);
     setUploadName("");
+    setUploadAutoName(null);
     setUploadFileObj(null);
     setDragOver(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
@@ -152,10 +157,12 @@ export function FilePickerDialog({
     }
     setUploadError(null);
     setUploadFileObj(f);
-    if (!uploadName.trim()) {
-      const dot = f.name.lastIndexOf(".");
-      setUploadName(dot > 0 ? f.name.slice(0, dot) : f.name);
-    }
+    const dot = f.name.lastIndexOf(".");
+    const derived = dot > 0 ? f.name.slice(0, dot) : f.name;
+    // Follow the file: swapping picks replaces the auto-filled name, but a
+    // name the user typed over it survives the swap.
+    if (!uploadName.trim() || uploadName === uploadAutoName) setUploadName(derived);
+    setUploadAutoName(derived);
   }
 
   function submitUpload(event: React.FormEvent<HTMLFormElement>) {
@@ -193,6 +200,7 @@ export function FilePickerDialog({
           runSearch("", 1);
           // Reset the inline form, keep the picker on the list step.
           setUploadName("");
+          setUploadAutoName(null);
           setUploadFileObj(null);
           if (fileInputRef.current) fileInputRef.current.value = "";
         }
@@ -287,7 +295,7 @@ export function FilePickerDialog({
               />
             </div>
 
-            <div className="max-h-64 overflow-y-auto rounded-md border">
+            <div className="max-h-52 overflow-y-auto rounded-md border">
               {searchPending && files.length === 0 ? (
                 <p className="px-3 py-6 text-center text-sm text-muted-foreground">กำลังค้นหา…</p>
               ) : files.length === 0 ? (

@@ -111,11 +111,29 @@ export type PickerFile = {
   createdAt: Date;
 };
 
+export type OitFileReference = {
+  id: number;
+  title: string;
+  itaTitle: string;
+  itaYear: string;
+};
+
 /**
- * How many OIT entries link to this file (F20 delete warning). Content stores
+ * Which OIT entries link to this file (F20 delete warning). Content stores
  * the full href (`/fonita/storage/itafile/<path>`) and stored names are unique
  * timestamp strings, so matching the path substring cannot hit anything else.
+ * Newest year first — the order staff meet these entries in on the site.
  */
-export async function countOitFileReferences(path: string): Promise<number> {
-  return prisma.oit.count({ where: { content: { contains: path } } });
+export async function listOitFileReferences(path: string): Promise<OitFileReference[]> {
+  const rows = await prisma.oit.findMany({
+    where: { content: { contains: path } },
+    orderBy: [{ ita: { year: "desc" } }, { id: "asc" }],
+    select: { id: true, title: true, ita: { select: { title: true, year: true } } },
+  });
+  return rows.map(({ id, title, ita }) => ({
+    id,
+    title,
+    itaTitle: ita.title,
+    itaYear: ita.year,
+  }));
 }

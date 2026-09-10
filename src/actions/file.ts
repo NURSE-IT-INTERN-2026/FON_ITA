@@ -6,7 +6,8 @@ import { logActivity } from "@/lib/activity/log";
 import { FORBIDDEN_MESSAGE } from "@/lib/auth/errors";
 import { getActorIfRole } from "@/lib/auth/guards";
 import {
-  countOitFileReferences,
+  listOitFileReferences,
+  type OitFileReference,
   type PickerFile,
   type PickerResult,
   searchFilesByName,
@@ -18,6 +19,10 @@ import { prisma } from "@/lib/prisma";
 // and USER accounts no longer exist (decisions.md D12).
 
 export type FileActionState = { error?: string; file?: PickerFile };
+
+// Re-exported so the delete dialog can type its state without importing from
+// a module that pulls Prisma into scope.
+export type { OitFileReference };
 
 const UPLOAD_FAILED = "อัปโหลดไม่สำเร็จ โปรดลองอีกครั้ง";
 const DELETE_FAILED = "ลบไม่สำเร็จ โปรดลองอีกครั้ง";
@@ -172,22 +177,27 @@ export async function deleteFile(formData: FormData): Promise<FileActionState> {
 }
 
 /**
- * Reference count for the delete confirm dialog (F20). ADMIN+ like the rest of
- * the library. Returns 0 for a missing id or a rejected caller — the dialog
- * treats "unknown" as "no references", and the delete itself re-checks
- * everything that actually matters.
+ * OIT entries referencing a file, for the delete confirm dialog (F20). ADMIN+
+ * like the rest of the library. Returns [] for a missing id or a rejected
+ * caller — the dialog treats "unknown" as "no references", and the delete
+ * itself re-checks everything that actually matters.
  */
-export async function fileReferenceCount(fileId: number): Promise<number> {
+export async function fileReferences(fileId: number): Promise<OitFileReference[]> {
   const user = await getActorIfRole("ADMIN", "SUPERADMIN");
-  if (!user) return 0;
+  if (!user) return [];
 
   const parsed = z.coerce.number().int().positive().safeParse(fileId);
-  if (!parsed.success) return 0;
+  if (!parsed.success) return [];
 
-  const file = await prisma.itaFile.findUnique({
-    where: { id: parsed.data },
-    select: { path: true },
-  });
-  if (!file) return 0;
-  return countOitFileReferences(file.path);
+  try {
+    const file = await prisma.itaFile.findUnique({
+      where: { id: parsed.data },
+      select: { path: true },
+    });
+    if (!file) return [];
+    return await listOitFileReferences(file.path);
+  } catch (error) {
+    console.error("[file] fileReferences failed", error);
+    return [];
+  }
 }

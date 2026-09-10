@@ -30,6 +30,10 @@ export function FileUploader({
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [name, setName] = useState("");
+  // The name derived from the current file, or null once the user types their
+  // own. Tells a file swap that the field still holds the auto-fill (safe to
+  // replace) rather than something worth keeping.
+  const [autoName, setAutoName] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -45,12 +49,12 @@ export function FileUploader({
     }
     setError(null);
     setFile(f);
-    // Auto-fill name from filename (without extension) if the user has not
-    // typed one — matches Lovable, and means drag-drop is a one-field action.
-    if (!name.trim()) {
-      const dot = f.name.lastIndexOf(".");
-      setName(dot > 0 ? f.name.slice(0, dot) : f.name);
-    }
+    const dot = f.name.lastIndexOf(".");
+    const derived = dot > 0 ? f.name.slice(0, dot) : f.name;
+    // Follow the file: swapping picks replaces the auto-filled name, but a
+    // name the user typed over it survives the swap.
+    if (!name.trim() || name === autoName) setName(derived);
+    setAutoName(derived);
   }
 
   function submit() {
@@ -79,6 +83,7 @@ export function FileUploader({
         toast.success(`อัปโหลด "${trimmedName}" แล้ว`);
         // Reset for the next upload.
         setName("");
+        setAutoName(null);
         setFile(null);
         setError(null);
         if (inputRef.current) inputRef.current.value = "";
