@@ -61,6 +61,7 @@ export default async function EditOitPage({ params }: Props) {
         oit={{ id: oit.id, title: oit.title, link: oit.link, content: oit.content }}
         recentFiles={recent.files}
         totalFiles={recent.total}
+        totalPages={recent.totalPages}
         fileAccept={fileAccept}
         fileMaxSizeMb={fileMaxSizeMb}
       />

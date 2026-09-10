@@ -61,6 +61,7 @@ export default async function CreateOitPage({ params }: Props) {
         year={ita.year}
         recentFiles={recent.files}
         totalFiles={recent.total}
+        totalPages={recent.totalPages}
         fileAccept={fileAccept}
         fileMaxSizeMb={fileMaxSizeMb}
       />

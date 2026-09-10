@@ -52,6 +52,7 @@ export function TiptapEditor({
   maxChars,
   recentFiles,
   totalFiles,
+  totalPages,
   fileAccept,
   fileMaxSizeMb,
 }: {
@@ -62,6 +63,8 @@ export function TiptapEditor({
   recentFiles: PickerFile[];
   /** Total matches, forwarded to the picker. */
   totalFiles: number;
+  /** Pages behind `recentFiles`, forwarded to the picker's pager. */
+  totalPages: number;
   /** `accept` for the picker's inline upload — same value the page passes to FileUploadDialog. */
   fileAccept: string;
   /** Mirrors MAX_FILE_SIZE_BYTES for the picker's inline upload pre-check. */
@@ -414,6 +417,7 @@ export function TiptapEditor({
         onPick={insertFile}
         recentFiles={recentFiles}
         totalFiles={totalFiles}
+        totalPages={totalPages}
         accept={fileAccept}
         maxSizeMb={fileMaxSizeMb}
         defaultLabel={pickerDefaultLabel}

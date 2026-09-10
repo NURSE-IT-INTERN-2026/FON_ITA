@@ -66,40 +66,41 @@ export async function listFiles(page: number, search?: string): Promise<FilePage
   return { files, page: current, totalPages, total };
 }
 
-/** How many matches the OIT file picker shows before asking for a narrower term. */
-export const PICKER_LIMIT = 8;
+/** Rows per page in the OIT file picker — same 15 as every other list in the
+    app (FILES_PER_PAGE, USERS_PER_PAGE) so the pager feels uniform. */
+export const PICKER_LIMIT = 15;
 
 export type PickerResult = {
   files: PickerFile[];
   /** Matches in total, not just the ones returned. */
   total: number;
+  page: number;
+  totalPages: number;
 };
 
 /**
- * Name search for the picker in the OIT editor (F21).
+ * Paged name search for the picker in the OIT editor (F21).
  *
- * Returns the total alongside the capped list. Without it the picker cannot say
- * that it is showing a slice: a search for "การ" matches 75 of the 116 migrated
- * files, and eight results with no further explanation read as "that is all
- * there is" — which ends with someone uploading a copy of a file already in the
- * library.
+ * `page` is clamped the same way as listFiles — it arrives from the dialog, and
+ * an out-of-range value would otherwise show an empty list with no way back.
  */
-export async function searchFilesByName(search: string): Promise<PickerResult> {
+export async function searchFilesByName(search: string, page = 1): Promise<PickerResult> {
   const where = nameFilter(search);
+  const total = await prisma.itaFile.count({ where });
+  const totalPages = Math.max(1, Math.ceil(total / PICKER_LIMIT));
+  const current = Math.min(Math.max(1, page), totalPages);
 
-  const [files, total] = await Promise.all([
-    prisma.itaFile.findMany({
-      where,
-      // Same tie problem as listFiles: without this, *which* 8 of a tied group
-      // the picker shows could change between two identical searches.
-      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-      take: PICKER_LIMIT,
-      select: { id: true, name: true, path: true, createdBy: true, createdAt: true },
-    }),
-    prisma.itaFile.count({ where }),
-  ]);
+  const files = await prisma.itaFile.findMany({
+    where,
+    // Same tie problem as listFiles: without this, *which* rows of a tied
+    // group the picker shows could change between two identical searches.
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    skip: (current - 1) * PICKER_LIMIT,
+    take: PICKER_LIMIT,
+    select: { id: true, name: true, path: true, createdBy: true, createdAt: true },
+  });
 
-  return { files, total };
+  return { files, total, page: current, totalPages };
 }
 
 export type PickerFile = {

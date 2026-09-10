@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, FileImage, Link2, Search, Upload } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, FileImage, Link2, Search, Upload } from "lucide-react";
 import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { searchFiles, uploadFile } from "@/actions/file";
@@ -44,6 +44,7 @@ export function FilePickerDialog({
   onPick,
   recentFiles,
   totalFiles,
+  totalPages,
   accept,
   maxSizeMb,
   defaultLabel,
@@ -63,6 +64,10 @@ export function FilePickerDialog({
   recentFiles: PickerFile[];
   /** Matches behind `recentFiles` — the list is capped at PICKER_LIMIT. */
   totalFiles: number;
+  /** Pages behind `recentFiles` at PICKER_LIMIT rows each — computed on the
+      server, because the constant lives next to Prisma and must not cross
+      into a client bundle. */
+  totalPages: number;
   /** e.g. ".png,.jpg,.pdf" — built from the same env list the server uses. */
   accept: string;
   /** Mirrors MAX_FILE_SIZE_BYTES so the client can pre-check before upload. */
@@ -74,6 +79,8 @@ export function FilePickerDialog({
   const [files, setFiles] = useState<PickerFile[]>(recentFiles);
   // How many matched in total, not how many are on screen.
   const [total, setTotal] = useState(totalFiles);
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(totalPages);
   const [selected, setSelected] = useState<PickerFile | null>(null);
   const [label, setLabel] = useState("");
   const [searchPending, startSearchTransition] = useTransition();
@@ -87,11 +94,13 @@ export function FilePickerDialog({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  function runSearch(value: string) {
+  function runSearch(value: string, nextPage: number) {
     startSearchTransition(async () => {
-      const result = await searchFiles(value);
+      const result = await searchFiles(value, nextPage);
       setFiles(result.files);
       setTotal(result.total);
+      setPage(result.page);
+      setPages(result.totalPages);
     });
   }
 
@@ -101,6 +110,8 @@ export function FilePickerDialog({
     setTerm("");
     setFiles(recentFiles);
     setTotal(totalFiles);
+    setPage(1);
+    setPages(totalPages);
     setSelected(null);
     setLabel("");
     setUploadError(null);
@@ -112,8 +123,10 @@ export function FilePickerDialog({
 
   function onChange(value: string) {
     setTerm(value);
+    // A new term is a new result set — browsing resumes from its first page.
+    setPage(1);
     if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => runSearch(value), DEBOUNCE_MS);
+    timer.current = setTimeout(() => runSearch(value, 1), DEBOUNCE_MS);
   }
 
   function pickFile(file: PickerFile) {
@@ -168,8 +181,11 @@ export function FilePickerDialog({
         setUploadError(null);
         if (result.file) {
           toast.success(`อัปโหลด "${result.file.name}" แล้ว`);
-          // Prepend so the new file is the top hit and can be picked in one click.
-          setFiles((prev) => [result.file!, ...prev.filter((f) => f.id !== result.file!.id)]);
+          // Jump to page 1 of the unfiltered list — the new file is the newest
+          // row, so it sits on top and can be picked in one click. Refetching
+          // (rather than prepending locally) keeps the pager's counts honest.
+          setTerm("");
+          runSearch("", 1);
           // Reset the inline form, keep the picker on the list step.
           setUploadName("");
           setUploadFileObj(null);
@@ -301,15 +317,37 @@ export function FilePickerDialog({
               )}
             </div>
 
-            {/* The list is capped server-side. Saying so is the difference
-                between "there are only these" and "there are more" — a search
-                for a common word matches most of the library, and without this
-                line the reader concludes the file is missing and uploads it
-                again, which the unique name constraint then refuses. */}
-            {total > files.length && (
-              <p className="mt-1.5 text-center text-xs text-muted-foreground">
-                แสดง {files.length} จาก {total} รายการ — พิมพ์ให้เจาะจงขึ้นเพื่อดูรายการที่เหลือ
-              </p>
+            {/* Browsing the rest of the library used to require a narrower
+                search term — with 100+ files that pushed staff toward
+                re-uploading something they could not find. The pager makes the
+                full list reachable, and its total says "there are more" without
+                another word. */}
+            {pages > 1 && (
+              <div className="mt-1.5 flex items-center justify-between gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={page <= 1 || searchPending}
+                  onClick={() => runSearch(term, page - 1)}
+                >
+                  <ChevronLeft className="size-4" aria-hidden />
+                  ก่อนหน้า
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  หน้า {page} / {pages} · ทั้งหมด {total} รายการ
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={page >= pages || searchPending}
+                  onClick={() => runSearch(term, page + 1)}
+                >
+                  ถัดไป
+                  <ChevronRight className="size-4" aria-hidden />
+                </Button>
+              </div>
             )}
 
             {/* Inline uploader. Drag-drop + click-to-pick like the standalone

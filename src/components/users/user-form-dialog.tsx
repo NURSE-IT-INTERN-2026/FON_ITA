@@ -359,7 +359,7 @@ function UserFormDialog({
               <span className="inline-flex items-center gap-1.5">
                 <KeyRound className="size-3.5" aria-hidden />
                 {editMode ? "ตั้งรหัสผ่านใหม่" : "ตั้งรหัสผ่านสำรอง"}
-                <span className="text-xs">(ไม่จำเป็น)</span>
+                <span className="text-xs">(ไม่บังคับ)</span>
               </span>
             </summary>
             <PasswordField

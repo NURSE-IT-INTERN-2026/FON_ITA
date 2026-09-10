@@ -94,27 +94,29 @@ export async function uploadFile(formData: FormData): Promise<FileActionState> {
 }
 
 /**
- * Name search for the file picker in the OIT editor (F21).
+ * Paged name search for the file picker in the OIT editor (F21).
  *
  * ADMIN+ like the rest of the library: it is a browsing surface over the same
  * data, and only editors can reach the editor it lives in. Returns an empty
  * list rather than an error, so the picker has nothing to leak.
  */
-export async function searchFiles(term: string): Promise<PickerResult> {
+export async function searchFiles(term: string, page = 1): Promise<PickerResult> {
   const user = await getActorIfRole("ADMIN", "SUPERADMIN");
-  if (!user) return { files: [], total: 0 };
+  if (!user) return { files: [], total: 0, page: 1, totalPages: 1 };
 
-  const parsed = z.string().max(255).safeParse(term);
-  if (!parsed.success) return { files: [], total: 0 };
+  const parsed = z
+    .object({ term: z.string().max(255), page: z.coerce.number().int().min(1).max(10_000) })
+    .safeParse({ term, page });
+  if (!parsed.success) return { files: [], total: 0, page: 1, totalPages: 1 };
 
   try {
-    return await searchFilesByName(parsed.data);
+    return await searchFilesByName(parsed.data.term, parsed.data.page);
   } catch (error) {
     // The picker opens mid-edit inside the OIT form — an error here must not
     // take the surrounding form down with it. An empty result degrades the
     // picker alone.
     console.error("[file] searchFiles failed", error);
-    return { files: [], total: 0 };
+    return { files: [], total: 0, page: 1, totalPages: 1 };
   }
 }
 

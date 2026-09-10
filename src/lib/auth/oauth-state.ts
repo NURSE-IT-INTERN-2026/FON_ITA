@@ -9,7 +9,7 @@ import { SESSION_COOKIE_PATH, SESSION_COOKIE_SAMESITE } from "@/lib/auth/session
 // into the attacker's account.
 
 // Prefixed because cookies are host-scoped, not port-scoped: another app on
-// localhost (e.g. research_tools) plants `oauth_state` at path=/, and Next.js
+// localhost (e.g. a local prototype) plants `oauth_state` at path=/, and Next.js
 // resolves duplicate cookie names last-wins — the foreign path=/ cookie would
 // shadow ours and every CMU login would die with oauth_state_mismatch.
 const OAUTH_STATE_COOKIE = "fonita_oauth_state";
