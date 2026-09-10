@@ -164,6 +164,11 @@ export function FilePickerDialog({
     // `uploadFileObj` chip still showed a filename — the next click would then
     // submit with no file at all.
     event.preventDefault();
+    // This form lives inside the OIT form in the React tree (the dialog portal
+    // does not stop React's synthetic bubbling), so without this the OIT form's
+    // own submit handler also fires — silently saving the OIT mid-edit and
+    // navigating away, which unmounts the dialog right after the upload.
+    event.stopPropagation();
     const formData = new FormData(event.currentTarget);
     const file = formData.get("file");
     if (file instanceof File && file.size > mbToBytes(maxSizeMb)) {

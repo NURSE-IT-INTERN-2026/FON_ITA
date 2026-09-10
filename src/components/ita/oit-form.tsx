@@ -69,6 +69,11 @@ export function OitForm({
    * already gone. Building the FormData ourselves keeps the values put.
    */
   function submit(event: React.FormEvent<HTMLFormElement>) {
+    // Only act on this form's own submissions. The picker's inline uploader is
+    // a nested <form> inside this one in the React tree, and its submit event
+    // bubbles up to this handler — handling it here would save the OIT and
+    // navigate away mid-upload.
+    if (event.target !== event.currentTarget) return;
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
 

@@ -21,7 +21,7 @@ export function PublicHero() {
   return (
     <>
       <section className="flex h-full flex-col overflow-hidden">
-        <div className="relative w-full min-h-55 overflow-hidden bg-warm-surface dark:bg-accent/35 sm:min-h-75 lg:min-h-105 xl:min-h-125">
+        <div className="relative aspect-[4/1] max-h-88 min-h-55 w-full overflow-hidden">
           {!errored ? (
             <button
               type="button"
@@ -33,21 +33,20 @@ export function PublicHero() {
               <img
                 src={typeof heroImage === "string" ? heroImage : heroImage.src}
                 alt="คณะพยาบาลศาสตร์ มหาวิทยาลัยเชียงใหม่"
-                className="h-full w-full object-contain object-center"
+                className="h-full w-full object-fill"
                 loading="eager"
                 // The hero is the LCP element of every visit — the browser
                 // should not queue it behind anything else.
                 fetchPriority="high"
                 onError={() => setErrored(true)}
               />
-              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-linear-to-t from-warm-surface via-warm-soft/70 to-transparent dark:from-background dark:via-background/70 sm:h-16" />
               <span className="pointer-events-none absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-black/55 px-3 py-1.5 text-xs font-medium text-white opacity-0 backdrop-blur transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
                 <ZoomIn className="size-3.5" aria-hidden />
                 ขยาย
               </span>
             </button>
           ) : (
-            <div className="absolute inset-0 flex items-center justify-center bg-linear-to-br from-warm-soft via-warm-surface to-background dark:from-accent/60 dark:via-accent/35 dark:to-background">
+            <div className="absolute inset-0 flex items-center justify-center bg-muted">
               <span className="px-4 text-center text-sm text-muted-foreground sm:text-base">
                 คณะพยาบาลศาสตร์ มหาวิทยาลัยเชียงใหม่
               </span>

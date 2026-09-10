@@ -95,7 +95,9 @@ export function TiptapEditor({
 
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      // StarterKit ships Link since v3 — disable it so the explicit Link below
+      // stays the only registration (duplicate names warn in the console).
+      StarterKit.configure({ link: false }),
       Link.configure({ openOnClick: false, HTMLAttributes: { rel: "noopener noreferrer" } }),
       TextAlign.configure({ types: ["heading", "paragraph"] }),
     ],

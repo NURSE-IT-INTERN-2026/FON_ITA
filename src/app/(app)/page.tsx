@@ -29,10 +29,8 @@ export default async function HomePage() {
 
   return (
     <div className="space-y-6 pb-8 sm:space-y-8 lg:space-y-10 lg:pb-12">
-      <section className="relative left-1/2 right-1/2 mx-[-50vw] w-screen border-b border-stone-200 bg-linear-to-b from-warm-surface via-background to-warm-soft/70 shadow-[0_18px_45px_-38px_rgba(84,52,28,0.45)] dark:border-border/70 dark:from-background dark:via-background dark:to-accent/30 dark:shadow-[0_20px_48px_-38px_rgba(0,0,0,0.72)]">
-        <div className="mx-auto max-w-[1800px]">
-          <PublicHero />
-        </div>
+      <section className="relative left-1/2 right-1/2 mx-[-50vw] w-screen border-b border-stone-200 dark:border-border/70">
+        <PublicHero />
       </section>
 
       <section className="mx-auto w-full max-w-5xl space-y-5 px-1 sm:px-0">
