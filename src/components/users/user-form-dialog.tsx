@@ -181,6 +181,14 @@ function PasswordField({
   );
 }
 
+/**
+ * `open` gates whether `<UserForm>` is even mounted, so its password/role/error
+ * state cannot survive a close — no manual reset code needed. The success path,
+ * Cancel, Escape and an overlay click all end up here through the same
+ * `onOpenChange(false)`, which was the gap before: only the Escape/overlay path
+ * ran the old reset block, so the other two carried a stale password forward
+ * into the next account created or edited.
+ */
 function UserFormDialog({
   open,
   onOpenChange,
@@ -189,6 +197,22 @@ function UserFormDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
   user?: EditableUser;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        {open && <UserForm user={user} onOpenChange={onOpenChange} />}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function UserForm({
+  user,
+  onOpenChange,
+}: {
+  user?: EditableUser;
+  onOpenChange: (open: boolean) => void;
 }) {
   const editMode = !!user;
   const [error, setError] = useState<string | null>(null);
@@ -218,31 +242,14 @@ function UserFormDialog({
         setError(result.error);
         return;
       }
-      setError(null);
       onOpenChange(false);
       toast.success(editMode ? "บันทึกการแก้ไขแล้ว" : "เพิ่มผู้ใช้แล้ว");
     });
   }
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(next) => {
-        // The `key` on <form> remounts the inputs, but this state sits above it
-        // and would otherwise survive a close — reopening would carry a stale
-        // password and role over from the previous session.
-        if (!next) {
-          setError(null);
-          setPassword("");
-          setRole(user?.role ?? "ADMIN");
-        }
-        onOpenChange(next);
-      }}
-    >
-      <DialogContent>
-        {/* key remounts the form on each open so nothing is left over. */}
-        <form key={open ? "open" : "closed"} onSubmit={handleSubmit} className="space-y-4">
-          <DialogHeader>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <DialogHeader>
             <DialogTitle>{editMode ? "แก้ไขผู้ใช้" : "เพิ่มผู้ใช้"}</DialogTitle>
             <DialogDescription>
               {editMode
@@ -394,8 +401,6 @@ function UserFormDialog({
               {pending ? "กำลังบันทึก…" : "บันทึก"}
             </Button>
           </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    </form>
   );
 }
