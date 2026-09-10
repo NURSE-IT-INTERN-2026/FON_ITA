@@ -22,18 +22,15 @@ import { nameField } from "@/lib/users/validation";
 //   • New accounts are ADMIN or SUPERADMIN only. USER exists in the enum for
 //     legacy rows (D12) and is offered only when editing an account that is
 //     already USER — never as a way to create one.
-//   • Disabling (`status = false`) is the reversible way to retire an account.
-//     Hard delete (deleteUser, D26) exists for rows that should be gone for
-//     good: files it uploaded stay in the library (`userId` → null, `createdBy`
-//     keeps the name), audit-log rows keep their recorded text (`actorId` →
-//     null), and its sessions go with it.
+//   • Disabling (`status = false`) is the only way to retire an account —
+//     reversible, keeps every reference intact. Hard delete was removed
+//     entirely (D26 repealed 10 ก.ย. 2569): no button, no action.
 
 export type UserActionState = { error?: string };
 
 const SAVE_FAILED = "บันทึกไม่สำเร็จ โปรดลองอีกครั้ง";
 const DISABLE_FAILED = "ปิดใช้งานไม่สำเร็จ โปรดลองอีกครั้ง";
 const RESTORE_FAILED = "เปิดใช้งานไม่สำเร็จ โปรดลองอีกครั้ง";
-const DELETE_FAILED = "ลบไม่สำเร็จ โปรดลองอีกครั้ง";
 
 /**
  * Only CMU addresses may be registered.
@@ -333,46 +330,5 @@ export async function restoreUser(formData: FormData): Promise<UserActionState> 
   } catch (error) {
     console.error("[user] restoreUser failed", error);
     return { error: RESTORE_FAILED };
-  }
-}
-
-/**
- * Hard-delete an account (D26). Sessions go with it (FK cascade); files it
- * uploaded stay in the library with `userId` nulled — `createdBy` still names
- * the uploader — and its audit-log rows keep their recorded text with `actorId`
- * nulled.
- *
- * No password confirmation (D23, fully repealed 26 ส.ค. 2569): the confirmation
- * dialog on the button is the guard against a slip.
- */
-export async function deleteUser(formData: FormData): Promise<UserActionState> {
-  const actor = await getActorIfRole("SUPERADMIN");
-  if (!actor) return { error: FORBIDDEN_MESSAGE };
-
-  const parsed = idSchema.safeParse({ id: formData.get("id") });
-  if (!parsed.success) return { error: "คำขอไม่ถูกต้อง" };
-
-  try {
-    const target = await prisma.user.findUnique({ where: { id: parsed.data.id } });
-    if (!target) return { error: "ไม่พบบัญชีที่ต้องการลบ" };
-    if (target.id === actor.id) return { error: "ลบบัญชีของตนเองไม่ได้" };
-
-    const superadminGuard = await guardLastSuperadmin(
-      target.role === "SUPERADMIN" && target.status,
-    );
-    if (superadminGuard) return superadminGuard;
-
-    await prisma.user.delete({ where: { id: target.id } });
-
-    await logActivity(actor, "user.delete", {
-      target: `${target.firstname} ${target.lastname}`.trim(),
-      detail: target.email,
-    });
-
-    revalidatePath("/user-management");
-    return {};
-  } catch (error) {
-    console.error("[user] deleteUser failed", error);
-    return { error: DELETE_FAILED };
   }
 }

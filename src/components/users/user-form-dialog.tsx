@@ -247,7 +247,7 @@ function UserFormDialog({
             <DialogDescription>
               {editMode
                 ? "อีเมลและบัญชี CMU แก้ไขไม่ได้ เพราะเป็นตัวระบุตัวตนที่ใช้ล็อกอิน"
-                : "บัญชี CMU จะถูกตั้งจากส่วนหน้า @ ของอีเมลโดยอัตโนมัติ"}
+                : ""}
             </DialogDescription>
           </DialogHeader>
 
