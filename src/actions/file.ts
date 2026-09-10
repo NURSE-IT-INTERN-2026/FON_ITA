@@ -5,7 +5,12 @@ import { z } from "zod";
 import { logActivity } from "@/lib/activity/log";
 import { FORBIDDEN_MESSAGE } from "@/lib/auth/errors";
 import { getActorIfRole } from "@/lib/auth/guards";
-import { type PickerFile, type PickerResult, searchFilesByName } from "@/lib/files/queries";
+import {
+  countOitFileReferences,
+  type PickerFile,
+  type PickerResult,
+  searchFilesByName,
+} from "@/lib/files/queries";
 import { checkUpload, deleteUpload, saveUpload } from "@/lib/files/storage";
 import { prisma } from "@/lib/prisma";
 
@@ -67,7 +72,7 @@ export async function uploadFile(formData: FormData): Promise<FileActionState> {
 
       await logActivity(user, "file.upload", {
         target: name,
-        detail: `เก็บเป็น ${storedName}`,
+        detail: `ไฟล์บนดิสก์: ${storedName}`,
       });
 
       revalidatePath("/ita-file");
@@ -155,7 +160,7 @@ export async function deleteFile(formData: FormData): Promise<FileActionState> {
       // Worth recording when a SUPERADMIN removes someone else's upload — that is
       // the case anyone reading the log later will want explained.
       detail:
-        file.userId === user.id ? `เก็บเป็น ${file.path}` : `อัปโหลดโดย ${file.createdBy}`,
+        file.userId === user.id ? `ลบไฟล์บนดิสก์: ${file.path}` : `อัปโหลดโดย ${file.createdBy}`,
     });
 
     revalidatePath("/ita-file");
@@ -164,4 +169,25 @@ export async function deleteFile(formData: FormData): Promise<FileActionState> {
     console.error("[file] deleteFile failed", error);
     return { error: DELETE_FAILED };
   }
+}
+
+/**
+ * Reference count for the delete confirm dialog (F20). ADMIN+ like the rest of
+ * the library. Returns 0 for a missing id or a rejected caller — the dialog
+ * treats "unknown" as "no references", and the delete itself re-checks
+ * everything that actually matters.
+ */
+export async function fileReferenceCount(fileId: number): Promise<number> {
+  const user = await getActorIfRole("ADMIN", "SUPERADMIN");
+  if (!user) return 0;
+
+  const parsed = z.coerce.number().int().positive().safeParse(fileId);
+  if (!parsed.success) return 0;
+
+  const file = await prisma.itaFile.findUnique({
+    where: { id: parsed.data },
+    select: { path: true },
+  });
+  if (!file) return 0;
+  return countOitFileReferences(file.path);
 }

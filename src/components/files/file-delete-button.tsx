@@ -1,9 +1,9 @@
 "use client";
 
 import { Trash2 } from "lucide-react";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { deleteFile } from "@/actions/file";
+import { deleteFile, fileReferenceCount } from "@/actions/file";
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -19,6 +19,22 @@ import { Button } from "@/components/ui/button";
 export function FileDeleteButton({ fileId, name }: { fileId: number; name: string }) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
+  // How many OIT entries link to this file, fetched when the dialog opens so
+  // the warning reflects the live state, not a guess. null = still loading.
+  const [references, setReferences] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    fileReferenceCount(fileId)
+      .then((count) => {
+        if (!cancelled) setReferences(count);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [open, fileId]);
 
   function confirm() {
     startTransition(async () => {
@@ -36,7 +52,15 @@ export function FileDeleteButton({ fileId, name }: { fileId: number; name: strin
 
   return (
     <>
-      <Button variant="ghost" size="icon" aria-label={`ลบ ${name}`} onClick={() => setOpen(true)}>
+      <Button
+        variant="ghost"
+        size="icon"
+        aria-label={`ลบ ${name}`}
+        onClick={() => {
+          setReferences(null);
+          setOpen(true);
+        }}
+      >
         <Trash2 className="size-4 text-destructive" aria-hidden />
       </Button>
 
@@ -45,8 +69,16 @@ export function FileDeleteButton({ fileId, name }: { fileId: number; name: strin
           <AlertDialogHeader>
             <AlertDialogTitle>ยืนยันการลบไฟล์</AlertDialogTitle>
             <AlertDialogDescription>
-              “{name}” จะถูกลบออกจากคลังและจากเซิร์ฟเวอร์ ลิงก์ที่เคยแนบไว้ใน OIT
-              จะใช้งานไม่ได้อีก การกระทำนี้ไม่สามารถย้อนกลับได้
+              {references && references > 0 ? (
+                <>
+                  “{name}” <b>ถูกอ้างอิงอยู่ในเนื้อหา OIT {references} รายการ</b> — ลบแล้วลิงก์ใน
+                  รายการเหล่านั้นจะใช้งานไม่ได้ทันที การกระทำนี้ไม่สามารถย้อนกลับได้
+                </>
+              ) : (
+                <>
+                  “{name}” จะถูกลบออกจากคลังและจากเซิร์ฟเวอร์ การกระทำนี้ไม่สามารถย้อนกลับได้
+                </>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

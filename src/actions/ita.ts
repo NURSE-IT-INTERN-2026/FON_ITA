@@ -203,10 +203,7 @@ export async function reorderIta(formData: FormData): Promise<ItaActionState> {
       ),
     );
 
-    await logActivity(user, "ita.update", {
-      target: "จัดลำดับ ITA",
-      detail: `ปี ${year}`,
-    });
+    await logActivity(user, "ita.reorder", { detail: `ปี ${year}` });
 
     revalidateItaViews(year);
     return {};

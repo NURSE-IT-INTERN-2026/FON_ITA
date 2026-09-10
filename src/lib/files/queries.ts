@@ -110,3 +110,12 @@ export type PickerFile = {
   createdBy: string;
   createdAt: Date;
 };
+
+/**
+ * How many OIT entries link to this file (F20 delete warning). Content stores
+ * the full href (`/fonita/storage/itafile/<path>`) and stored names are unique
+ * timestamp strings, so matching the path substring cannot hit anything else.
+ */
+export async function countOitFileReferences(path: string): Promise<number> {
+  return prisma.oit.count({ where: { content: { contains: path } } });
+}

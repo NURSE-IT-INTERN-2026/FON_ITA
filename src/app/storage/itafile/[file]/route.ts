@@ -16,7 +16,7 @@ import { prisma } from "@/lib/prisma";
  * these files, so requiring a session would break the published pages.
  */
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ file: string }> },
 ) {
   const { file: raw } = await params;
@@ -51,6 +51,21 @@ export async function GET(
     return new NextResponse("ไม่พบไฟล์", { status: 404 });
   }
 
+  // Revalidation, not freshness: the row lookup above runs on every request
+  // anyway, so a deleted file must 404 immediately instead of living on in
+  // browser caches until an expiry date. The ETag lets clients keep their
+  // cached copy and get a bodyless 304 while the file still exists.
+  const etag = `"${record.path}"`;
+  if (request.headers.get("if-none-match") === etag) {
+    return new NextResponse(null, {
+      status: 304,
+      headers: {
+        ETag: etag,
+        "Cache-Control": "public, max-age=0, must-revalidate",
+      },
+    });
+  }
+
   // Streamed rather than buffered: up to 10MB per request would otherwise sit
   // in memory for every concurrent download.
   const body = Readable.toWeb(createReadStream(absolute)) as ReadableStream<Uint8Array>;
@@ -65,10 +80,10 @@ export async function GET(
       "Content-Type": contentTypeFor(record.path),
       "Content-Length": String(info.size),
       "Content-Disposition": `${disposition}; filename*=UTF-8''${encodedName}`,
-      // Stored names are unique per upload and never rewritten, so a cached copy
-      // can never be stale. An hour, not a year, so that deleting a file that
-      // should not have been published takes effect soon after.
-      "Cache-Control": "public, max-age=3600",
+      // Stored names are unique per upload and never rewritten, so an ETag
+      // built from the stored name is a strong validator for the bytes.
+      ETag: etag,
+      "Cache-Control": "public, max-age=0, must-revalidate",
       // The type is derived from our own whitelist, but this makes sure no
       // browser sniffs its way to treating a file as something else.
       "X-Content-Type-Options": "nosniff",
