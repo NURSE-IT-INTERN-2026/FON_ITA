@@ -119,7 +119,7 @@ export function FileUploader({
         }}
         onClick={() => inputRef.current?.click()}
         className={cn(
-          "flex cursor-pointer flex-col items-center justify-center rounded-3xl border-2 border-dashed p-8 text-center transition-colors sm:p-10",
+          "flex cursor-pointer flex-col items-center justify-center rounded-3xl border-2 border-dashed p-6 text-center transition-colors sm:p-8",
           dragOver
             ? "border-warm bg-warm-soft dark:border-warm dark:bg-warm/18"
             : "border-border bg-warm-surface hover:bg-warm-surface-hover dark:bg-accent/30 dark:hover:bg-accent/50",

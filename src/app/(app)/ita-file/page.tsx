@@ -1,4 +1,4 @@
-import { ExternalLink, Files, HardDriveUpload, ShieldCheck } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 import type { Metadata } from "next";
 import { FileCopyUrlButton } from "@/components/files/file-copy-url-button";
 import { FileDeleteButton } from "@/components/files/file-delete-button";
@@ -6,7 +6,7 @@ import { FileSearchInput } from "@/components/files/file-search-input";
 import { FileUploader } from "@/components/files/file-uploader";
 import { PaginationNav } from "@/components/misc/pagination-nav";
 import { PageHeader } from "@/components/shell/page-header";
-import { FeaturedSurface, WarmMetricCard, WarmSectionHeading } from "@/components/shell/surfaces";
+import { FeaturedSurface, WarmSectionHeading } from "@/components/shell/surfaces";
 import {
   Table,
   TableBody,
@@ -61,32 +61,19 @@ export default async function ItaFilePage({ searchParams }: Props) {
         variant="featured"
       />
 
-      <section className="grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(280px,0.8fr)]">
-        <FileUploader accept={accept} maxSizeMb={maxSizeMb} />
-
-        <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-1">
-          <WarmMetricCard
-            label="ไฟล์ทั้งหมด"
-            value={total}
-            description="รวมไฟล์ที่พร้อมนำไปแนบในเนื้อหา OIT"
-            icon={<Files className="size-5" aria-hidden />}
-          />
-          <WarmMetricCard
-            label="ขนาดสูงสุด"
-            value={`${maxSizeMb} MB`}
-            description="ตรวจทั้งฝั่งเบราว์เซอร์และฝั่งเซิร์ฟเวอร์ก่อนบันทึกไฟล์"
-            icon={<HardDriveUpload className="size-5" aria-hidden />}
-          />
-          <WarmMetricCard
-            label="ชนิดที่รองรับ"
-            value={<span className="text-lg">{allowedExtensions().join(", ")}</span>}
-            description="คงกฎเดียวกับตัวเลือกอัปโหลดทุกหน้าของระบบ"
-            icon={<ShieldCheck className="size-5" aria-hidden />}
-          />
+      {/* Upload on the left, list on the right, split only from xl — below that
+          the 5-column table needs the full width. The uploader is the rarer
+          action (upload, glance, done), so it takes the narrow column and rides
+          along sticky while staff scroll the list. The old right-hand metric
+          cards said nothing the uploader box and the list header don't already
+          say, so they are gone. */}
+      <section className="grid items-start gap-4 xl:grid-cols-[minmax(280px,0.7fr)_minmax(0,1.9fr)]">
+        {/* top-20 clears the sticky app header (h-16) plus a gap. */}
+        <div className="xl:sticky xl:top-20">
+          <FileUploader accept={accept} maxSizeMb={maxSizeMb} />
         </div>
-      </section>
 
-      <FeaturedSurface className="p-4 sm:p-5">
+        <FeaturedSurface className="p-4 sm:p-5">
         <div className="mb-4 flex flex-col gap-3 border-b border-stone-200 pb-4 dark:border-border/70 sm:flex-row sm:items-center sm:justify-between">
           <WarmSectionHeading
             title="ค้นหาและจัดการไฟล์"
@@ -107,7 +94,11 @@ export default async function ItaFilePage({ searchParams }: Props) {
             {/* grid-cols-1 (minmax(0,1fr)) — an implicit auto track would size to
                 the card's max-content, and a nowrap filename pushes it past the
                 viewport, where the shell's overflow-x-clip makes it unreachable. */}
-            <div className="grid grid-cols-1 gap-3 md:hidden">
+            {/* Cards through lg — the 5-column table needs ~1024px before the
+                fixed columns leave the filename enough room; on tablets the
+                auto-layout table pushed the action buttons past the right
+                edge of the scroll area. */}
+            <div className="grid grid-cols-1 gap-3 lg:hidden">
               {files.map((file) => {
                 const Icon = fileIcon(file.path);
                 const canDelete = file.userId === user.id || user.role === "SUPERADMIN";
@@ -123,10 +114,10 @@ export default async function ItaFilePage({ searchParams }: Props) {
                         rel="noopener noreferrer"
                         className="min-w-0 flex-1 text-left"
                       >
-                        <span className="flex min-w-0 items-center gap-2 text-sm font-semibold text-warm-strong hover:underline dark:text-warm">
-                          <Icon className="size-4 shrink-0 text-warm" aria-hidden />
-                          <span className="truncate">{file.name}</span>
-                          <ExternalLink className="size-3 shrink-0 opacity-60" aria-hidden />
+                        <span className="flex min-w-0 items-start gap-2 text-sm font-semibold text-warm-strong hover:underline dark:text-warm">
+                          <Icon className="mt-0.5 size-4 shrink-0 text-warm" aria-hidden />
+                          <span className="min-w-0 break-words">{file.name}</span>
+                          <ExternalLink className="mt-0.5 size-3 shrink-0 opacity-60" aria-hidden />
                         </span>
                       </a>
                       <span className="rounded-full bg-card px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-warm ring-1 ring-border dark:bg-background/60 dark:text-warm dark:ring-border">
@@ -158,8 +149,11 @@ export default async function ItaFilePage({ searchParams }: Props) {
               })}
             </div>
 
-            <div className="hidden overflow-x-auto rounded-2xl border border-stone-200/80 bg-card/60 dark:border-border/80 dark:bg-background/35 md:block">
-              <Table>
+            <div className="hidden overflow-x-auto rounded-2xl border border-stone-200/80 bg-card/60 dark:border-border/80 dark:bg-background/35 lg:block">
+              {/* table-fixed makes the filename's truncate actually clamp —
+                  with auto layout the table grew to content width and shoved
+                  the action column out of view. */}
+              <Table className="table-fixed">
                 <TableHeader>
                   <TableRow>
                     <TableHead>ชื่อไฟล์</TableHead>
@@ -182,11 +176,11 @@ export default async function ItaFilePage({ searchParams }: Props) {
                             href={fileUrl(file.path)}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-2 font-medium text-primary hover:underline"
+                            className="flex items-start gap-2 font-medium text-primary hover:underline"
                           >
-                            <Icon className="size-4 shrink-0" aria-hidden />
-                            <span className="truncate">{file.name}</span>
-                            <ExternalLink className="size-3 shrink-0 opacity-60" aria-hidden />
+                            <Icon className="mt-0.5 size-4 shrink-0" aria-hidden />
+                            <span className="min-w-0 break-words">{file.name}</span>
+                            <ExternalLink className="mt-0.5 size-3 shrink-0 opacity-60" aria-hidden />
                           </a>
                         </TableCell>
                         <TableCell className="text-xs uppercase text-muted-foreground">
@@ -214,19 +208,20 @@ export default async function ItaFilePage({ searchParams }: Props) {
           </>
         )}
 
-        <PaginationNav
-          page={page}
-          totalPages={totalPages}
-          // The term rides along, or page 2 of a search would show everything.
-          hrefFor={(n) => {
-            const params = new URLSearchParams();
-            if (search) params.set("q", search);
-            if (n > 1) params.set("page", String(n));
-            const query = params.toString();
-            return query ? `/ita-file?${query}` : "/ita-file";
-          }}
-        />
-      </FeaturedSurface>
+          <PaginationNav
+            page={page}
+            totalPages={totalPages}
+            // The term rides along, or page 2 of a search would show everything.
+            hrefFor={(n) => {
+              const params = new URLSearchParams();
+              if (search) params.set("q", search);
+              if (n > 1) params.set("page", String(n));
+              const query = params.toString();
+              return query ? `/ita-file?${query}` : "/ita-file";
+            }}
+          />
+        </FeaturedSurface>
+      </section>
     </div>
   );
 }
