@@ -14,7 +14,6 @@
     "db:studio": "prisma studio",
     "db:reset": "prisma migrate reset",
     "db:seed": "tsx prisma/seed.ts",
-    "db:seed-test-users": "tsx prisma/seed-test-users.ts",
     "db:migrate-legacy": "tsx prisma/migrate-legacy.ts",
     "api:verify": "tsx scripts/verify-api-contract.ts"
   },

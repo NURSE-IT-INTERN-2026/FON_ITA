@@ -51,7 +51,14 @@ async function main() {
   try {
     // `cmu_account` is the local part of the CMU email — the field CMU OAuth
     // matches on (D6). Derived here so an OAuth login for the same person works.
-    const cmuAccount = email.split("@")[0];
+    //
+    // Only for an actual @cmu.ac.th address: `resolveCmuAccount()` never
+    // returns anything but a bare CMU local part, so deriving one the same way
+    // from a break-glass email on another domain (e.g. "admin@gmail.com" ->
+    // "admin") would let a real CMU account of that name sign in as this
+    // SUPERADMIN instead. The full email can't collide with that — it's never
+    // bare.
+    const cmuAccount = email.endsWith("@cmu.ac.th") ? email.split("@")[0] : email;
     const existing = await prisma.user.findUnique({ where: { email } });
 
     if (existing && !force) {

@@ -46,24 +46,39 @@ export async function GET(request: Request): Promise<NextResponse> {
     return failed(request, LoginError.Generic);
   }
 
-  const accessToken = await exchangeCodeForToken(cfg, code);
-  if (!accessToken) return failed(request, LoginError.TokenFailed);
+  let cmuAccount: string;
+  try {
+    const accessToken = await exchangeCodeForToken(cfg, code);
+    if (!accessToken) return failed(request, LoginError.TokenFailed);
 
-  const info = await fetchCmuBasicInfo(cfg, accessToken);
-  // The access token has done its job and is deliberately never stored.
-  if (!info) return failed(request, LoginError.UserInfoFailed);
+    const info = await fetchCmuBasicInfo(cfg, accessToken);
+    // The access token has done its job and is deliberately never stored.
+    if (!info) return failed(request, LoginError.UserInfoFailed);
 
-  const cmuAccount = resolveCmuAccount(info);
+    cmuAccount = resolveCmuAccount(info);
+  } catch (error) {
+    // A DNS/TLS blip or a non-JSON body from the CMU endpoint would otherwise
+    // surface as a raw 500 instead of a Thai message on the login page.
+    console.error("[cmu-oauth] token exchange or basicinfo failed", error);
+    return failed(request, LoginError.Generic);
+  }
 
-  // No auto-provisioning (decisions.md D6) — a CMU account only gets in if a
-  // SUPERADMIN created the row first. Otherwise every student and staff member
-  // at the university could sign in.
-  //
-  // Case-insensitive because rows created by hand may not be lowercased, while
-  // PostgreSQL compares text exactly.
-  const user = await prisma.user.findFirst({
-    where: { cmuAccount: { equals: cmuAccount, mode: "insensitive" } },
-  });
+  let user;
+  try {
+    // No auto-provisioning (decisions.md D6) — a CMU account only gets in if a
+    // SUPERADMIN created the row first. Otherwise every student and staff member
+    // at the university could sign in.
+    //
+    // Exact match, not case-insensitive: `resolveCmuAccount` and every write
+    // path already lowercase this column, and an insensitive lookup compiles to
+    // `ILIKE`, which treats `_`/`%` in the value as SQL wildcards — a real CMU
+    // account could then match a row it was never meant to (see the migration
+    // alongside this file for the one-time backfill of older rows).
+    user = await prisma.user.findUnique({ where: { cmuAccount } });
+  } catch (error) {
+    console.error("[cmu-oauth] user lookup failed", error);
+    return failed(request, LoginError.Generic);
+  }
 
   if (!user) return failed(request, LoginError.NotRegistered);
   if (!user.status) return failed(request, LoginError.AccountDisabled);

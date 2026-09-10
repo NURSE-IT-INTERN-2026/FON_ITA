@@ -77,6 +77,8 @@ export async function exchangeCodeForToken(
       grant_type: "authorization_code",
     }),
     cache: "no-store",
+    // A hung CMU endpoint would otherwise hold the callback open indefinitely.
+    signal: AbortSignal.timeout(10_000),
   });
 
   if (!res.ok) {
@@ -111,6 +113,7 @@ export async function fetchCmuBasicInfo(
   const res = await fetch(cfg.basicInfoUrl, {
     headers: { Authorization: `Bearer ${accessToken}` },
     cache: "no-store",
+    signal: AbortSignal.timeout(10_000),
   });
   if (!res.ok) {
     console.error("[cmu-oauth] basicinfo failed", res.status, res.statusText);
