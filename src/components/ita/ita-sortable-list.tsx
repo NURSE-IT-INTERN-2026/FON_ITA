@@ -2,6 +2,7 @@
 
 import {
   DndContext,
+  KeyboardSensor,
   PointerSensor,
   closestCenter,
   useSensor,
@@ -12,6 +13,7 @@ import {
   SortableContext,
   arrayMove,
   rectSortingStrategy,
+  sortableKeyboardCoordinates,
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -31,22 +33,38 @@ import type { ItaWithOits } from "@/lib/ita/queries";
  * person using the page, which makes it user-facing text — Thai, like every
  * other label in the system (CLAUDE.md). The element holding this is what
  * `aria-describedby` on each drag handle points to.
+ *
+ * A function of the current list, not a constant: the announcements speak in
+ * positions (ลำดับที่ 1–N, the numbers on the cards), and turning an id into a
+ * position needs the list. dnd-kit passes DB ids — announcing one of those as
+ * a position reads as "ลำดับที่ 23" in an eight-item list.
  */
-const A11Y = {
-  screenReaderInstructions: {
-    draggable:
-      "กด Space เพื่อเริ่มลากหัวข้อ · ใช้ปุ่มลูกศรเพื่อย้ายตำแหน่ง · กด Space อีกครั้งเพื่อวาง · กด Escape เพื่อยกเลิก",
-  },
-  announcements: {
-    onDragStart: ({ active }: { active: { id: string | number } }) =>
-      `เริ่มลากหัวข้อลำดับที่ ${active.id}`,
-    onDragOver: ({ over }: { over: { id: string | number } | null }) =>
-      over ? `ย้ายมาอยู่เหนือหัวข้อลำดับที่ ${over.id}` : "ออกนอกพื้นที่วาง",
-    onDragEnd: ({ over }: { over: { id: string | number } | null }) =>
-      over ? `วางหัวข้อที่ตำแหน่งของลำดับที่ ${over.id} แล้ว` : "ยกเลิกการลาก",
-    onDragCancel: () => "ยกเลิกการลาก ลำดับกลับไปเป็นเหมือนเดิม",
-  },
-};
+function accessibility(itas: ItaWithOits[]) {
+  const positionOf = (id: string | number) => {
+    const index = itas.findIndex((ita) => String(ita.id) === String(id));
+    return index === -1 ? null : index + 1;
+  };
+
+  return {
+    screenReaderInstructions: {
+      draggable:
+        "กด Space เพื่อเริ่มลากหัวข้อ · ใช้ปุ่มลูกศรเพื่อย้ายตำแหน่ง · กด Space อีกครั้งเพื่อวาง · กด Escape เพื่อยกเลิก",
+    },
+    announcements: {
+      onDragStart: ({ active }: { active: { id: string | number } }) =>
+        `เริ่มลากหัวข้อลำดับที่ ${positionOf(active.id) ?? active.id}`,
+      onDragOver: ({ over }: { over: { id: string | number } | null }) =>
+        over
+          ? `ย้ายมาอยู่เหนือหัวข้อลำดับที่ ${positionOf(over.id) ?? over.id}`
+          : "ออกนอกพื้นที่วาง",
+      onDragEnd: ({ over }: { over: { id: string | number } | null }) =>
+        over
+          ? `วางหัวข้อที่ตำแหน่งของลำดับที่ ${positionOf(over.id) ?? over.id} แล้ว`
+          : "ยกเลิกการลาก",
+      onDragCancel: () => "ยกเลิกการลาก ลำดับกลับไปเป็นเหมือนเดิม",
+    },
+  };
+}
 
 /**
  * Reorderable ITA list. Client Component because DnD needs event handlers; the
@@ -76,6 +94,10 @@ export function ItaSortableList({
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    // The instructions above promise Space + arrow keys — this is what makes
+    // that true. `sortableKeyboardCoordinates` makes the arrows move the item
+    // by sortable slot (down the grid), not by raw pixels.
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
   function handleDragEnd(e: DragEndEvent) {
@@ -125,7 +147,7 @@ export function ItaSortableList({
     // mismatch. A fixed id makes both sides agree.
     <DndContext
       id="ita-sortable"
-      accessibility={A11Y}
+      accessibility={accessibility(optimisticItas)}
       sensors={sensors}
       collisionDetection={closestCenter}
       onDragEnd={handleDragEnd}
