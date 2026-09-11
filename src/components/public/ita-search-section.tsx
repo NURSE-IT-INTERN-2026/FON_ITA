@@ -45,6 +45,9 @@ export function ItaSearchSection({ canManage }: { canManage: boolean }) {
 
   const [q, setQ] = useState("");
   const [years, setYears] = useState<string[]>([]);
+  // Bumped by the error state's retry button. The fetch effect keys on it, so a
+  // retry re-runs the fetch even though `target` is unchanged.
+  const [retry, setRetry] = useState(0);
   const [data, setData] = useState<{
     status: "loading" | "ready" | "error";
     year: string | null;
@@ -81,7 +84,8 @@ export function ItaSearchSection({ canManage }: { canManage: boolean }) {
   // resolved year (not on `years`) is what fetches it once instead of twice.
   const target = yearParam ?? years[0] ?? String(currentBEYear());
 
-  // The year's topics. Runs only when the target year itself changes.
+  // The year's topics. Runs when the target year itself changes, or when the
+  // reader retries a failed load.
   useEffect(() => {
     const controller = new AbortController();
 
@@ -95,7 +99,7 @@ export function ItaSearchSection({ canManage }: { canManage: boolean }) {
         setData({ status: "error", year: target, entries: [] });
       });
     return () => controller.abort();
-  }, [target]);
+  }, [target, retry]);
 
   const isSearching = q.trim().length > 0;
 
@@ -206,7 +210,19 @@ export function ItaSearchSection({ canManage }: { canManage: boolean }) {
           title="โหลดข้อมูล ITA ไม่สำเร็จ"
           description="อาจเป็นปัญหาการเชื่อมต่อชั่วคราว ลองโหลดหน้านี้ใหม่อีกครั้ง"
           action={
-            <Button onClick={() => router.refresh()} variant="secondary">
+            <Button
+              onClick={() => {
+                // Not router.refresh(): it re-renders the server components,
+                // but this section reads the Public API from the browser, and
+                // its fetch effect keys on `target`, which a refresh does not
+                // change — the button was a silent no-op. Set state here in
+                // the handler (never synchronously in the effect body), then
+                // let the effect keyed on `retry` do the fetching.
+                setData((prev) => ({ ...prev, status: "loading" }));
+                setRetry((n) => n + 1);
+              }}
+              variant="secondary"
+            >
               ลองใหม่อีกครั้ง
             </Button>
           }

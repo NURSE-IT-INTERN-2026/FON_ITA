@@ -65,12 +65,13 @@ export type OitDetail = NonNullable<Awaited<ReturnType<typeof getOit>>>;
  * Both levels are ordered explicitly. PostgreSQL makes no promise about row
  * order without ORDER BY — least of all after an UPDATE moves a row — and the
  * staff list shows OITs in sequence, so leaving it out would scramble the
- * page after every reorder.
+ * page after every reorder. `id` breaks ties: `order` has no unique
+ * constraint, so a duplicated slot must not shuffle on every request.
  */
 export async function getItasByYear(year: string): Promise<ItaWithOits[]> {
   return prisma.ita.findMany({
     where: { year },
-    orderBy: { order: "asc" },
+    orderBy: [{ order: "asc" }, { id: "asc" }],
     select: {
       id: true,
       title: true,

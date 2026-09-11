@@ -6,6 +6,7 @@ import { logActivity } from "@/lib/activity/log";
 import { FORBIDDEN_MESSAGE } from "@/lib/auth/errors";
 import { getActorIfRole } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@/generated/prisma/client";
 
 // Write side of ITA (F14). Every action re-checks the role here, not only in the
 // page: a Server Action is its own entry point and can be invoked directly,
@@ -54,14 +55,19 @@ function revalidateItaViews(year: string) {
   revalidatePath(`/ita/by-year/${year}`);
 }
 
-/** Next free slot in that year. Order is per-year, matching the list view. */
-async function nextOrder(year: string): Promise<number> {
-  const last = await prisma.ita.findFirst({
+/** Next free slot in that year, inside the caller's advisory-locked transaction. */
+async function nextOrder(tx: Prisma.TransactionClient, year: string): Promise<number> {
+  const last = await tx.ita.findFirst({
     where: { year },
     orderBy: { order: "desc" },
     select: { order: true },
   });
   return (last?.order ?? 0) + 1;
+}
+
+/** Serialise writes that claim "the next free slot" in one year. */
+async function lockYearOrder(tx: Prisma.TransactionClient, year: string): Promise<void> {
+  await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${year}))`;
 }
 
 export async function createIta(formData: FormData): Promise<ItaActionState> {
@@ -77,8 +83,15 @@ export async function createIta(formData: FormData): Promise<ItaActionState> {
   const { title, year } = parsed.data;
 
   try {
-    await prisma.ita.create({
-      data: { title, year, order: await nextOrder(year), userId: user.id },
+    // Two concurrent creates would both read the same max at READ COMMITTED
+    // and write the same slot. The advisory lock is keyed on the year and
+    // lives for this transaction only; the `id` tiebreakers on the read
+    // paths are the safety net if a slot ever still collides.
+    await prisma.$transaction(async (tx) => {
+      await lockYearOrder(tx, year);
+      await tx.ita.create({
+        data: { title, year, order: await nextOrder(tx, year), userId: user.id },
+      });
     });
 
     await logActivity(user, "ita.create", { target: title, detail: `ปี ${year}` });
@@ -111,16 +124,13 @@ export async function updateIta(formData: FormData): Promise<ItaActionState> {
     if (year !== current.year) {
       // Moved to another year: its old order belongs to the old year's sequence
       // and would collide there, so the topic goes to the end of the new year.
-      // In a transaction because the next free slot must not change underneath.
+      // Same advisory lock as createIta — the new year's next free slot must
+      // not race a concurrent create or move into that same year.
       await prisma.$transaction(async (tx) => {
-        const last = await tx.ita.findFirst({
-          where: { year },
-          orderBy: { order: "desc" },
-          select: { order: true },
-        });
+        await lockYearOrder(tx, year);
         await tx.ita.update({
           where: { id },
-          data: { title, year, order: (last?.order ?? 0) + 1 },
+          data: { title, year, order: await nextOrder(tx, year) },
         });
       });
     } else {

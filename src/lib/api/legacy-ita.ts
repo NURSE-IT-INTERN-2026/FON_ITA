@@ -103,7 +103,10 @@ export function toLegacyIta(ita: ItaRow, oits: OitRow[]): LegacyIta {
 export async function loadLegacyYear(year: string): Promise<LegacyIta[]> {
   const rows = await prisma.ita.findMany({
     where: { year },
-    orderBy: { order: "asc" },
+    // `id` tiebreaker: `order` has no unique constraint (a concurrent create
+    // can duplicate a slot), and PostgreSQL returns tied rows in either order
+    // on each request — which let the stream and this endpoint disagree.
+    orderBy: [{ order: "asc" }, { id: "asc" }],
     select: { ...ITA_SELECT, oits: { orderBy: { id: "asc" }, select: OIT_SELECT } },
   });
 

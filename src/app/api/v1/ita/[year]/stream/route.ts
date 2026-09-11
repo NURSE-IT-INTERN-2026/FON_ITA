@@ -60,7 +60,9 @@ export async function GET(
           // A year holds a dozen topics, so the extra queries are cheap.
           const itas = await prisma.ita.findMany({
             where: { year },
-            orderBy: { order: "asc" },
+            // Same `id` tiebreaker as loadLegacyYear() — stream and plain
+            // endpoint must agree on tied `order` values.
+            orderBy: [{ order: "asc" }, { id: "asc" }],
             select: ITA_SELECT,
           });
 
@@ -81,12 +83,17 @@ export async function GET(
         }
       } catch (error) {
         // The status line and headers are long gone, so there is no way to turn
-        // this into a 500. The stream ends short; the server log is the only
-        // place the reason can be recorded.
+        // this into a 500 — but ending the stream normally would make a year
+        // cut short look identical to a complete one. Erroring the controller
+        // is the one signal left: the reader's read() rejects instead of
+        // seeing a clean end-of-stream.
         console.error("[ita-stream] failed mid-stream", error);
-      } finally {
-        controller.close();
+        controller.error(error);
+        return;
       }
+      // Close only on success — close() after error() throws, and closing
+      // unconditionally would turn the failure above back into a normal EOF.
+      controller.close();
     },
   });
 

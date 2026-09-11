@@ -94,9 +94,9 @@ function PasswordField({
   onValueChange: (value: string) => void;
 }) {
   const setValue = onValueChange;
-  // Suggested passwords are shown in the clear: an unreadable one cannot be
-  // handed over, and it is not a secret the SUPERADMIN needs hidden from
-  // themselves. A typed one stays masked.
+  // Always plain text, generated or typed: this password exists to be handed
+  // to the user, and an unreadable one cannot be handed over — it is not a
+  // secret the person typing it needs hidden from themselves.
   const [suggested, setSuggested] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -125,19 +125,20 @@ function PasswordField({
         <Input
           id="user-password"
           name="password"
-          type={suggested ? "text" : "password"}
+          type="text"
           autoComplete="new-password"
           placeholder={placeholder}
           value={value}
           onChange={(event) => {
             setValue(event.target.value);
-            // Edited by hand — mask it again and stop calling it a suggestion.
+            // Edited by hand — no longer a generated suggestion, so the
+            // "แจ้งรหัสนี้" hint steps aside.
             setSuggested(false);
             setCopied(false);
           }}
           className={suggested ? "font-mono" : undefined}
         />
-        {suggested && (
+        {value !== "" && (
           <Button type="button" variant="outline" size="icon" aria-label="คัดลอกรหัสผ่าน" onClick={copy}>
             {copied ? (
               <Check className="size-4 text-primary" aria-hidden />
