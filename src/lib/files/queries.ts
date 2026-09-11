@@ -119,14 +119,19 @@ export type OitFileReference = {
 };
 
 /**
- * Which OIT entries link to this file (F20 delete warning). Content stores
- * the full href (`/fonita/storage/itafile/<path>`) and stored names are unique
- * timestamp strings, so matching the path substring cannot hit anything else.
+ * Which OIT entries link to this file (F20 delete warning). Both `content`
+ * (rich-text href) and `link` (pasted via "คัดลอกลิงก์") store the full
+ * `fileUrl()` output — `withBasePath("/storage/itafile/" + encodeURIComponent(path))`
+ * — so the needle has to be encoded and escaped the same way that value was
+ * built, not the raw `path` column: a legacy name with Thai text or spaces
+ * never appears un-encoded in either field, and an unescaped `_`/`%` in a
+ * stored name would match more rows than actually reference it.
  * Newest year first — the order staff meet these entries in on the site.
  */
 export async function listOitFileReferences(path: string): Promise<OitFileReference[]> {
+  const needle = escapeLike(`/storage/itafile/${encodeURIComponent(path)}`);
   const rows = await prisma.oit.findMany({
-    where: { content: { contains: path } },
+    where: { OR: [{ content: { contains: needle } }, { link: { contains: needle } }] },
     orderBy: [{ ita: { year: "desc" } }, { id: "asc" }],
     select: { id: true, title: true, ita: { select: { title: true, year: true } } },
   });

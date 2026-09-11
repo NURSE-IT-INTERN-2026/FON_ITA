@@ -97,9 +97,23 @@ export function TiptapEditor({
     extensions: [
       // StarterKit ships Link since v3 — disable it so the explicit Link below
       // stays the only registration (duplicate names warn in the console).
-      StarterKit.configure({ link: false }),
+      // Heading/blockquote/code/codeBlock/horizontalRule are disabled too: the
+      // toolbar never exposes them (D17 — alignment + bullets only), but
+      // Markdown shortcuts ("## ", "> ", "```") and pasted HTML would still
+      // reach them through Tiptap's schema. The editor showed the block, then
+      // `sanitizeHtml`'s allowlist silently flattened it back to a paragraph on
+      // save, so what staff saved never matched what they had just typed.
+      StarterKit.configure({
+        link: false,
+        heading: false,
+        blockquote: false,
+        code: false,
+        codeBlock: false,
+        horizontalRule: false,
+      }),
       Link.configure({ openOnClick: false, HTMLAttributes: { rel: "noopener noreferrer" } }),
-      TextAlign.configure({ types: ["heading", "paragraph"] }),
+      // "paragraph" only — "heading" no longer exists to align.
+      TextAlign.configure({ types: ["paragraph"] }),
     ],
     content: value,
     // Required under SSR: rendering on the server would mismatch on hydration.

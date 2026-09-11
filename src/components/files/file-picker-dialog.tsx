@@ -145,6 +145,11 @@ export function FilePickerDialog({
     if (!selected) return;
     const finalLabel = label.trim() || selected.name;
     onPick({ url: fileUrl(selected.path), label: finalLabel });
+    close();
+  }
+
+  /** Ends the dialog through the one path that always resets — see close(). */
+  function close() {
     reset();
     onOpenChange(false);
   }
@@ -176,12 +181,28 @@ export function FilePickerDialog({
     // own submit handler also fires — silently saving the OIT mid-edit and
     // navigating away, which unmounts the dialog right after the upload.
     event.stopPropagation();
-    const formData = new FormData(event.currentTarget);
-    const file = formData.get("file");
-    if (file instanceof File && file.size > mbToBytes(maxSizeMb)) {
+    // Built from state, not `new FormData(event.currentTarget)`: a drop only
+    // ever sets `uploadFileObj`, never the native <input type="file">, so
+    // reading the DOM form directly would submit with no file after a pure
+    // drag-drop, or silently upload a stale file still sitting in the input
+    // from an earlier click-to-pick under whatever name is now showing (a drop
+    // updates the visible name but not that input).
+    if (!uploadFileObj) {
+      setUploadError("กรุณาเลือกไฟล์");
+      return;
+    }
+    if (!uploadName.trim()) {
+      setUploadError("กรุณากรอกชื่อไฟล์");
+      return;
+    }
+    if (uploadFileObj.size > mbToBytes(maxSizeMb)) {
       setUploadError(`ไฟล์ต้องมีขนาดไม่เกิน ${maxSizeMb} MB`);
       return;
     }
+
+    const formData = new FormData();
+    formData.set("name", uploadName.trim());
+    formData.set("file", uploadFileObj);
 
     startUploadTransition(async () => {
       try {
@@ -445,7 +466,7 @@ export function FilePickerDialog({
         )}
 
         <DialogFooter>
-          <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
+          <Button type="button" variant="ghost" onClick={close}>
             ยกเลิก
           </Button>
           {selected && (

@@ -21,18 +21,26 @@ const LIST_LIMIT = 5;
 export function FileDeleteButton({ fileId, name }: { fileId: number; name: string }) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
-  // Which OIT entries link to this file, fetched when the dialog opens so
-  // the warning reflects the live state, not a guess. null = still loading.
-  const [references, setReferences] = useState<OitFileReference[] | null>(null);
+  // Which OIT entries link to this file, fetched when the dialog opens so the
+  // warning reflects the live state, not a guess. Kept apart from `references`
+  // (rather than folding "still checking" into `null`) so a failed check
+  // cannot be read as "confirmed unreferenced" — the two look identical
+  // through an empty array, and only one of them is safe to delete on.
+  const [status, setStatus] = useState<"loading" | "loaded" | "error">("loading");
+  const [references, setReferences] = useState<OitFileReference[]>([]);
 
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
     fileReferences(fileId)
       .then((entries) => {
-        if (!cancelled) setReferences(entries);
+        if (cancelled) return;
+        setReferences(entries);
+        setStatus("loaded");
       })
-      .catch(() => {});
+      .catch(() => {
+        if (!cancelled) setStatus("error");
+      });
     return () => {
       cancelled = true;
     };
@@ -59,7 +67,8 @@ export function FileDeleteButton({ fileId, name }: { fileId: number; name: strin
         size="icon"
         aria-label={`ลบ ${name}`}
         onClick={() => {
-          setReferences(null);
+          setReferences([]);
+          setStatus("loading");
           setOpen(true);
         }}
       >
@@ -71,7 +80,11 @@ export function FileDeleteButton({ fileId, name }: { fileId: number; name: strin
           <AlertDialogHeader>
             <AlertDialogTitle>ยืนยันการลบไฟล์</AlertDialogTitle>
             <AlertDialogDescription>
-              {references !== null && references.length > 0 ? (
+              {status === "error" ? (
+                <>ตรวจสอบการอ้างอิงไม่สำเร็จ — ลองปิดแล้วเปิดใหม่อีกครั้งก่อนลบ</>
+              ) : status === "loading" ? (
+                <>กำลังตรวจสอบว่า “{name}” ถูกอ้างอิงอยู่ในเนื้อหา OIT ไหม…</>
+              ) : references.length > 0 ? (
                 <>
                   “{name}” <b>ถูกอ้างอิงอยู่ในเนื้อหา OIT {references.length} รายการ</b> — ลบแล้วลิงก์ใน
                   รายการเหล่านั้นจะใช้งานไม่ได้ทันที การกระทำนี้ไม่สามารถย้อนกลับได้
@@ -83,7 +96,7 @@ export function FileDeleteButton({ fileId, name }: { fileId: number; name: strin
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          {references !== null && references.length > 0 && (
+          {status === "loaded" && references.length > 0 && (
             // Outside AlertDialogDescription on purpose: it renders a <p>, and a
             // list cannot nest inside one.
             <ul className="max-h-48 space-y-2 overflow-y-auto rounded-md border bg-muted/40 p-3 text-sm">
@@ -105,8 +118,15 @@ export function FileDeleteButton({ fileId, name }: { fileId: number; name: strin
           <AlertDialogFooter>
             <AlertDialogCancel disabled={pending}>ยกเลิก</AlertDialogCancel>
             {/* Plain Button — AlertDialogAction closes on click, hiding a failure
-                before the toast can explain it. */}
-            <Button variant="destructive" onClick={confirm} disabled={pending}>
+                before the toast can explain it. Disabled until the reference
+                check actually succeeds — deleting through a failed or
+                still-loading check is exactly the blind guess this dialog
+                exists to prevent. */}
+            <Button
+              variant="destructive"
+              onClick={confirm}
+              disabled={pending || status !== "loaded"}
+            >
               {pending ? "กำลังลบ…" : "ลบ"}
             </Button>
           </AlertDialogFooter>
