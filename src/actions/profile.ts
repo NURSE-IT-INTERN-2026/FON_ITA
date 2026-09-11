@@ -4,7 +4,12 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { logActivity } from "@/lib/activity/log";
 import { requireUser } from "@/lib/auth/guards";
-import { hashPassword, MIN_PASSWORD_LENGTH, verifyPassword } from "@/lib/auth/password";
+import {
+  hashPassword,
+  MAX_PASSWORD_LENGTH,
+  MIN_PASSWORD_LENGTH,
+  verifyPassword,
+} from "@/lib/auth/password";
 import { createSession, getSessionLoginMethod, revokeAllSessions } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import { nameField } from "@/lib/users/validation";
@@ -36,7 +41,7 @@ const passwordSchema = z
       .min(MIN_PASSWORD_LENGTH, {
         message: `รหัสผ่านใหม่ต้องมีอย่างน้อย ${MIN_PASSWORD_LENGTH} ตัวอักษร`,
       })
-      .max(200, { message: "รหัสผ่านยาวเกินไป" }),
+      .max(MAX_PASSWORD_LENGTH, { message: "รหัสผ่านยาวเกินไป" }),
     confirm: z.string(),
   })
   .refine((v) => v.next === v.confirm, {

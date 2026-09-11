@@ -14,11 +14,16 @@ const SALT_BYTES = 16;
 const KEY_BYTES = 64;
 
 /**
- * The one password-length floor, shared by user management (F24), the profile
- * page (F25) and the forced reset (F34). It lives here — with the code that
- * hashes passwords — so the three schemas cannot drift apart silently.
+ * The one password-length floor and ceiling, shared by login (F7), user
+ * management (F24), the profile page (F25) and the forced reset (F34). They
+ * live here — with the code that hashes passwords — so the schemas cannot
+ * drift apart silently. The ceiling matters because scrypt work grows with
+ * input length and the login field is unauthenticated; every path that sets a
+ * password uses the same pair, so what was accepted at set time can always be
+ * typed at login.
  */
 export const MIN_PASSWORD_LENGTH = 8;
+export const MAX_PASSWORD_LENGTH = 200;
 
 /** Stored in `User.password` as `saltHex:hashHex`. */
 export async function hashPassword(password: string): Promise<string> {

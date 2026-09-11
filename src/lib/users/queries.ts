@@ -1,3 +1,4 @@
+import { Prisma } from "@/generated/prisma/client";
 import type { AppRole } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
 
@@ -85,7 +86,13 @@ export async function listManagedUsers(page: number): Promise<ManagedUserPage> {
 /**
  * Active SUPERADMIN accounts. Used to refuse any change that would take the
  * count to zero, which would leave nobody able to manage users at all.
+ *
+ * Accepts a transaction client: the last-SUPERADMIN guard counts inside the
+ * write's transaction (under an advisory lock), so the count and the write it
+ * guards are atomic.
  */
-export async function countActiveSuperadmins(): Promise<number> {
-  return prisma.user.count({ where: { role: "SUPERADMIN", status: true } });
+export async function countActiveSuperadmins(
+  client: Prisma.TransactionClient | typeof prisma = prisma,
+): Promise<number> {
+  return client.user.count({ where: { role: "SUPERADMIN", status: true } });
 }

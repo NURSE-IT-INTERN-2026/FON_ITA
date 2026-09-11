@@ -5,10 +5,11 @@ import { z } from "zod";
 import { logActivity } from "@/lib/activity/log";
 import { FORBIDDEN_MESSAGE } from "@/lib/auth/errors";
 import { getActorIfRole } from "@/lib/auth/guards";
-import { hashPassword, MIN_PASSWORD_LENGTH } from "@/lib/auth/password";
+import { hashPassword, MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH } from "@/lib/auth/password";
 import { revokeAllSessions } from "@/lib/auth/session";
 import { roleLabel } from "@/components/misc/role-badge";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@/generated/prisma/client";
 import { countActiveSuperadmins } from "@/lib/users/queries";
 import { nameField } from "@/lib/users/validation";
 
@@ -70,6 +71,7 @@ const updateRoleField = z.enum(["ADMIN", "SUPERADMIN", "USER"], { message: "บ�
 
 const passwordField = z
   .string()
+  .max(MAX_PASSWORD_LENGTH, { message: "รหัสผ่านยาวเกินไป" })
   .refine((v) => v === "" || v.length >= MIN_PASSWORD_LENGTH, {
     message: `รหัสผ่านต้องมีอย่างน้อย ${MIN_PASSWORD_LENGTH} ตัวอักษร`,
   });
@@ -97,12 +99,21 @@ const updateSchema = z.object({
 
 const idSchema = z.object({ id: z.coerce.number().int().positive() });
 
-/** Blocks an action that would leave zero active SUPERADMIN accounts. */
+/**
+ * Blocks an action that would leave zero active SUPERADMIN accounts.
+ *
+ * Runs inside the write's own transaction, under an advisory lock: with the
+ * count and the write it guards atomic, two SUPERADMINs demoting or disabling
+ * each other at the same moment cannot both pass a count taken before either
+ * write landed — the second one re-counts after the first has committed.
+ */
 async function guardLastSuperadmin(
+  tx: Prisma.TransactionClient,
   wouldRemoveActiveSuperadmin: boolean,
 ): Promise<UserActionState | null> {
   if (!wouldRemoveActiveSuperadmin) return null;
-  if ((await countActiveSuperadmins()) > 1) return null;
+  await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext('last-superadmin'))`;
+  if ((await countActiveSuperadmins(tx)) > 1) return null;
   return { error: "ต้องมีผู้ดูแลสูงสุดที่ใช้งานได้อย่างน้อย 1 บัญชี" };
 }
 
@@ -231,22 +242,38 @@ export async function updateUser(formData: FormData): Promise<UserActionState> {
       return { error: "เปลี่ยนบทบาทของบัญชีตนเองไม่ได้" };
     }
 
-    // Someone must be left who can manage users.
-    const superadminGuard = await guardLastSuperadmin(losingSuperadmin && target.status);
-    if (superadminGuard) return superadminGuard;
+    // USER is for legacy rows only (D12): a row that already is USER stays
+    // saveable as one, but nothing can be demoted into it — the edit form never
+    // offers the role, and the role matrix gives it no meaning in this system.
+    if (role === "USER" && target.role !== "USER") {
+      return { error: "เปลี่ยนบทบาทเป็น 'ผู้ใช้ทั่วไป' ไม่ได้ — สงวนไว้สำหรับบัญชีเดิมเท่านั้น" };
+    }
 
-    await prisma.user.update({
-      where: { id },
-      data: {
-        prefix: prefix ?? null,
-        firstname,
-        lastname,
-        role,
-        ...(password
-          ? { password: await hashPassword(password), mustResetPassword: mustReset }
-          : {}),
-      },
+    // Hashed before the transaction opens: the advisory lock inside the guard
+    // serialises last-SUPERADMIN checks, and scrypt must not run while holding it.
+    const passwordHash = password ? await hashPassword(password) : null;
+
+    // The guard counts inside this transaction, so the count and the write are
+    // atomic (see guardLastSuperadmin).
+    const guard = await prisma.$transaction(async (tx) => {
+      const failure = await guardLastSuperadmin(tx, losingSuperadmin && target.status);
+      if (failure) return failure;
+
+      await tx.user.update({
+        where: { id },
+        data: {
+          prefix: prefix ?? null,
+          firstname,
+          lastname,
+          role,
+          ...(passwordHash
+            ? { password: passwordHash, mustResetPassword: mustReset }
+            : {}),
+        },
+      });
+      return null;
     });
+    if (guard) return guard;
 
     // A new password must invalidate whatever is still signed in as them —
     // otherwise resetting a compromised account changes nothing.
@@ -287,10 +314,16 @@ export async function disableUser(formData: FormData): Promise<UserActionState> 
     if (!target) return { error: "ไม่พบบัญชีที่ต้องการปิดใช้งาน" };
     if (target.id === actor.id) return { error: "ปิดใช้งานบัญชีของตนเองไม่ได้" };
 
-    const superadminGuard = await guardLastSuperadmin(target.role === "SUPERADMIN");
-    if (superadminGuard) return superadminGuard;
+    // Same transactional guard as updateUser: the count and the status write
+    // are atomic, so two concurrent disables cannot both pass it.
+    const guard = await prisma.$transaction(async (tx) => {
+      const failure = await guardLastSuperadmin(tx, target.role === "SUPERADMIN");
+      if (failure) return failure;
+      await tx.user.update({ where: { id: target.id }, data: { status: false } });
+      return null;
+    });
+    if (guard) return guard;
 
-    await prisma.user.update({ where: { id: target.id }, data: { status: false } });
     await revokeAllSessions(target.id);
 
     await logActivity(actor, "user.disable", {

@@ -27,8 +27,13 @@ export default async function LoginPage({
   if (user) redirect(getSafeRedirectPath(user.role, next));
 
   // Only render codes we recognise; an arbitrary ?error= value must not be
-  // reflected back into the page.
-  const message = error ? LOGIN_ERROR_MESSAGES[error as LoginErrorCode] : undefined;
+  // reflected back into the page. Object.hasOwn, not a truthiness check:
+  // indexing with "__proto__" yields Object.prototype, which is truthy, passes
+  // `{message && …}`, and then throws when React tries to render it.
+  const message =
+    error && Object.hasOwn(LOGIN_ERROR_MESSAGES, error)
+      ? LOGIN_ERROR_MESSAGES[error as LoginErrorCode]
+      : undefined;
 
   return (
     <main className="flex min-h-dvh items-center justify-center px-4 py-10">

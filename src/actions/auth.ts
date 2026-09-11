@@ -8,7 +8,11 @@ import {
   consumeLoginRateLimit,
   resetIdentityLoginRateLimit,
 } from "@/lib/auth/login-rate-limit";
-import { fakeVerifyDelay, verifyPassword } from "@/lib/auth/password";
+import {
+  fakeVerifyDelay,
+  MAX_PASSWORD_LENGTH,
+  verifyPassword,
+} from "@/lib/auth/password";
 import { getSafeRedirectPath } from "@/lib/auth/roles";
 import { createSession, deleteExpiredSessions } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
@@ -25,7 +29,13 @@ const loginSchema = z.object({
   // email. Lowercased because Postgres compares text case-sensitively (see
   // prisma/seed.ts); user creation (F24) normalises the same way.
   email: z.string().trim().toLowerCase().pipe(z.email({ message: "รูปแบบอีเมลไม่ถูกต้อง" })),
-  password: z.string().min(1, { message: "กรุณากรอกรหัสผ่าน" }),
+  password: z
+    .string()
+    .min(1, { message: "กรุณากรอกรหัสผ่าน" })
+    // No stored password can exceed this (every set path caps at the same
+    // constant), and an unbounded field would let a request buy scrypt work
+    // with a single huge input.
+    .max(MAX_PASSWORD_LENGTH, { message: "รหัสผ่านยาวเกินไป" }),
   // Hidden field carrying the page the proxy interrupted. Never trusted as-is —
   // getSafeRedirectPath() decides whether it is usable for this role.
   next: z.string().optional(),
@@ -60,6 +70,14 @@ export async function authenticate(
     if (!user) {
       // Burn comparable time so "no such account" is not measurably faster than
       // "wrong password" — otherwise the response time leaks which emails exist.
+      await fakeVerifyDelay();
+      return { error: INVALID_CREDENTIALS };
+    }
+
+    if (!user.password) {
+      // Same for "this account signs in through CMU only": password sign-in is
+      // impossible here, and returning that instantly would let the form
+      // discover which accounts exist but have no password to try.
       await fakeVerifyDelay();
       return { error: INVALID_CREDENTIALS };
     }
