@@ -29,6 +29,13 @@ const nextConfig: NextConfig = {
     // experimental by Next.js 16 — without this they throw instead of rendering.
     authInterrupts: true,
 
+    // Same ceiling as bodySizeLimit below, for a different gate: proxy.ts exists,
+    // so Next buffers a copy of every request body capped at its own 10MB default.
+    // A 9.9MB upload plus multipart framing crosses that default and arrived at
+    // the action truncated — the action never saw the bytes bodySizeLimit allowed
+    // through. Keep the two limits in sync.
+    proxyClientMaxBodySize: "11mb",
+
     serverActions: {
       // File uploads go through a Server Action, and the default cap is 1MB —
       // every upload over that fails before the action runs. MAX_FILE_SIZE_BYTES
